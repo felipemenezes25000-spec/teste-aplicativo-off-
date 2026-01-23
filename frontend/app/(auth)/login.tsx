@@ -162,7 +162,7 @@ export default function LoginScreen() {
             </Text>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
