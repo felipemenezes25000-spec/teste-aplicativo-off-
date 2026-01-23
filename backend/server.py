@@ -617,7 +617,7 @@ async def get_messages(request_id: str, token: str):
     user = await get_current_user(token)
     
     messages = await db.chat_messages.find({"request_id": request_id}).sort("created_at", 1).to_list(100)
-    return messages
+    return clean_mongo_doc(messages)
 
 # ============== NOTIFICATION ROUTES ==============
 
