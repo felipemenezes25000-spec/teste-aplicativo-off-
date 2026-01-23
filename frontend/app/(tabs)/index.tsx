@@ -92,11 +92,8 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       {/* Header with gradient */}
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.healthBlue]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + SIZES.md }]}
+      <View
+        style={[styles.header, { paddingTop: insets.top + SIZES.md, backgroundColor: COLORS.primary }]}
       >
         <View style={styles.headerDecor} />
         <View style={styles.headerDecor2} />
