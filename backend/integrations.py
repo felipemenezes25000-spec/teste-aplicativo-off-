@@ -39,45 +39,135 @@ class MercadoPagoService(PaymentService):
     def __init__(self):
         self.access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
         self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_'))
+        self._sdk = None
         
-    async def create_pix_payment(self, amount: float, description: str, payer_email: str) -> Dict[str, Any]:
-        if not self.is_configured:
-            # Return simulated payment for development
+        if self.is_configured:
+            try:
+                import mercadopago
+                self._sdk = mercadopago.SDK(self.access_token)
+                logger.info("MercadoPago SDK initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize MercadoPago SDK: {e}")
+                self.is_configured = False
+        
+    async def create_pix_payment(self, amount: float, description: str, payer_email: str, 
+                                  payer_name: str = "Cliente", payer_cpf: str = None) -> Dict[str, Any]:
+        if not self.is_configured or not self._sdk:
+            logger.info("MercadoPago not configured, using simulated payment")
             return self._simulate_pix_payment(amount, description)
         
-        # TODO: Implement real MercadoPago PIX payment
-        # import mercadopago
-        # sdk = mercadopago.SDK(self.access_token)
-        # payment_data = {
-        #     "transaction_amount": amount,
-        #     "description": description,
-        #     "payment_method_id": "pix",
-        #     "payer": {"email": payer_email}
-        # }
-        # result = sdk.payment().create(payment_data)
-        # return result["response"]
-        
-        return self._simulate_pix_payment(amount, description)
+        try:
+            # Create real PIX payment with MercadoPago
+            payment_data = {
+                "transaction_amount": float(amount),
+                "description": description,
+                "payment_method_id": "pix",
+                "payer": {
+                    "email": payer_email,
+                    "first_name": payer_name.split()[0] if payer_name else "Cliente",
+                    "last_name": payer_name.split()[-1] if payer_name and len(payer_name.split()) > 1 else "RenoveJá",
+                }
+            }
+            
+            # Add CPF if provided (required for some payments)
+            if payer_cpf:
+                payment_data["payer"]["identification"] = {
+                    "type": "CPF",
+                    "number": payer_cpf.replace(".", "").replace("-", "")
+                }
+            
+            logger.info(f"Creating MercadoPago PIX payment: {amount} BRL")
+            result = self._sdk.payment().create(payment_data)
+            
+            if result["status"] == 201:
+                response = result["response"]
+                
+                # Extract PIX data
+                pix_data = response.get("point_of_interaction", {}).get("transaction_data", {})
+                
+                return {
+                    "id": str(response["id"]),
+                    "status": response["status"],
+                    "status_detail": response.get("status_detail", ""),
+                    "pix_code": pix_data.get("qr_code", ""),
+                    "qr_code_base64": pix_data.get("qr_code_base64", ""),
+                    "ticket_url": pix_data.get("ticket_url", ""),
+                    "amount": float(response["transaction_amount"]),
+                    "description": description,
+                    "expires_at": response.get("date_of_expiration", "30 minutes"),
+                    "created_at": response.get("date_created", ""),
+                    "external_reference": response.get("external_reference", ""),
+                    "is_real_payment": True
+                }
+            else:
+                error_msg = result.get("response", {}).get("message", "Unknown error")
+                logger.error(f"MercadoPago payment creation failed: {error_msg}")
+                logger.error(f"Full response: {result}")
+                # Fallback to simulated on error
+                return self._simulate_pix_payment(amount, description, error=error_msg)
+                
+        except Exception as e:
+            logger.error(f"MercadoPago payment error: {e}")
+            return self._simulate_pix_payment(amount, description, error=str(e))
     
-    def _simulate_pix_payment(self, amount: float, description: str) -> Dict[str, Any]:
+    def _simulate_pix_payment(self, amount: float, description: str, error: str = None) -> Dict[str, Any]:
         """Simulate PIX payment for development/testing"""
         import uuid
         pix_code = f"00020126580014BR.GOV.BCB.PIX0136{uuid.uuid4()}5204000053039865802BR5925RENOVEJA TELEMEDICINA6009SAO PAULO62070503***6304"
         return {
             "id": str(uuid.uuid4()),
             "status": "pending",
+            "status_detail": "waiting_payment",
             "pix_code": pix_code,
-            "qr_code_base64": None,  # Would contain actual QR code image
+            "qr_code_base64": None,
             "amount": amount,
             "description": description,
-            "expires_at": "30 minutes"
+            "expires_at": "30 minutes",
+            "is_real_payment": False,
+            "simulation_reason": error or "MercadoPago not configured"
         }
     
-    async def check_payment_status(self, payment_id: str) -> str:
-        if not self.is_configured:
-            return "pending"  # Simulated
-        # TODO: Check real payment status
-        return "pending"
+    async def check_payment_status(self, payment_id: str) -> Dict[str, Any]:
+        if not self.is_configured or not self._sdk:
+            return {"status": "pending", "is_real": False}
+        
+        try:
+            result = self._sdk.payment().get(int(payment_id))
+            
+            if result["status"] == 200:
+                response = result["response"]
+                return {
+                    "id": str(response["id"]),
+                    "status": response["status"],
+                    "status_detail": response.get("status_detail", ""),
+                    "amount": float(response["transaction_amount"]),
+                    "paid_amount": float(response.get("transaction_details", {}).get("total_paid_amount", 0)),
+                    "date_approved": response.get("date_approved"),
+                    "is_real": True
+                }
+            else:
+                return {"status": "error", "message": "Payment not found", "is_real": True}
+                
+        except Exception as e:
+            logger.error(f"Error checking payment status: {e}")
+            return {"status": "error", "message": str(e), "is_real": True}
+    
+    async def cancel_payment(self, payment_id: str) -> Dict[str, Any]:
+        """Cancel a pending payment"""
+        if not self.is_configured or not self._sdk:
+            return {"success": False, "message": "MercadoPago not configured"}
+        
+        try:
+            result = self._sdk.payment().update(int(payment_id), {"status": "cancelled"})
+            
+            if result["status"] == 200:
+                return {"success": True, "message": "Payment cancelled"}
+            else:
+                return {"success": False, "message": "Could not cancel payment"}
+                
+        except Exception as e:
+            logger.error(f"Error cancelling payment: {e}")
+            return {"success": False, "message": str(e)}
 
 
 class StripeService(PaymentService):
