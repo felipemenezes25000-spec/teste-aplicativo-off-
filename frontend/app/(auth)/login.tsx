@@ -10,7 +10,6 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Logo } from '../../src/components/Logo';
 import { Input } from '../../src/components/Input';
