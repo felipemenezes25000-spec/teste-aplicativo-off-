@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (idToken: string) => Promise<{ success: boolean; error?: string }>;
   register: (data: { name: string; email: string; password: string; phone?: string }) => Promise<{ success: boolean; error?: string }>;
   registerDoctor: (data: {
     name: string;
@@ -75,6 +76,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Erro ao fazer login';
+      return { success: false, error: message };
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      const response = await authAPI.googleAuth(idToken);
+      
+      await AsyncStorage.setItem('token', response.access_token);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      
+      setToken(response.access_token);
+      setUser(response.user);
+      
+      return { success: true };
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Erro ao fazer login com Google';
       return { success: false, error: message };
     }
   };
@@ -146,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!token && !!user,
         isLoading,
         login,
+        loginWithGoogle,
         register,
         registerDoctor,
         logout,
