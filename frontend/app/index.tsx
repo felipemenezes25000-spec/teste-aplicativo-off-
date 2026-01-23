@@ -73,7 +73,7 @@ export default function SplashScreen() {
       <Animated.Text style={[styles.footer, { opacity: fadeAnim }]}>
         Telemedicina simplificada
       </Animated.Text>
-    </LinearGradient>
+    </View>
   );
 }
 
