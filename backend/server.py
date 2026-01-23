@@ -366,6 +366,108 @@ async def logout(token: str):
         del active_tokens[token]
     return {"message": "Logout realizado com sucesso"}
 
+# ============== GOOGLE AUTH ==============
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+    access_token: Optional[str] = None
+
+@api_router.post("/auth/google", response_model=Token)
+async def google_auth(data: GoogleAuthRequest):
+    """Authenticate user with Google OAuth"""
+    import httpx
+    
+    try:
+        # Verify the Google token
+        async with httpx.AsyncClient() as client:
+            # Get user info from Google
+            response = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {data.id_token}"}
+            )
+            
+            if response.status_code != 200:
+                # Try with tokeninfo endpoint
+                response = await client.get(
+                    f"https://oauth2.googleapis.com/tokeninfo?id_token={data.id_token}"
+                )
+                
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Token do Google inválido")
+            
+            google_user = response.json()
+        
+        # Extract user info
+        email = google_user.get("email")
+        name = google_user.get("name") or google_user.get("given_name", "Usuário")
+        picture = google_user.get("picture")
+        google_id = google_user.get("sub")
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não fornecido pelo Google")
+        
+        # Check if user exists
+        existing_user = await db.users.find_one({"email": email})
+        
+        if existing_user:
+            # User exists - login
+            user_id = existing_user["id"]
+            
+            # Update avatar if not set
+            if not existing_user.get("avatar_url") and picture:
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"avatar_url": picture, "google_id": google_id}}
+                )
+            
+            user_data = existing_user
+        else:
+            # Create new user
+            user = User(
+                name=name,
+                email=email,
+                avatar_url=picture,
+                role="patient"
+            )
+            user_dict = user.dict()
+            user_dict["google_id"] = google_id
+            user_dict["password_hash"] = ""  # No password for Google users
+            
+            await db.users.insert_one(user_dict)
+            user_data = user_dict
+            user_id = user.id
+        
+        # Generate token
+        token = generate_token()
+        active_tokens[token] = user_id
+        
+        # Get doctor profile if exists
+        doctor_profile = None
+        if user_data.get("role") == "doctor":
+            dp = await db.doctor_profiles.find_one({"user_id": user_id})
+            doctor_profile = clean_mongo_doc(dp)
+        
+        return Token(
+            access_token=token,
+            user={
+                "id": user_id,
+                "name": user_data.get("name", name),
+                "email": email,
+                "phone": user_data.get("phone"),
+                "cpf": user_data.get("cpf"),
+                "role": user_data.get("role", "patient"),
+                "avatar_url": user_data.get("avatar_url", picture),
+                "doctor_profile": doctor_profile
+            }
+        )
+        
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao verificar token do Google: {str(e)}")
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Erro na autenticação: {str(e)}")
+
 @api_router.get("/auth/me")
 async def get_me(token: str):
     user = await get_current_user(token)
