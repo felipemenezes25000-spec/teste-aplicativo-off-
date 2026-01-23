@@ -343,7 +343,8 @@ async def login(data: UserLogin):
     # Get doctor profile if doctor
     doctor_profile = None
     if user.get("role") == "doctor":
-        doctor_profile = await db.doctor_profiles.find_one({"user_id": user["id"]})
+        dp = await db.doctor_profiles.find_one({"user_id": user["id"]})
+        doctor_profile = clean_mongo_doc(dp)
     
     return Token(
         access_token=token,
