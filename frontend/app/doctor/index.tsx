@@ -57,16 +57,16 @@ export default function DoctorDashboard() {
 
   const handleAcceptRequest = async (request: Request) => {
     try {
-      await requestsAPI.update(request.id, {
-        status: 'analyzing',
-        doctor_id: user?.id,
-        doctor_name: user?.name,
-      });
+      await queueAPI.assignRequest(request.id);
       Alert.alert('Sucesso', 'Solicitação aceita! Você pode iniciar a análise.');
       loadQueue();
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível aceitar a solicitação.');
     }
+  };
+
+  const handleViewRequest = (request: Request) => {
+    router.push(`/doctor/request/${request.id}`);
   };
 
   const handleApproveRequest = async (request: Request) => {
