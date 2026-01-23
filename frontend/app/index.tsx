@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '../src/components/Logo';
 import { useAuth } from '../src/contexts/AuthContext';
 import { COLORS, SIZES } from '../src/utils/constants';
@@ -9,8 +8,8 @@ import { COLORS, SIZES } from '../src/utils/constants';
 export default function SplashScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuth();
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -45,10 +44,7 @@ export default function SplashScreen() {
   }, [isLoading, isAuthenticated, user]);
 
   return (
-    <LinearGradient
-      colors={[COLORS.background, COLORS.primaryLight + '15', COLORS.background]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <View style={styles.decorTop} />
       <View style={styles.decorBottom} />
       
