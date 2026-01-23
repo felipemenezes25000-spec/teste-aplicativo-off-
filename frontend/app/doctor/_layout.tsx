@@ -8,8 +8,21 @@ export default function DoctorLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: COLORS.background },
-        animation: 'slide_from_right',
       }}
-    />
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen 
+        name="request/[id]" 
+        options={{
+          presentation: 'card',
+        }}
+      />
+      <Stack.Screen 
+        name="chat/[id]" 
+        options={{
+          presentation: 'card',
+        }}
+      />
+    </Stack>
   );
 }
