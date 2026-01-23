@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,24 +8,93 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { Logo } from '../../src/components/Logo';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { COLORS, SIZES } from '../../src/utils/constants';
 
+// Required for web auth
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_CLIENT_ID = '864017403483-gvdaea3fm56go70jf0mqtk1ppajjppf1.apps.googleusercontent.com';
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login, loginWithGoogle, user } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Google Auth setup
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_CLIENT_ID,
+    selectAccount: true,
+  });
+
+  // Handle Google response
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleGoogleResponse(response.authentication?.accessToken);
+    } else if (response?.type === 'error') {
+      setError('Erro ao conectar com Google');
+      setIsGoogleLoading(false);
+    }
+  }, [response]);
+
+  const handleGoogleResponse = async (accessToken: string | undefined) => {
+    if (!accessToken) {
+      setError('Erro ao obter token do Google');
+      setIsGoogleLoading(false);
+      return;
+    }
+
+    try {
+      const result = await loginWithGoogle(accessToken);
+      
+      if (result.success) {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          if (userData.role === 'doctor') {
+            router.replace('/doctor');
+          } else {
+            router.replace('/(tabs)');
+          }
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else {
+        setError(result.error || 'Erro ao fazer login com Google');
+      }
+    } catch (err) {
+      setError('Erro ao processar login com Google');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setIsGoogleLoading(true);
+    
+    try {
+      await promptAsync();
+    } catch (err) {
+      setError('Erro ao iniciar login com Google');
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
