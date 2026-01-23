@@ -925,6 +925,182 @@ async def get_integrations_status():
     except Exception as e:
         return {"error": str(e), "message": "Some integrations not loaded"}
 
+# ============== QUEUE MANAGEMENT ROUTES ==============
+
+@api_router.get("/queue/stats")
+async def get_queue_stats(token: str):
+    """Get queue statistics"""
+    user = await get_current_user(token)
+    
+    try:
+        from queue_manager import QueueManager
+        queue_manager = QueueManager(db)
+        stats = await queue_manager.get_queue_stats()
+        return stats
+    except Exception as e:
+        return {"error": str(e)}
+
+@api_router.post("/queue/auto-assign")
+async def auto_assign_requests(token: str):
+    """Automatically assign pending requests to available doctors"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "admin":
+        # Allow doctors to trigger auto-assign for demo purposes
+        pass
+    
+    try:
+        from queue_manager import QueueManager
+        queue_manager = QueueManager(db)
+        result = await queue_manager.auto_assign_pending_requests()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/queue/assign/{request_id}")
+async def assign_doctor_to_request(request_id: str, token: str, doctor_id: Optional[str] = None):
+    """Manually assign a doctor to a request (doctor can self-assign)"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem atender solicitações")
+    
+    # If no doctor_id provided, self-assign
+    assigned_doctor_id = doctor_id or user["id"]
+    assigned_doctor_name = user["name"]
+    
+    try:
+        from queue_manager import QueueManager
+        queue_manager = QueueManager(db)
+        success = await queue_manager.assign_doctor_to_request(
+            request_id, assigned_doctor_id, assigned_doctor_name
+        )
+        
+        if success:
+            return {"success": True, "message": "Solicitação atribuída com sucesso"}
+        else:
+            raise HTTPException(status_code=400, detail="Não foi possível atribuir a solicitação")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== ENHANCED CHAT ROUTES ==============
+
+@api_router.get("/chat/unread-count")
+async def get_unread_count(token: str):
+    """Get total unread messages for user"""
+    user = await get_current_user(token)
+    
+    try:
+        from queue_manager import ChatManager
+        chat_manager = ChatManager(db)
+        count = await chat_manager.get_unread_count(user["id"])
+        return {"unread_count": count}
+    except Exception as e:
+        return {"unread_count": 0}
+
+@api_router.post("/chat/{request_id}/mark-read")
+async def mark_chat_read(request_id: str, token: str):
+    """Mark all messages in a chat as read"""
+    user = await get_current_user(token)
+    
+    try:
+        from queue_manager import ChatManager
+        chat_manager = ChatManager(db)
+        count = await chat_manager.mark_messages_read(request_id, user["id"])
+        return {"marked_read": count}
+    except Exception as e:
+        return {"marked_read": 0}
+
+# ============== CONSULTATION ROUTES ==============
+
+@api_router.post("/consultation/start/{request_id}")
+async def start_consultation(request_id: str, token: str):
+    """Start a video consultation"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem iniciar consultas")
+    
+    try:
+        from queue_manager import ConsultationManager
+        consultation_manager = ConsultationManager(db)
+        result = await consultation_manager.start_consultation(request_id, user["id"])
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/consultation/end/{request_id}")
+async def end_consultation(request_id: str, token: str, notes: Optional[str] = None):
+    """End a video consultation"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem finalizar consultas")
+    
+    try:
+        from queue_manager import ConsultationManager
+        consultation_manager = ConsultationManager(db)
+        result = await consultation_manager.end_consultation(request_id, user["id"], notes)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== DOCTOR AVAILABILITY ==============
+
+@api_router.put("/doctor/availability")
+async def update_availability(token: str, available: bool):
+    """Update doctor availability status"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem atualizar disponibilidade")
+    
+    await db.doctor_profiles.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"available": available, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"success": True, "available": available}
+
+@api_router.get("/doctor/my-patients")
+async def get_my_patients(token: str):
+    """Get list of patients the doctor has attended"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Get unique patients from completed requests
+    requests = await db.requests.find({
+        "doctor_id": user["id"],
+        "status": {"$in": ["completed", "analyzing", "in_progress"]}
+    }).to_list(100)
+    
+    patient_ids = list(set([r["patient_id"] for r in requests]))
+    patients = []
+    
+    for pid in patient_ids:
+        patient = await db.users.find_one({"id": pid})
+        if patient:
+            request_count = len([r for r in requests if r["patient_id"] == pid])
+            patients.append({
+                "id": patient["id"],
+                "name": patient["name"],
+                "email": patient.get("email"),
+                "phone": patient.get("phone"),
+                "total_requests": request_count
+            })
+    
+    return patients
+
 # ============== HEALTH CHECK ==============
 
 @api_router.get("/")
