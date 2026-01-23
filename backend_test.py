@@ -81,9 +81,11 @@ class BackendTester:
     
     def test_patient_registration(self):
         """Test patient registration"""
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
         data = {
             "name": "Maria Silva",
-            "email": "maria.silva@test.com",
+            "email": f"maria.silva.{unique_id}@test.com",
             "password": "123456"
         }
         
