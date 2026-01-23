@@ -217,8 +217,16 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.socialButtons}>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-google" size={24} color="#DB4437" />
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={handleGoogleLogin}
+                disabled={!request || isGoogleLoading}
+              >
+                {isGoogleLoading ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <Ionicons name="logo-google" size={24} color="#DB4437" />
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={[styles.socialButton, styles.socialButtonDark]}>
                 <Ionicons name="logo-apple" size={24} color={COLORS.textWhite} />
