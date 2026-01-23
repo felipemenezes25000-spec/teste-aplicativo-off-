@@ -570,7 +570,7 @@ async def get_payment(payment_id: str, token: str):
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     
-    return payment
+    return clean_mongo_doc(payment)
 
 @api_router.post("/payments/{payment_id}/confirm")
 async def confirm_payment(payment_id: str, token: str):
