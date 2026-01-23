@@ -165,7 +165,7 @@ export default function RegisterScreen() {
             </Text>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }

@@ -251,7 +251,7 @@ export default function DoctorRegisterScreen() {
             />
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
