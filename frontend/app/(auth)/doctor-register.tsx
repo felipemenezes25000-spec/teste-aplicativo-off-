@@ -86,7 +86,7 @@ export default function DoctorRegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
+      <View
         colors={[COLORS.background, COLORS.healthPurple + '08', COLORS.background]}
         style={styles.gradient}
       >
