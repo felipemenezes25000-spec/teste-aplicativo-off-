@@ -1,0 +1,31 @@
+project_id = "cnfadyhxczrldavmlobh"
+
+[functions.generate-pdf]
+verify_jwt = true
+
+[functions.get-signed-url]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.validate-crm]
+verify_jwt = true
+
+[functions.create-payment]
+verify_jwt = true
+
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+[functions.reconcile-payments]
+verify_jwt = false
+
+[functions.detect-anomalies]
+verify_jwt = false
+
+[functions.validate-image]
+verify_jwt = true
+
+[functions.update-prescription]
+verify_jwt = true
