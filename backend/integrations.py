@@ -132,7 +132,7 @@ class AgoraService(VideoConferenceService):
     def __init__(self):
         self.app_id = os.getenv('AGORA_APP_ID', '')
         self.app_certificate = os.getenv('AGORA_APP_CERTIFICATE', '')
-        self.is_configured = (self.app_id and not self.app_id.startswith('YOUR_') and
+        self.is_configured = bool(self.app_id and not self.app_id.startswith('YOUR_') and
                              self.app_certificate and not self.app_certificate.startswith('YOUR_'))
     
     async def create_room(self, room_name: str, host_name: str) -> Dict[str, Any]:
