@@ -118,9 +118,11 @@ class BackendTester:
     
     def test_doctor_registration(self):
         """Test doctor registration"""
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
         data = {
             "name": "Dr. João Santos",
-            "email": "joao.santos@test.com",
+            "email": f"joao.santos.{unique_id}@test.com",
             "password": "123456",
             "crm": "123456",
             "crm_state": "SP",
