@@ -186,34 +186,36 @@ export default function DoctorDashboard() {
           <>
             <Text style={styles.sectionTitle}>Em análise</Text>
             {queue.analyzing.map((request) => (
-              <Card key={request.id} style={styles.requestCard}>
-                <View style={styles.requestHeader}>
-                  <View style={[styles.requestIcon, { backgroundColor: getRequestColor(request.request_type) + '15' }]}>
-                    <Ionicons name={getRequestIcon(request.request_type)} size={20} color={getRequestColor(request.request_type)} />
+              <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
+                <Card style={styles.requestCard}>
+                  <View style={styles.requestHeader}>
+                    <View style={[styles.requestIcon, { backgroundColor: getRequestColor(request.request_type) + '15' }]}>
+                      <Ionicons name={getRequestIcon(request.request_type)} size={20} color={getRequestColor(request.request_type)} />
+                    </View>
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
+                      <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                    </View>
+                    <StatusBadge status={request.status} size="sm" />
                   </View>
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
-                    <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                  <View style={styles.requestActions}>
+                    <Button
+                      title="Aprovar"
+                      onPress={() => handleApproveRequest(request)}
+                      variant="success"
+                      size="sm"
+                      style={styles.actionButton}
+                    />
+                    <Button
+                      title="Chat"
+                      onPress={() => router.push(`/doctor/chat/${request.id}?patient=${encodeURIComponent(request.patient_name)}`)}
+                      variant="outline"
+                      size="sm"
+                      style={styles.actionButton}
+                    />
                   </View>
-                  <StatusBadge status={request.status} size="sm" />
-                </View>
-                <View style={styles.requestActions}>
-                  <Button
-                    title="Aprovar"
-                    onPress={() => handleApproveRequest(request)}
-                    variant="success"
-                    size="sm"
-                    style={styles.actionButton}
-                  />
-                  <Button
-                    title="Recusar"
-                    onPress={() => {}}
-                    variant="outline"
-                    size="sm"
-                    style={styles.actionButton}
-                  />
-                </View>
-              </Card>
+                </Card>
+              </TouchableOpacity>
             ))}
           </>
         )}
