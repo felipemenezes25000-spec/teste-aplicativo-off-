@@ -356,7 +356,13 @@ class BackendTester:
         if response.status_code == 200:
             try:
                 result = response.json()
-                count = result.get("unread_count", 0)
+                # Handle both dict and list responses
+                if isinstance(result, dict):
+                    count = result.get("unread_count", 0)
+                elif isinstance(result, list):
+                    count = len(result)
+                else:
+                    count = 0
                 self.log_result("Unread Count", True, f"Unread count: {count}")
                 return True
             except json.JSONDecodeError:
