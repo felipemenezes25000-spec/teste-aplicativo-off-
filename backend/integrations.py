@@ -99,6 +99,14 @@ class MercadoPagoService(PaymentService):
                     "external_reference": response.get("external_reference", ""),
                     "is_real_payment": True
                 }
+            elif result["status"] == 401:
+                # Credentials issue - provide helpful message
+                error_msg = result.get("response", {}).get("message", "Unauthorized")
+                logger.warning(f"MercadoPago credentials issue: {error_msg}")
+                logger.warning("Using TEST credentials? Make sure to use test access token for development.")
+                logger.warning("For production, ensure your MercadoPago application is approved.")
+                return self._simulate_pix_payment(amount, description, 
+                    error=f"Credenciais não autorizadas. Use credenciais de TESTE para desenvolvimento. Detalhes: {error_msg}")
             else:
                 error_msg = result.get("response", {}).get("message", "Unknown error")
                 logger.error(f"MercadoPago payment creation failed: {error_msg}")
