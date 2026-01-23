@@ -134,7 +134,7 @@ export default function HomeScreen() {
 
         {/* Curved bottom */}
         <View style={styles.headerCurve} />
-      </LinearGradient>
+      </View>
 
       {/* Content */}
       <ScrollView
