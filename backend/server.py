@@ -665,12 +665,12 @@ async def get_doctors(specialty: Optional[str] = None):
     for dp in doctor_profiles:
         user = await db.users.find_one({"id": dp["user_id"]})
         if user:
-            doctors.append({
+            doctors.append(clean_mongo_doc({
                 **dp,
                 "name": user["name"],
                 "email": user["email"],
                 "avatar_url": user.get("avatar_url")
-            })
+            }))
     
     return doctors
 
@@ -687,7 +687,7 @@ async def get_doctor_queue(token: str):
     # Get requests being analyzed by this doctor
     analyzing = await db.requests.find({"doctor_id": user["id"], "status": "analyzing"}).to_list(50)
     
-    return {"pending": pending, "analyzing": analyzing}
+    return {"pending": clean_mongo_doc(pending), "analyzing": clean_mongo_doc(analyzing)}
 
 # ============== SPECIALTIES ==============
 
