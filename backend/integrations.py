@@ -38,7 +38,7 @@ class MercadoPagoService(PaymentService):
     
     def __init__(self):
         self.access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
-        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_' and not str(self.access_token and not self.access_token.startswith('YOUR_').startswith("YOUR_")))
+        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_'))
         
     async def create_pix_payment(self, amount: float, description: str, payer_email: str) -> Dict[str, Any]:
         if not self.is_configured:
