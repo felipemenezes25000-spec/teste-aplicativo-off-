@@ -230,27 +230,30 @@ export default function DoctorDashboard() {
           </View>
         ) : (
           queue.pending.map((request) => (
-            <Card key={request.id} style={styles.requestCard}>
-              <View style={styles.requestHeader}>
-                <View style={[styles.requestIcon, { backgroundColor: getRequestColor(request.request_type) + '15' }]}>
-                  <Ionicons name={getRequestIcon(request.request_type)} size={20} color={getRequestColor(request.request_type)} />
+            <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
+              <Card style={styles.requestCard}>
+                <View style={styles.requestHeader}>
+                  <View style={[styles.requestIcon, { backgroundColor: getRequestColor(request.request_type) + '15' }]}>
+                    <Ionicons name={getRequestIcon(request.request_type)} size={20} color={getRequestColor(request.request_type)} />
+                  </View>
+                  <View style={styles.requestInfo}>
+                    <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
+                    <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                    <Text style={styles.requestDate}>
+                      {format(new Date(request.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
                 </View>
-                <View style={styles.requestInfo}>
-                  <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
-                  <Text style={styles.requestPatient}>{request.patient_name}</Text>
-                  <Text style={styles.requestDate}>
-                    {format(new Date(request.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                  </Text>
-                </View>
-              </View>
-              <Button
-                title="Atender"
-                onPress={() => handleAcceptRequest(request)}
-                fullWidth
-                size="sm"
-                style={{ marginTop: SIZES.md }}
-              />
-            </Card>
+                <Button
+                  title="Atender"
+                  onPress={() => handleAcceptRequest(request)}
+                  fullWidth
+                  size="sm"
+                  style={{ marginTop: SIZES.md }}
+                />
+              </Card>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
