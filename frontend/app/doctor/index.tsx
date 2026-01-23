@@ -15,7 +15,7 @@ import { Card } from '../../src/components/Card';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { Button } from '../../src/components/Button';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { doctorsAPI, requestsAPI } from '../../src/services/api';
+import { doctorsAPI, requestsAPI, queueAPI } from '../../src/services/api';
 import { Request } from '../../src/types';
 import { COLORS, SIZES } from '../../src/utils/constants';
 import { format } from 'date-fns';
