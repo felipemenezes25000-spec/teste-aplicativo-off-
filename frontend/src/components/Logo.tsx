@@ -7,12 +7,12 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function Logo({ size = 'md', showText = true }: LogoProps) {
+export function Logo({ size = 'md', showText = false }: LogoProps) {
   const sizes = {
     sm: { image: 60, fontSize: SIZES.fontLg },
     md: { image: 80, fontSize: SIZES.fontXl },
-    lg: { image: 100, fontSize: SIZES.font2xl },
-    xl: { image: 140, fontSize: SIZES.font3xl },
+    lg: { image: 120, fontSize: SIZES.font2xl },
+    xl: { image: 160, fontSize: SIZES.font3xl },
   };
 
   const currentSize = sizes[size];
