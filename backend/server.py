@@ -626,7 +626,7 @@ async def get_notifications(token: str):
     user = await get_current_user(token)
     
     notifications = await db.notifications.find({"user_id": user["id"]}).sort("created_at", -1).to_list(50)
-    return notifications
+    return clean_mongo_doc(notifications)
 
 @api_router.put("/notifications/{notification_id}/read")
 async def mark_notification_read(notification_id: str, token: str):
