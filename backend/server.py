@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import hashlib
 import secrets
 import base64
+from bson import ObjectId
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,6 +21,31 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Helper function to clean MongoDB documents
+def clean_mongo_doc(doc):
+    """Remove _id or convert ObjectId to string"""
+    if doc is None:
+        return None
+    if isinstance(doc, list):
+        return [clean_mongo_doc(d) for d in doc]
+    if isinstance(doc, dict):
+        cleaned = {}
+        for key, value in doc.items():
+            if key == '_id':
+                continue  # Skip _id field
+            if isinstance(value, ObjectId):
+                cleaned[key] = str(value)
+            elif isinstance(value, datetime):
+                cleaned[key] = value.isoformat()
+            elif isinstance(value, dict):
+                cleaned[key] = clean_mongo_doc(value)
+            elif isinstance(value, list):
+                cleaned[key] = clean_mongo_doc(value)
+            else:
+                cleaned[key] = value
+        return cleaned
+    return doc
 
 # Create the main app
 app = FastAPI(title="RenoveJá+ API", version="1.0.0")
