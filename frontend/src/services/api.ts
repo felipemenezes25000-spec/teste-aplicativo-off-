@@ -225,6 +225,75 @@ export const doctorsAPI = {
     const response = await api.get('/doctors/queue', { params });
     return response.data;
   },
+  
+  updateAvailability: async (available: boolean) => {
+    const params = await getAuthParams();
+    const response = await api.put('/doctor/availability', null, { params: { ...params, available } });
+    return response.data;
+  },
+  
+  getMyPatients: async () => {
+    const params = await getAuthParams();
+    const response = await api.get('/doctor/my-patients', { params });
+    return response.data;
+  },
+};
+
+// Queue API (for doctor request management)
+export const queueAPI = {
+  getStats: async () => {
+    const params = await getAuthParams();
+    const response = await api.get('/queue/stats', { params });
+    return response.data;
+  },
+  
+  autoAssign: async () => {
+    const params = await getAuthParams();
+    const response = await api.post('/queue/auto-assign', null, { params });
+    return response.data;
+  },
+  
+  assignRequest: async (requestId: string, doctorId?: string) => {
+    const params = await getAuthParams();
+    const url = doctorId 
+      ? `/queue/assign/${requestId}?doctor_id=${doctorId}`
+      : `/queue/assign/${requestId}`;
+    const response = await api.post(url, null, { params });
+    return response.data;
+  },
+};
+
+// Consultation API
+export const consultationAPI = {
+  start: async (requestId: string) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/consultation/start/${requestId}`, null, { params });
+    return response.data;
+  },
+  
+  end: async (requestId: string, notes?: string) => {
+    const params = await getAuthParams();
+    const url = notes 
+      ? `/consultation/end/${requestId}?notes=${encodeURIComponent(notes)}`
+      : `/consultation/end/${requestId}`;
+    const response = await api.post(url, null, { params });
+    return response.data;
+  },
+};
+
+// Video API
+export const videoAPI = {
+  createRoom: async (requestId: string, roomName?: string) => {
+    const params = await getAuthParams();
+    const response = await api.post('/video/create-room', { request_id: requestId, room_name: roomName }, { params });
+    return response.data;
+  },
+  
+  getRoom: async (requestId: string) => {
+    const params = await getAuthParams();
+    const response = await api.get(`/video/room/${requestId}`, { params });
+    return response.data;
+  },
 };
 
 // Specialties API
