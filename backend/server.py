@@ -640,7 +640,65 @@ async def update_request(request_id: str, token: str, data: RequestUpdate):
     updated_request = await db.requests.find_one({"id": request_id})
     return clean_mongo_doc(updated_request)
 
-# ============== PAYMENT ROUTES ==============
+# ============== PAYMENT ROUTES (MercadoPago Integration) ==============
+
+from integrations import MercadoPagoService
+
+# Initialize payment service
+mercadopago_service = MercadoPagoService()
+
+class PixPaymentRequest(BaseModel):
+    request_id: str
+    amount: float
+    payer_email: str
+    payer_name: Optional[str] = None
+    payer_cpf: Optional[str] = None
+
+@api_router.post("/payments/pix")
+async def create_pix_payment(token: str, data: PixPaymentRequest):
+    """Create a real PIX payment using MercadoPago"""
+    user = await get_current_user(token)
+    
+    request = await db.requests.find_one({"id": data.request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Create PIX payment via MercadoPago
+    pix_result = await mercadopago_service.create_pix_payment(
+        amount=data.amount,
+        description=f"RenoveJá+ - {request.get('request_type', 'Consulta')}",
+        payer_email=data.payer_email,
+        payer_name=data.payer_name or user["name"],
+        payer_cpf=data.payer_cpf or user.get("cpf")
+    )
+    
+    # Save payment to database
+    payment = Payment(
+        request_id=data.request_id,
+        amount=data.amount,
+        method="pix",
+        pix_code=pix_result.get("pix_code"),
+        external_id=pix_result.get("id"),
+        status=pix_result.get("status", "pending")
+    )
+    payment_dict = payment.dict()
+    payment_dict["qr_code_base64"] = pix_result.get("qr_code_base64")
+    payment_dict["ticket_url"] = pix_result.get("ticket_url")
+    payment_dict["is_real_payment"] = pix_result.get("is_real_payment", False)
+    
+    await db.payments.insert_one(payment_dict)
+    
+    return {
+        "payment_id": payment.id,
+        "external_id": pix_result.get("id"),
+        "status": pix_result.get("status"),
+        "pix_code": pix_result.get("pix_code"),
+        "qr_code_base64": pix_result.get("qr_code_base64"),
+        "ticket_url": pix_result.get("ticket_url"),
+        "amount": data.amount,
+        "expires_at": pix_result.get("expires_at"),
+        "is_real_payment": pix_result.get("is_real_payment", False)
+    }
 
 @api_router.post("/payments")
 async def create_payment(token: str, data: PaymentCreate):
@@ -650,19 +708,42 @@ async def create_payment(token: str, data: PaymentCreate):
     if not request:
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
     
-    # Generate PIX code
-    pix_code = generate_pix_code()
+    if data.method == "pix":
+        # Use MercadoPago for PIX
+        pix_result = await mercadopago_service.create_pix_payment(
+            amount=data.amount,
+            description=f"RenoveJá+ - {request.get('request_type', 'Consulta')}",
+            payer_email=user["email"],
+            payer_name=user["name"],
+            payer_cpf=user.get("cpf")
+        )
+        
+        payment = Payment(
+            request_id=data.request_id,
+            amount=data.amount,
+            method="pix",
+            pix_code=pix_result.get("pix_code"),
+            external_id=pix_result.get("id"),
+            status=pix_result.get("status", "pending")
+        )
+        payment_dict = payment.dict()
+        payment_dict["qr_code_base64"] = pix_result.get("qr_code_base64")
+        payment_dict["is_real_payment"] = pix_result.get("is_real_payment", False)
+    else:
+        # Credit card (placeholder)
+        pix_code = generate_pix_code()
+        payment = Payment(
+            request_id=data.request_id,
+            amount=data.amount,
+            method=data.method,
+            pix_code=None
+        )
+        payment_dict = payment.dict()
+        payment_dict["is_real_payment"] = False
     
-    payment = Payment(
-        request_id=data.request_id,
-        amount=data.amount,
-        method=data.method,
-        pix_code=pix_code if data.method == "pix" else None
-    )
+    await db.payments.insert_one(payment_dict)
     
-    await db.payments.insert_one(payment.dict())
-    
-    return payment.dict()
+    return payment_dict
 
 @api_router.get("/payments/{payment_id}")
 async def get_payment(payment_id: str, token: str):
@@ -672,7 +753,79 @@ async def get_payment(payment_id: str, token: str):
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     
+    # If real payment, check status with MercadoPago
+    if payment.get("is_real_payment") and payment.get("external_id"):
+        try:
+            status_result = await mercadopago_service.check_payment_status(payment["external_id"])
+            if status_result.get("status") != payment.get("status"):
+                # Update local status
+                await db.payments.update_one(
+                    {"id": payment_id},
+                    {"$set": {"status": status_result.get("status")}}
+                )
+                payment["status"] = status_result.get("status")
+                
+                # If payment approved, update request status
+                if status_result.get("status") == "approved":
+                    await db.requests.update_one(
+                        {"id": payment["request_id"]},
+                        {"$set": {"status": "pending", "updated_at": datetime.utcnow()}}
+                    )
+        except Exception as e:
+            logging.error(f"Error checking payment status: {e}")
+    
     return clean_mongo_doc(payment)
+
+@api_router.get("/payments/{payment_id}/status")
+async def check_payment_status(payment_id: str, token: str):
+    """Check real-time payment status from MercadoPago"""
+    user = await get_current_user(token)
+    payment = await db.payments.find_one({"id": payment_id})
+    
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pagamento não encontrado")
+    
+    if payment.get("is_real_payment") and payment.get("external_id"):
+        status_result = await mercadopago_service.check_payment_status(payment["external_id"])
+        
+        # Update local status if changed
+        if status_result.get("status") != payment.get("status"):
+            await db.payments.update_one(
+                {"id": payment_id},
+                {"$set": {"status": status_result.get("status")}}
+            )
+            
+            # If payment approved, update request status
+            if status_result.get("status") == "approved":
+                await db.requests.update_one(
+                    {"id": payment["request_id"]},
+                    {"$set": {"status": "pending", "updated_at": datetime.utcnow()}}
+                )
+                
+                # Create notification
+                notification = Notification(
+                    user_id=payment.get("patient_id", user["id"]),
+                    title="Pagamento Confirmado!",
+                    message="Seu pagamento foi confirmado com sucesso. Sua solicitação está sendo processada.",
+                    notification_type="success"
+                )
+                await db.notifications.insert_one(notification.dict())
+        
+        return {
+            "payment_id": payment_id,
+            "external_id": payment["external_id"],
+            "status": status_result.get("status"),
+            "status_detail": status_result.get("status_detail"),
+            "amount": payment.get("amount"),
+            "is_real_payment": True
+        }
+    else:
+        return {
+            "payment_id": payment_id,
+            "status": payment.get("status"),
+            "amount": payment.get("amount"),
+            "is_real_payment": False
+        }
 
 @api_router.post("/payments/{payment_id}/confirm")
 async def confirm_payment(payment_id: str, token: str):
@@ -681,6 +834,16 @@ async def confirm_payment(payment_id: str, token: str):
     payment = await db.payments.find_one({"id": payment_id})
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
+    
+    # If real payment, check with MercadoPago first
+    if payment.get("is_real_payment") and payment.get("external_id"):
+        status_result = await mercadopago_service.check_payment_status(payment["external_id"])
+        if status_result.get("status") != "approved":
+            return {
+                "message": "Pagamento ainda não foi confirmado pelo MercadoPago",
+                "status": status_result.get("status"),
+                "status_detail": status_result.get("status_detail")
+            }
     
     # Update payment status
     await db.payments.update_one(
