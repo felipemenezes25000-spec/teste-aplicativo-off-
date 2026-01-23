@@ -706,6 +706,225 @@ async def get_specialties():
         {"id": "10", "name": "Urologia", "icon": "droplet", "price_per_minute": 6.50},
     ]
 
+# ============== VIDEO CONFERENCE ROUTES ==============
+
+class VideoRoomCreate(BaseModel):
+    request_id: str
+    room_name: Optional[str] = None
+
+@api_router.post("/video/create-room")
+async def create_video_room(token: str, data: VideoRoomCreate):
+    """Create a video conference room for consultation"""
+    user = await get_current_user(token)
+    
+    try:
+        from integrations import get_video_service
+        video_service = get_video_service()
+        
+        room_name = data.room_name or f"consulta-{data.request_id[:8]}"
+        room_data = await video_service.create_room(room_name, user["name"])
+        
+        # Update request with room info
+        await db.requests.update_one(
+            {"id": data.request_id},
+            {"$set": {
+                "video_room": room_data,
+                "video_room_created_at": datetime.utcnow()
+            }}
+        )
+        
+        return {
+            "success": True,
+            "room": room_data,
+            "message": "Sala de vídeo criada com sucesso"
+        }
+    except Exception as e:
+        # Fallback to Jitsi (always works)
+        import uuid
+        room_id = f"RenoveJa-consulta-{uuid.uuid4().hex[:8]}"
+        return {
+            "success": True,
+            "room": {
+                "room_url": f"https://meet.jit.si/{room_id}",
+                "room_name": room_id,
+                "embed_url": f"https://meet.jit.si/{room_id}#config.prejoinPageEnabled=false",
+                "is_free": True
+            },
+            "message": "Sala de vídeo criada (Jitsi gratuito)"
+        }
+
+@api_router.get("/video/room/{request_id}")
+async def get_video_room(request_id: str, token: str):
+    """Get video room info for a consultation"""
+    user = await get_current_user(token)
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if not request.get("video_room"):
+        raise HTTPException(status_code=404, detail="Sala de vídeo não criada ainda")
+    
+    return clean_mongo_doc(request.get("video_room"))
+
+# ============== DIGITAL SIGNATURE ROUTES ==============
+
+class SignPrescriptionRequest(BaseModel):
+    request_id: str
+    medications: List[dict]
+    notes: Optional[str] = None
+
+@api_router.post("/prescription/sign")
+async def sign_prescription(token: str, data: SignPrescriptionRequest):
+    """Sign a prescription digitally"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem assinar receitas")
+    
+    # Get doctor profile
+    doctor_profile = await db.doctor_profiles.find_one({"user_id": user["id"]})
+    if not doctor_profile:
+        raise HTTPException(status_code=400, detail="Perfil médico não encontrado")
+    
+    # Get the request
+    request = await db.requests.find_one({"id": data.request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Get patient info
+    patient = await db.users.find_one({"id": request["patient_id"]})
+    
+    try:
+        from integrations import get_signature_service
+        signature_service = get_signature_service()
+        
+        prescription_data = {
+            "medications": data.medications,
+            "prescription_type": request.get("prescription_type", "simple"),
+            "notes": data.notes
+        }
+        
+        signed_result = await signature_service.sign_prescription(
+            prescription_data,
+            doctor_profile["crm"],
+            user["name"]
+        )
+        
+        # Update request with signed prescription
+        await db.requests.update_one(
+            {"id": data.request_id},
+            {"$set": {
+                "status": "completed",
+                "signed_prescription": signed_result,
+                "completed_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        # Create notification for patient
+        notification = Notification(
+            user_id=request["patient_id"],
+            title="Receita Pronta!",
+            message="Sua receita foi assinada digitalmente e está disponível para download.",
+            notification_type="success"
+        )
+        await db.notifications.insert_one(notification.dict())
+        
+        return {
+            "success": True,
+            "prescription_id": signed_result["prescription"]["id"],
+            "signature": signed_result["signature"],
+            "document_hash": signed_result["signed_document_hash"],
+            "verification_url": signed_result["signature"]["verification_url"],
+            "is_icp_brasil": signed_result["signature"]["is_icp_brasil"],
+            "message": "Receita assinada com sucesso!"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao assinar receita: {str(e)}")
+
+@api_router.get("/prescription/{request_id}")
+async def get_signed_prescription(request_id: str, token: str):
+    """Get signed prescription details"""
+    user = await get_current_user(token)
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Check authorization
+    if user["id"] != request["patient_id"] and user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    if not request.get("signed_prescription"):
+        raise HTTPException(status_code=404, detail="Receita ainda não foi assinada")
+    
+    return clean_mongo_doc(request.get("signed_prescription"))
+
+@api_router.get("/prescription/verify/{document_hash}")
+async def verify_prescription(document_hash: str):
+    """Verify a prescription signature (public endpoint)"""
+    
+    # Find the prescription by hash
+    request = await db.requests.find_one({
+        "signed_prescription.signed_document_hash": {"$regex": f"^{document_hash}"}
+    })
+    
+    if not request:
+        return {
+            "valid": False,
+            "message": "Documento não encontrado"
+        }
+    
+    signed_prescription = request.get("signed_prescription", {})
+    signature = signed_prescription.get("signature", {})
+    
+    return {
+        "valid": True,
+        "document_type": "Receita Médica Digital",
+        "signed_at": signature.get("timestamp"),
+        "signer_crm": signature.get("signer_crm"),
+        "is_icp_brasil": signature.get("is_icp_brasil", False),
+        "message": "Documento verificado com sucesso"
+    }
+
+# ============== INTEGRATION STATUS ==============
+
+@api_router.get("/integrations/status")
+async def get_integrations_status():
+    """Check which integrations are configured"""
+    try:
+        from integrations import (
+            MercadoPagoService, StripeService,
+            AgoraService, DailyService, JitsiService,
+            DigitalSignatureService, SendGridService
+        )
+        
+        return {
+            "payments": {
+                "mercadopago": MercadoPagoService().is_configured,
+                "stripe": StripeService().is_configured,
+                "simulated_available": True
+            },
+            "video": {
+                "agora": AgoraService().is_configured,
+                "daily": DailyService().is_configured,
+                "jitsi": True  # Always available (free)
+            },
+            "signature": {
+                "icp_brasil": DigitalSignatureService().is_configured,
+                "simulated_available": True
+            },
+            "email": {
+                "sendgrid": SendGridService().is_configured
+            },
+            "notifications": {
+                "expo_push": True  # Always available
+            }
+        }
+    except Exception as e:
+        return {"error": str(e), "message": "Some integrations not loaded"}
+
 # ============== HEALTH CHECK ==============
 
 @api_router.get("/")
