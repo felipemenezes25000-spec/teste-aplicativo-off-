@@ -490,7 +490,7 @@ async def get_requests(token: str, status: Optional[str] = None):
         query["status"] = status
     
     requests = await db.requests.find(query).sort("created_at", -1).to_list(100)
-    return requests
+    return clean_mongo_doc(requests)
 
 @api_router.get("/requests/{request_id}")
 async def get_request(request_id: str, token: str):
@@ -500,7 +500,7 @@ async def get_request(request_id: str, token: str):
     if not request:
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
     
-    return request
+    return clean_mongo_doc(request)
 
 @api_router.put("/requests/{request_id}")
 async def update_request(request_id: str, token: str, data: RequestUpdate):
@@ -536,7 +536,7 @@ async def update_request(request_id: str, token: str, data: RequestUpdate):
             await db.notifications.insert_one(notification.dict())
     
     updated_request = await db.requests.find_one({"id": request_id})
-    return updated_request
+    return clean_mongo_doc(updated_request)
 
 # ============== PAYMENT ROUTES ==============
 
