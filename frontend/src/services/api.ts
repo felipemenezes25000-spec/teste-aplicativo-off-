@@ -176,6 +176,18 @@ export const chatAPI = {
     const response = await api.get(`/chat/${requestId}`, { params });
     return response.data;
   },
+  
+  markAsRead: async (requestId: string) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/chat/${requestId}/mark-read`, null, { params });
+    return response.data;
+  },
+  
+  getUnreadCount: async () => {
+    const params = await getAuthParams();
+    const response = await api.get('/chat/unread-count', { params });
+    return response.data;
+  },
 };
 
 // Notifications API
