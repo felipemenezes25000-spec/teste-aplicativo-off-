@@ -40,8 +40,18 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      // Navigation will be handled by the auth context
-      router.replace('/(tabs)');
+      // Check user role and redirect accordingly
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.role === 'doctor') {
+          router.replace('/doctor');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else {
+        router.replace('/(tabs)');
+      }
     } else {
       setError(result.error || 'Erro ao fazer login');
     }
