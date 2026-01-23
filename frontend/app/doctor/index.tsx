@@ -150,7 +150,7 @@ export default function DoctorDashboard() {
         </View>
 
         <View style={styles.headerCurve} />
-      </LinearGradient>
+      </View>
 
       {/* Stats */}
       <View style={styles.stats}>
