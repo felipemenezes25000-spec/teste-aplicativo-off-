@@ -90,7 +90,7 @@ class StripeService(PaymentService):
     """
     
     def __init__(self):
-        self.secret_key = os.getenv('STRIPE_SECRET_KEY')
+        self.secret_key = os.getenv('STRIPE_SECRET_KEY', '')
         self.is_configured = self.secret_key and not self.secret_key.startswith('YOUR_')
         
     async def create_pix_payment(self, amount: float, description: str, payer_email: str) -> Dict[str, Any]:
@@ -130,8 +130,8 @@ class AgoraService(VideoConferenceService):
     """
     
     def __init__(self):
-        self.app_id = os.getenv('AGORA_APP_ID')
-        self.app_certificate = os.getenv('AGORA_APP_CERTIFICATE')
+        self.app_id = os.getenv('AGORA_APP_ID', '')
+        self.app_certificate = os.getenv('AGORA_APP_CERTIFICATE', '')
         self.is_configured = (self.app_id and not self.app_id.startswith('YOUR_') and
                              self.app_certificate and not self.app_certificate.startswith('YOUR_'))
     
@@ -182,7 +182,7 @@ class DailyService(VideoConferenceService):
     """
     
     def __init__(self):
-        self.api_key = os.getenv('DAILY_API_KEY')
+        self.api_key = os.getenv('DAILY_API_KEY', '')
         self.is_configured = self.api_key and not self.api_key.startswith('YOUR_')
     
     async def create_room(self, room_name: str, host_name: str) -> Dict[str, Any]:
@@ -289,7 +289,7 @@ class SendGridService:
     """
     
     def __init__(self):
-        self.api_key = os.getenv('SENDGRID_API_KEY')
+        self.api_key = os.getenv('SENDGRID_API_KEY', '')
         self.from_email = os.getenv('SENDGRID_FROM_EMAIL', 'noreply@renoveja.com.br')
         self.is_configured = self.api_key and not self.api_key.startswith('YOUR_')
     
@@ -322,7 +322,7 @@ class DigitalSignatureService:
     """
     
     def __init__(self):
-        self.bry_api_key = os.getenv('BRY_API_KEY')
+        self.bry_api_key = os.getenv('BRY_API_KEY', '')
         self.is_configured = self.bry_api_key and not self.bry_api_key.startswith('YOUR_')
     
     async def sign_prescription(self, 
