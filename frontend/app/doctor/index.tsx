@@ -119,11 +119,8 @@ export default function DoctorDashboard() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient
-        colors={[COLORS.healthPurple, COLORS.primary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + SIZES.md }]}
+      <View
+        style={[styles.header, { paddingTop: insets.top + SIZES.md, backgroundColor: COLORS.healthPurple }]}
       >
         <View style={styles.headerDecor} />
         
