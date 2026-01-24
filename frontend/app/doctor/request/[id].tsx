@@ -107,22 +107,33 @@ export default function RequestDetail() {
           'Consulta Iniciada',
           'O paciente será notificado. Deseja abrir a videochamada?',
           [
-            { text: 'Depois', style: 'cancel' },
+            { text: 'Depois', style: 'cancel', onPress: () => loadRequest() },
             {
-              text: 'Abrir',
+              text: 'Abrir Videochamada',
               onPress: () => {
-                // For now, just show the URL - in production would open WebView
-                Alert.alert('Sala de Vídeo', `URL: ${result.video_room?.room_url}`);
+                // Navigate to video call screen
+                if (result.video_room?.room_url) {
+                  router.push(`/video/${id}?room_url=${encodeURIComponent(result.video_room.room_url)}`);
+                } else {
+                  router.push(`/video/${id}`);
+                }
               },
             },
           ]
         );
-        loadRequest();
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível iniciar a consulta.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const openVideoCall = () => {
+    if (request?.video_room?.room_url) {
+      router.push(`/video/${id}?room_url=${encodeURIComponent(request.video_room.room_url)}`);
+    } else {
+      router.push(`/video/${id}`);
     }
   };
 
