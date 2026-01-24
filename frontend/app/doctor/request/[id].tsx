@@ -362,7 +362,7 @@ export default function RequestDetail() {
             <>
               <Button
                 title="Abrir Videochamada"
-                onPress={() => Alert.alert('Videochamada', 'Abrir sala de vídeo')}
+                onPress={openVideoCall}
                 fullWidth
                 icon={<Ionicons name="videocam" size={20} color={COLORS.textWhite} />}
               />
