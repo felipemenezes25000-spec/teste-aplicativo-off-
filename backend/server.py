@@ -488,6 +488,78 @@ async def get_me(token: str):
         "doctor_profile": doctor_profile
     }
 
+# ============== PUSH NOTIFICATIONS ==============
+
+class PushTokenRequest(BaseModel):
+    push_token: str
+
+@api_router.post("/users/push-token")
+async def save_push_token(token: str, data: PushTokenRequest):
+    """Save user's Expo push notification token"""
+    user = await get_current_user(token)
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"push_token": data.push_token, "push_token_updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Push token salvo com sucesso"}
+
+@api_router.post("/notifications/send")
+async def send_push_notification(token: str, user_id: str, title: str, body: str, data: dict = None):
+    """Send push notification to a specific user (admin/system only)"""
+    sender = await get_current_user(token)
+    if sender.get("role") != "admin" and sender.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Sem permissão para enviar notificações")
+    
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    push_token = target_user.get("push_token")
+    if not push_token:
+        # Just save to database, user doesn't have push enabled
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=body,
+            notification_type="info"
+        )
+        await db.notifications.insert_one(notification.dict())
+        return {"message": "Notificação salva (usuário sem push token)", "sent": False}
+    
+    # Send via Expo Push Service
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json={
+                    "to": push_token,
+                    "title": title,
+                    "body": body,
+                    "data": data or {},
+                    "sound": "default",
+                    "priority": "high",
+                },
+                headers={"Content-Type": "application/json"}
+            )
+            result = response.json()
+    except Exception as e:
+        logging.error(f"Error sending push notification: {e}")
+        result = {"error": str(e)}
+    
+    # Also save to database
+    notification = Notification(
+        user_id=user_id,
+        title=title,
+        message=body,
+        notification_type="push"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"message": "Notificação enviada", "sent": True, "result": result}
+
 # ============== PROFILE ROUTES ==============
 
 @api_router.put("/profile")
