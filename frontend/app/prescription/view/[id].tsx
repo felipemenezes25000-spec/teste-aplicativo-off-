@@ -14,10 +14,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { requestsAPI } from '../../src/services/api';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { Card } from '../../../src/components/Card';
+import { Button } from '../../../src/components/Button';
+import { requestsAPI } from '../../../src/services/api';
+import { COLORS, SIZES } from '../../../src/utils/constants';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
