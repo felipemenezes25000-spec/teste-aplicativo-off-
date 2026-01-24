@@ -114,7 +114,9 @@ export default function LoginScreen() {
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-        if (userData.role === 'doctor') {
+        if (userData.role === 'admin') {
+          router.replace('/admin');
+        } else if (userData.role === 'doctor') {
           router.replace('/doctor');
         } else {
           router.replace('/(tabs)');
