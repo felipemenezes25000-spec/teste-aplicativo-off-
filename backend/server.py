@@ -1262,6 +1262,147 @@ async def get_integrations_status():
     except Exception as e:
         return {"error": str(e), "message": "Some integrations not loaded"}
 
+# ============== ADMIN ROUTES ==============
+
+async def require_admin(token: str):
+    """Verify that the user is an admin"""
+    user = await get_current_user(token)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores.")
+    return user
+
+@api_router.get("/admin/stats")
+async def get_admin_stats(token: str = None):
+    """Get admin dashboard statistics"""
+    try:
+        if token:
+            user = await get_current_user(token)
+        
+        # Count users
+        total_patients = await db.users.count_documents({"role": {"$ne": "doctor"}})
+        total_doctors = await db.users.count_documents({"role": "doctor"})
+        total_users = await db.users.count_documents({})
+        
+        # Count requests
+        pending_requests = await db.requests.count_documents({"status": "pending"})
+        analyzing_requests = await db.requests.count_documents({"status": "analyzing"})
+        
+        # Today's stats
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        completed_today = await db.requests.count_documents({
+            "status": "completed",
+            "updated_at": {"$gte": today_start}
+        })
+        
+        # Revenue (sum of completed payments)
+        payments = await db.payments.find({"status": "completed"}).to_list(length=1000)
+        total_revenue = sum(p.get("amount", 0) for p in payments)
+        
+        # Integration status
+        from integrations import MercadoPagoService
+        mp = MercadoPagoService()
+        
+        return {
+            "total_users": total_users,
+            "total_patients": total_patients,
+            "total_doctors": total_doctors,
+            "pending_requests": pending_requests,
+            "analyzing_requests": analyzing_requests,
+            "completed_today": completed_today,
+            "total_revenue": total_revenue,
+            "integrations": {
+                "mercadopago": mp.is_configured,
+                "jitsi": True,
+                "push_notifications": True,
+            }
+        }
+    except Exception as e:
+        logging.error(f"Error getting admin stats: {e}")
+        return {"error": str(e)}
+
+@api_router.get("/admin/users")
+async def get_all_users(token: str, role: str = None, limit: int = 100, skip: int = 0):
+    """Get all users (admin only)"""
+    user = await get_current_user(token)
+    
+    query = {}
+    if role:
+        query["role"] = role
+    
+    users = await db.users.find(query).skip(skip).limit(limit).to_list(length=limit)
+    return [clean_mongo_doc(u) for u in users]
+
+@api_router.put("/admin/users/{user_id}/status")
+async def update_user_status(user_id: str, token: str, active: bool):
+    """Enable/disable a user (admin only)"""
+    admin = await get_current_user(token)
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"active": active, "updated_at": datetime.utcnow()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    return {"message": f"Usuário {'ativado' if active else 'desativado'} com sucesso"}
+
+@api_router.put("/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, token: str, role: str):
+    """Change user role (admin only)"""
+    admin = await get_current_user(token)
+    if admin.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem alterar roles")
+    
+    if role not in ["patient", "doctor", "admin"]:
+        raise HTTPException(status_code=400, detail="Role inválido")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"role": role, "updated_at": datetime.utcnow()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    return {"message": f"Role atualizado para {role}"}
+
+@api_router.get("/admin/requests")
+async def get_all_requests(token: str, status: str = None, limit: int = 100, skip: int = 0):
+    """Get all requests (admin only)"""
+    user = await get_current_user(token)
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    requests = await db.requests.find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    return [clean_mongo_doc(r) for r in requests]
+
+@api_router.get("/admin/doctors")
+async def get_all_doctors(token: str):
+    """Get all doctors with their profiles"""
+    user = await get_current_user(token)
+    
+    doctors = await db.users.find({"role": "doctor"}).to_list(length=100)
+    
+    result = []
+    for doctor in doctors:
+        profile = await db.doctor_profiles.find_one({"user_id": doctor["id"]})
+        doctor_data = clean_mongo_doc(doctor)
+        doctor_data["profile"] = clean_mongo_doc(profile) if profile else None
+        
+        # Count active requests
+        active_requests = await db.requests.count_documents({
+            "doctor_id": doctor["id"],
+            "status": {"$in": ["analyzing", "in_progress"]}
+        })
+        doctor_data["active_requests"] = active_requests
+        
+        result.append(doctor_data)
+    
+    return result
+
 # ============== QUEUE MANAGEMENT ROUTES ==============
 
 @api_router.get("/queue/stats")
