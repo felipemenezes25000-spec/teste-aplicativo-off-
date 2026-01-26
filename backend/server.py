@@ -1172,8 +1172,10 @@ async def get_doctor_queue(token: str):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Get pending/submitted requests (waiting for any doctor to accept)
+    # Exclui exames que vão para enfermagem
     pending = await db.requests.find({
         "status": {"$in": ["submitted", "pending"]},
+        "request_type": {"$ne": "exam"},  # Exames vão para enfermagem primeiro
         "doctor_id": None
     }).sort("created_at", 1).to_list(50)
     
@@ -1182,6 +1184,15 @@ async def get_doctor_queue(token: str):
         "doctor_id": user["id"], 
         "status": {"$in": ["in_review", "analyzing"]}
     }).to_list(50)
+    
+    # Get exam requests forwarded from nursing (in_medical_review)
+    forwarded_from_nursing = await db.requests.find({
+        "status": "in_medical_review",
+        "$or": [
+            {"doctor_id": None},  # Ainda não atribuído
+            {"doctor_id": user["id"]}  # Atribuído a este médico
+        ]
+    }).sort("created_at", 1).to_list(50)
     
     # Get requests approved pending payment (doctor approved, waiting for patient to pay)
     awaiting_payment = await db.requests.find({
@@ -1198,6 +1209,7 @@ async def get_doctor_queue(token: str):
     return {
         "pending": clean_mongo_doc(pending), 
         "analyzing": clean_mongo_doc(analyzing),
+        "forwarded_from_nursing": clean_mongo_doc(forwarded_from_nursing),
         "awaiting_payment": clean_mongo_doc(awaiting_payment),
         "awaiting_signature": clean_mongo_doc(awaiting_signature)
     }
