@@ -129,15 +129,28 @@ class Request(BaseModel):
     patient_id: str
     patient_name: str
     request_type: Literal["prescription", "exam", "consultation"]
-    status: Literal["pending", "analyzing", "approved", "rejected", "completed"] = "pending"
+    # Status conforme fluxo: submitted -> in_review -> approved_pending_payment/rejected -> paid -> signed -> delivered
+    status: Literal[
+        "submitted",           # Enviada pelo paciente
+        "in_review",           # Na fila do médico
+        "rejected",            # Recusada com motivo
+        "approved_pending_payment",  # Aprovada, aguardando pagamento
+        "paid",                # Pagamento confirmado
+        "signed",              # Documento assinado
+        "delivered",           # Receita entregue
+        # Legacy status (para compatibilidade)
+        "pending", "analyzing", "approved", "in_progress", "completed"
+    ] = "submitted"
     price: float = 0.0
     notes: Optional[str] = None
+    rejection_reason: Optional[str] = None  # Motivo da rejeição
     doctor_id: Optional[str] = None
     doctor_name: Optional[str] = None
     # Prescription specific
     prescription_type: Optional[str] = None
     medications: Optional[List[dict]] = None
     image_url: Optional[str] = None
+    prescription_images: Optional[List[str]] = None  # Fotos da receita anterior
     # Exam specific
     exam_type: Optional[str] = None
     exams: Optional[List[str]] = None
@@ -145,9 +158,16 @@ class Request(BaseModel):
     specialty: Optional[str] = None
     duration: Optional[int] = None
     scheduled_at: Optional[str] = None
+    # Signed document
+    signed_document_url: Optional[str] = None
+    signature_data: Optional[dict] = None
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    signed_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
 
 class RequestUpdate(BaseModel):
     status: Optional[str] = None
