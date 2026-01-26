@@ -593,6 +593,12 @@ const styles = StyleSheet.create({
     marginRight: SIZES.sm,
     backgroundColor: COLORS.backgroundDark,
   },
+  imageHint: {
+    fontSize: SIZES.fontXs,
+    color: COLORS.textMuted,
+    marginTop: SIZES.sm,
+    textAlign: 'center',
+  },
   medicationItem: {
     backgroundColor: COLORS.backgroundDark,
     padding: SIZES.md,
