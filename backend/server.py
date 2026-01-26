@@ -821,9 +821,9 @@ async def create_payment(token: str, data: PaymentCreate):
         payment_dict = payment.dict()
         payment_dict["qr_code_base64"] = pix_result.get("qr_code_base64")
         payment_dict["is_real_payment"] = pix_result.get("is_real_payment", False)
+        payment_dict["patient_id"] = user["id"]
     else:
         # Credit card (placeholder)
-        pix_code = generate_pix_code()
         payment = Payment(
             request_id=data.request_id,
             amount=data.amount,
@@ -832,10 +832,12 @@ async def create_payment(token: str, data: PaymentCreate):
         )
         payment_dict = payment.dict()
         payment_dict["is_real_payment"] = False
+        payment_dict["patient_id"] = user["id"]
     
     await db.payments.insert_one(payment_dict)
     
-    return payment_dict
+    # Return cleaned dict without MongoDB _id
+    return clean_mongo_doc(payment_dict)
 
 @api_router.get("/payments/{payment_id}")
 async def get_payment(payment_id: str, token: str):
