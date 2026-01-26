@@ -382,6 +382,53 @@ async def register_doctor(data: DoctorRegister):
         }
     )
 
+@api_router.post("/auth/register-nurse", response_model=Token)
+async def register_nurse(data: NurseRegister):
+    """Cadastrar novo enfermeiro com COREN"""
+    # Check if email exists
+    existing = await db.users.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Este email já está cadastrado")
+    
+    # Create user
+    user = User(
+        name=data.name,
+        email=data.email,
+        phone=data.phone,
+        cpf=data.cpf,
+        role="nurse"
+    )
+    user_dict = user.dict()
+    user_dict["password_hash"] = hash_password(data.password)
+    
+    await db.users.insert_one(user_dict)
+    
+    # Create nurse profile
+    nurse_profile = NurseProfile(
+        user_id=user.id,
+        coren=data.coren,
+        coren_state=data.coren_state,
+        specialty=data.specialty or "Enfermagem Geral"
+    )
+    await db.nurse_profiles.insert_one(nurse_profile.dict())
+    
+    # Generate token
+    token = generate_token()
+    active_tokens[token] = user.id
+    
+    return Token(
+        access_token=token,
+        user={
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone,
+            "role": "nurse",
+            "avatar_url": user.avatar_url,
+            "nurse_profile": nurse_profile.dict()
+        }
+    )
+
 @api_router.post("/auth/login", response_model=Token)
 async def login(data: UserLogin):
     user = await db.users.find_one({"email": data.email})
