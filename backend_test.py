@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://health-connect-92.preview.emergentagent.com/api"
+BASE_URL = "https://medrenovar.preview.emergentagent.com/api"
 TIMEOUT = 30
 
 class BackendTester:
