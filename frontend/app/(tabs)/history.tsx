@@ -89,9 +89,12 @@ export default function HistoryScreen() {
 
   const filters = [
     { id: null, label: 'Todos' },
-    { id: 'pending', label: 'Pendentes' },
-    { id: 'analyzing', label: 'Em Análise' },
-    { id: 'completed', label: 'Concluídos' },
+    { id: 'submitted', label: 'Enviadas' },
+    { id: 'in_review', label: 'Em Análise' },
+    { id: 'approved_pending_payment', label: 'Aguard. Pagamento' },
+    { id: 'paid', label: 'Pagos' },
+    { id: 'signed', label: 'Assinadas' },
+    { id: 'rejected', label: 'Recusadas' },
   ];
 
   return (
