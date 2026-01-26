@@ -605,13 +605,17 @@ async def create_prescription_request(token: str, data: PrescriptionRequestCreat
     
     price = get_price("prescription", data.prescription_type)
     
+    # Usar prescription_images (array) se disponível, senão image_base64 (legado)
+    images = data.prescription_images if data.prescription_images else ([data.image_base64] if data.image_base64 else [])
+    
     request = Request(
         patient_id=user["id"],
         patient_name=user["name"],
         request_type="prescription",
         prescription_type=data.prescription_type,
         medications=data.medications,
-        image_url=data.image_base64,
+        prescription_images=images,  # Salvar como array
+        image_url=images[0] if images else None,  # Compatibilidade legado
         notes=data.notes,
         price=price
     )
@@ -621,8 +625,8 @@ async def create_prescription_request(token: str, data: PrescriptionRequestCreat
     # Create notification
     notification = Notification(
         user_id=user["id"],
-        title="Solicitação Criada",
-        message=f"Sua solicitação de renovação de receita foi criada com sucesso.",
+        title="✅ Solicitação Criada",
+        message=f"Sua solicitação de renovação de receita foi enviada e está aguardando análise médica.",
         notification_type="success"
     )
     await db.notifications.insert_one(notification.dict())
