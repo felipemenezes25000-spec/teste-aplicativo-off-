@@ -723,22 +723,38 @@ async def create_prescription_request(token: str, data: PrescriptionRequestCreat
 
 @api_router.post("/requests/exam")
 async def create_exam_request(token: str, data: ExamRequestCreate):
+    """Criar solicitação de exames - vai para triagem da enfermagem"""
     user = await get_current_user(token)
     
-    price = get_price("exam", data.exam_type)
+    # Preço será definido pela enfermagem após triagem
+    price = 0.0
+    
+    # Salvar imagens do paciente
+    images = data.exam_images if data.exam_images else []
     
     request = Request(
         patient_id=user["id"],
         patient_name=user["name"],
         request_type="exam",
-        exam_type=data.exam_type,
-        exams=data.exams,
-        image_url=data.image_base64,
+        exam_images=images,
+        exam_description=data.description,
+        exam_type=data.exam_type,  # Pode ser preenchido pela enfermagem depois
+        exams=data.exams,  # Pode ser preenchido pela enfermagem depois
         notes=data.notes,
-        price=price
+        price=price,
+        status="submitted"  # Vai para fila da enfermagem
     )
     
     await db.requests.insert_one(request.dict())
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=user["id"],
+        title="✅ Solicitação Enviada",
+        message="Sua solicitação de exames foi enviada e será analisada pela equipe de enfermagem.",
+        notification_type="success"
+    )
+    await db.notifications.insert_one(notification.dict())
     
     return request.dict()
 
