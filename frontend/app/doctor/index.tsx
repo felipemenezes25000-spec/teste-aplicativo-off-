@@ -189,10 +189,46 @@ export default function DoctorDashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* 💰 Awaiting signature (PAID - highest priority) */}
+        {queue.awaiting_signature && queue.awaiting_signature.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: COLORS.healthPurple }]}>
+              💰 Aguardando Assinatura ({queue.awaiting_signature.length})
+            </Text>
+            {queue.awaiting_signature.map((request) => (
+              <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
+                <Card style={[styles.requestCard, { borderLeftWidth: 4, borderLeftColor: COLORS.healthPurple }]}>
+                  <View style={styles.requestHeader}>
+                    <View style={[styles.requestIcon, { backgroundColor: COLORS.healthPurple + '15' }]}>
+                      <Ionicons name="create" size={20} color={COLORS.healthPurple} />
+                    </View>
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
+                      <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                      <Text style={[styles.requestDate, { color: COLORS.healthPurple }]}>
+                        ✓ Paciente já pagou - Assinar receita
+                      </Text>
+                    </View>
+                    <StatusBadge status="paid" size="sm" />
+                  </View>
+                  <Button
+                    title="Assinar Receita"
+                    onPress={() => handleViewRequest(request)}
+                    variant="primary"
+                    fullWidth
+                    size="sm"
+                    style={{ marginTop: SIZES.md }}
+                  />
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
         {/* Analyzing requests */}
         {queue.analyzing.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Em análise</Text>
+            <Text style={styles.sectionTitle}>🔍 Em análise ({queue.analyzing.length})</Text>
             {queue.analyzing.map((request) => (
               <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
                 <Card style={styles.requestCard}>
@@ -208,9 +244,9 @@ export default function DoctorDashboard() {
                   </View>
                   <View style={styles.requestActions}>
                     <Button
-                      title="Aprovar"
-                      onPress={() => handleApproveRequest(request)}
-                      variant="success"
+                      title="Ver Detalhes"
+                      onPress={() => handleViewRequest(request)}
+                      variant="primary"
                       size="sm"
                       style={styles.actionButton}
                     />
@@ -228,8 +264,34 @@ export default function DoctorDashboard() {
           </>
         )}
 
+        {/* ⏳ Awaiting payment */}
+        {queue.awaiting_payment && queue.awaiting_payment.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>
+              ⏳ Aguardando Pagamento ({queue.awaiting_payment.length})
+            </Text>
+            {queue.awaiting_payment.map((request) => (
+              <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
+                <Card style={[styles.requestCard, { borderLeftWidth: 4, borderLeftColor: COLORS.warning }]}>
+                  <View style={styles.requestHeader}>
+                    <View style={[styles.requestIcon, { backgroundColor: COLORS.warning + '15' }]}>
+                      <Ionicons name="time" size={20} color={COLORS.warning} />
+                    </View>
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
+                      <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                      <Text style={styles.requestDate}>Aprovado - Aguardando paciente pagar</Text>
+                    </View>
+                    <StatusBadge status="approved_pending_payment" size="sm" />
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
         {/* Pending requests */}
-        <Text style={styles.sectionTitle}>Fila de solicitações</Text>
+        <Text style={styles.sectionTitle}>📋 Fila de solicitações</Text>
         {queue.pending.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="checkmark-circle" size={48} color={COLORS.healthGreen} />
