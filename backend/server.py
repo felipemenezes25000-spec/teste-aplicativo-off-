@@ -134,10 +134,13 @@ class PrescriptionRequestCreate(BaseModel):
     notes: Optional[str] = None
 
 class ExamRequestCreate(BaseModel):
-    exam_type: Literal["laboratory", "imaging"]
-    exams: List[str]
-    image_base64: Optional[str] = None
+    """Solicitação simplificada de exames - paciente só envia foto/descrição"""
+    description: Optional[str] = None  # Texto livre do paciente
+    exam_images: Optional[List[str]] = None  # Fotos de pedidos anteriores ou escritos
     notes: Optional[str] = None
+    # Campos opcionais (preenchidos pela enfermagem depois)
+    exam_type: Optional[str] = None
+    exams: Optional[List[str]] = None
 
 class ConsultationRequestCreate(BaseModel):
     specialty: str
