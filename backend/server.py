@@ -109,7 +109,8 @@ class Token(BaseModel):
 class PrescriptionRequestCreate(BaseModel):
     prescription_type: Literal["simple", "controlled", "blue"]
     medications: Optional[List[dict]] = None
-    image_base64: Optional[str] = None
+    prescription_images: Optional[List[str]] = None  # Array de imagens base64
+    image_base64: Optional[str] = None  # Compatibilidade legado
     notes: Optional[str] = None
 
 class ExamRequestCreate(BaseModel):
