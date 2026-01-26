@@ -889,21 +889,32 @@ async def check_payment_status(payment_id: str, token: str):
                 {"$set": {"status": status_result.get("status")}}
             )
             
-            # If payment approved, update request status
+            # If payment approved, update request status to PAID
             if status_result.get("status") == "approved":
                 await db.requests.update_one(
                     {"id": payment["request_id"]},
-                    {"$set": {"status": "pending", "updated_at": datetime.utcnow()}}
+                    {"$set": {"status": "paid", "paid_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
                 )
                 
-                # Create notification
+                # Create notification for patient
                 notification = Notification(
                     user_id=payment.get("patient_id", user["id"]),
-                    title="Pagamento Confirmado!",
-                    message="Seu pagamento foi confirmado com sucesso. Sua solicitação está sendo processada.",
+                    title="✅ Pagamento Confirmado!",
+                    message="Seu pagamento foi confirmado com sucesso. Aguarde a assinatura da receita pelo médico.",
                     notification_type="success"
                 )
                 await db.notifications.insert_one(notification.dict())
+                
+                # Notify doctor that payment was received
+                request = await db.requests.find_one({"id": payment["request_id"]})
+                if request and request.get("doctor_id"):
+                    doctor_notification = Notification(
+                        user_id=request["doctor_id"],
+                        title="💰 Pagamento Recebido!",
+                        message=f"O paciente {request.get('patient_name', 'N/A')} pagou. Assine a receita.",
+                        notification_type="success"
+                    )
+                    await db.notifications.insert_one(doctor_notification.dict())
         
         return {
             "payment_id": payment_id,
