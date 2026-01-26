@@ -33,6 +33,9 @@ export default function PatientRequestDetail() {
 
   useEffect(() => {
     loadRequest();
+    // Auto-refresh every 10 seconds to get status updates
+    const interval = setInterval(loadRequest, 10000);
+    return () => clearInterval(interval);
   }, [id]);
 
   useEffect(() => {
