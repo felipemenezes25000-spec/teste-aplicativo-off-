@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
+import { requestsAPI } from '../../src/services/api';
 import { COLORS, SIZES, PRESCRIPTION_TYPES } from '../../src/utils/constants';
 
 export default function PrescriptionUploadScreen() {
@@ -22,7 +24,7 @@ export default function PrescriptionUploadScreen() {
   const insets = useSafeAreaInsets();
   const { type } = useLocalSearchParams<{ type: string }>();
   
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +41,7 @@ export default function PrescriptionUploadScreen() {
           return;
         }
         result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          mediaTypes: ['images'],
           allowsEditing: true,
           quality: 0.8,
           base64: true,
@@ -51,7 +53,7 @@ export default function PrescriptionUploadScreen() {
           return;
         }
         result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          mediaTypes: ['images'],
           allowsEditing: true,
           quality: 0.8,
           base64: true,
@@ -61,7 +63,7 @@ export default function PrescriptionUploadScreen() {
       if (!result.canceled && result.assets[0]) {
         const base64 = result.assets[0].base64;
         if (base64) {
-          setImage(`data:image/jpeg;base64,${base64}`);
+          setImages([...images, `data:image/jpeg;base64,${base64}`]);
         }
       }
     } catch (error) {
@@ -69,15 +71,39 @@ export default function PrescriptionUploadScreen() {
     }
   };
 
-  const handleContinue = () => {
-    router.push({
-      pathname: '/prescription/payment',
-      params: {
-        type,
-        image: image || '',
-        notes,
-      },
-    });
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (images.length === 0) {
+      Alert.alert('Atenção', 'Por favor, envie pelo menos uma foto da receita.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await requestsAPI.createPrescription({
+        prescription_type: type || 'simple',
+        prescription_images: images,
+        notes: notes || undefined,
+      });
+
+      Alert.alert(
+        '✅ Solicitação Enviada!',
+        'Sua solicitação foi enviada e está aguardando análise médica. Você será notificado quando houver uma atualização.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/history'),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível enviar a solicitação.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -105,7 +131,7 @@ export default function PrescriptionUploadScreen() {
             <View style={styles.progressLine} />
             <View style={styles.progressStep}>
               <View style={styles.progressDot} />
-              <Text style={styles.progressTextMuted}>Pagamento</Text>
+              <Text style={styles.progressTextMuted}>Enviar</Text>
             </View>
           </View>
         </View>
@@ -133,21 +159,27 @@ export default function PrescriptionUploadScreen() {
 
         <Text style={styles.title}>Envie sua receita atual</Text>
         <Text style={styles.subtitle}>
-          Tire uma foto ou faça upload da receita que deseja renovar
+          Tire uma foto ou faça upload da receita que deseja renovar. O médico irá analisar antes de aprovar.
         </Text>
 
         {/* Image upload */}
-        {image ? (
-          <View style={styles.imagePreview}>
-            <Image source={{ uri: image }} style={styles.previewImage} />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => setImage(null)}
-            >
-              <Ionicons name="close" size={20} color={COLORS.textWhite} />
-            </TouchableOpacity>
+        {images.length > 0 && (
+          <View style={styles.imagesContainer}>
+            {images.map((img, index) => (
+              <View key={index} style={styles.imagePreview}>
+                <Image source={{ uri: img }} style={styles.previewImage} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => removeImage(index)}
+                >
+                  <Ionicons name="close" size={20} color={COLORS.textWhite} />
+                </TouchableOpacity>
+              </View>
+            ))}
           </View>
-        ) : (
+        )}
+
+        {images.length < 3 && (
           <View style={styles.uploadOptions}>
             <TouchableOpacity
               style={styles.uploadOption}
@@ -183,6 +215,20 @@ export default function PrescriptionUploadScreen() {
           />
         </View>
 
+        {/* Info Card */}
+        <Card style={styles.infoCard}>
+          <Ionicons name="information-circle" size={24} color={COLORS.primary} />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Como funciona?</Text>
+            <Text style={styles.infoText}>
+              1. Você envia a foto da receita{'\n'}
+              2. Um médico analisa sua solicitação{'\n'}
+              3. Se aprovada, você recebe notificação para pagar{'\n'}
+              4. Após pagamento, recebe a receita assinada
+            </Text>
+          </View>
+        </Card>
+
         {/* Tips */}
         <Card style={styles.tipsCard}>
           <Text style={styles.tipsTitle}>Dicas para uma boa foto:</Text>
@@ -206,11 +252,12 @@ export default function PrescriptionUploadScreen() {
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
         <Button
-          title="Continuar para pagamento"
-          onPress={handleContinue}
+          title={isLoading ? "Enviando..." : "Enviar para análise"}
+          onPress={handleSubmit}
           fullWidth
           loading={isLoading}
-          icon={<Ionicons name="arrow-forward" size={20} color={COLORS.textWhite} />}
+          disabled={images.length === 0 || isLoading}
+          icon={!isLoading && <Ionicons name="paper-plane" size={20} color={COLORS.textWhite} />}
         />
       </View>
     </View>
