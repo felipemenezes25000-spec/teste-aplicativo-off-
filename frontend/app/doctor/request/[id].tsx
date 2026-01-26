@@ -268,16 +268,23 @@ export default function DoctorRequestDetail() {
         </Card>
 
         {/* Prescription Images */}
-        {request.prescription_images && request.prescription_images.length > 0 && (
+        {((request.prescription_images && request.prescription_images.length > 0) || request.image_url) && (
           <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>Fotos da Receita Anterior</Text>
+            <Text style={styles.sectionTitle}>📷 Fotos da Receita Anterior</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
-              {request.prescription_images.map((img: string, index: number) => (
+              {request.prescription_images && request.prescription_images.map((img: string, index: number) => (
                 <TouchableOpacity key={index} onPress={() => setSelectedImage(img)}>
                   <Image source={{ uri: img }} style={styles.thumbnailImage} />
                 </TouchableOpacity>
               ))}
+              {/* Fallback para image_url se não tiver prescription_images */}
+              {(!request.prescription_images || request.prescription_images.length === 0) && request.image_url && (
+                <TouchableOpacity onPress={() => setSelectedImage(request.image_url)}>
+                  <Image source={{ uri: request.image_url }} style={styles.thumbnailImage} />
+                </TouchableOpacity>
+              )}
             </ScrollView>
+            <Text style={styles.imageHint}>Toque na imagem para ampliar</Text>
           </Card>
         )}
 
