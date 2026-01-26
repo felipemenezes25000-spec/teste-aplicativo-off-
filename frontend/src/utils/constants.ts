@@ -83,17 +83,35 @@ export const EXAM_TYPES = [
 ];
 
 export const STATUS_LABELS: Record<string, string> = {
+  // New workflow status
+  submitted: 'Aguardando análise',
+  in_review: 'Em análise médica',
+  approved_pending_payment: 'Aguardando pagamento',
+  paid: 'Pago - Aguardando assinatura',
+  signed: 'Receita pronta!',
+  delivered: 'Entregue',
+  rejected: 'Recusado',
+  // Legacy status
   pending: 'Pendente',
   analyzing: 'Em Análise',
   approved: 'Aprovado',
-  rejected: 'Recusado',
   completed: 'Concluído',
+  in_progress: 'Em Andamento',
 };
 
 export const STATUS_COLORS: Record<string, string> = {
+  // New workflow status
+  submitted: COLORS.warning,
+  in_review: COLORS.info,
+  approved_pending_payment: COLORS.healthGreen,
+  paid: COLORS.healthPurple,
+  signed: COLORS.healthGreen,
+  delivered: COLORS.healthGreen,
+  rejected: COLORS.error,
+  // Legacy status
   pending: COLORS.warning,
   analyzing: COLORS.info,
   approved: COLORS.success,
-  rejected: COLORS.error,
   completed: COLORS.healthGreen,
+  in_progress: COLORS.primary,
 };
