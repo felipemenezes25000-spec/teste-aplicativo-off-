@@ -1062,13 +1062,36 @@ async def get_doctor_queue(token: str):
     if user.get("role") != "doctor":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    # Get pending requests
-    pending = await db.requests.find({"status": "pending"}).sort("created_at", 1).to_list(50)
+    # Get pending/submitted requests (waiting for any doctor to accept)
+    pending = await db.requests.find({
+        "status": {"$in": ["submitted", "pending"]},
+        "doctor_id": None
+    }).sort("created_at", 1).to_list(50)
     
-    # Get requests being analyzed by this doctor
-    analyzing = await db.requests.find({"doctor_id": user["id"], "status": "analyzing"}).to_list(50)
+    # Get requests being analyzed by this doctor (in_review or analyzing)
+    analyzing = await db.requests.find({
+        "doctor_id": user["id"], 
+        "status": {"$in": ["in_review", "analyzing"]}
+    }).to_list(50)
     
-    return {"pending": clean_mongo_doc(pending), "analyzing": clean_mongo_doc(analyzing)}
+    # Get requests approved pending payment (doctor approved, waiting for patient to pay)
+    awaiting_payment = await db.requests.find({
+        "doctor_id": user["id"],
+        "status": "approved_pending_payment"
+    }).to_list(50)
+    
+    # Get requests paid (waiting for doctor signature)
+    awaiting_signature = await db.requests.find({
+        "doctor_id": user["id"],
+        "status": "paid"
+    }).to_list(50)
+    
+    return {
+        "pending": clean_mongo_doc(pending), 
+        "analyzing": clean_mongo_doc(analyzing),
+        "awaiting_payment": clean_mongo_doc(awaiting_payment),
+        "awaiting_signature": clean_mongo_doc(awaiting_signature)
+    }
 
 # ============== SPECIALTIES ==============
 
