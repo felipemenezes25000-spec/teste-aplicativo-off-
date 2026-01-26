@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,20 +18,24 @@ import { Card } from '../../../src/components/Card';
 import { Button } from '../../../src/components/Button';
 import { StatusBadge } from '../../../src/components/StatusBadge';
 import { useAuth } from '../../../src/contexts/AuthContext';
-import { requestsAPI, consultationAPI, queueAPI } from '../../../src/services/api';
-import { Request } from '../../../src/types';
-import { COLORS, SIZES, STATUS_LABELS } from '../../../src/utils/constants';
+import { COLORS, SIZES } from '../../../src/utils/constants';
+import api from '../../../src/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export default function RequestDetail() {
+export default function DoctorRequestDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [request, setRequest] = useState<Request | null>(null);
+  const [request, setRequest] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [priceInput, setPriceInput] = useState('');
 
   useEffect(() => {
     loadRequest();
@@ -36,8 +43,12 @@ export default function RequestDetail() {
 
   const loadRequest = async () => {
     try {
-      const data = await requestsAPI.getById(id!);
-      setRequest(data);
+      const token = await AsyncStorage.getItem('token');
+      const response = await api.get(`/requests/${id}`, { params: { token } });
+      setRequest(response.data);
+      if (response.data.price) {
+        setPriceInput(response.data.price.toString());
+      }
     } catch (error) {
       console.error('Error loading request:', error);
       Alert.alert('Erro', 'Não foi possível carregar a solicitação');
@@ -49,157 +60,115 @@ export default function RequestDetail() {
   const handleAccept = async () => {
     setActionLoading('accept');
     try {
-      await queueAPI.assignRequest(id!);
-      Alert.alert('Sucesso', 'Solicitação aceita! Você pode iniciar o atendimento.');
+      const token = await AsyncStorage.getItem('token');
+      await api.post(`/requests/${id}/accept`, null, { params: { token } });
+      Alert.alert('Sucesso', 'Solicitação aceita para análise!');
       loadRequest();
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível aceitar a solicitação.');
+    } catch (error: any) {
+      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aceitar.');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleApprove = async () => {
-    setActionLoading('approve');
-    try {
-      await requestsAPI.update(id!, { status: 'approved' });
-      Alert.alert('Sucesso', 'Solicitação aprovada!');
-      loadRequest();
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível aprovar a solicitação.');
-    } finally {
-      setActionLoading(null);
+    const price = parseFloat(priceInput.replace(',', '.'));
+    if (isNaN(price) || price <= 0) {
+      Alert.alert('Atenção', 'Por favor, informe um valor válido.');
+      return;
     }
+
+    Alert.alert(
+      'Aprovar Solicitação',
+      `Confirma a aprovação com valor de R$ ${price.toFixed(2)}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Aprovar',
+          onPress: async () => {
+            setActionLoading('approve');
+            try {
+              const token = await AsyncStorage.getItem('token');
+              await api.post(`/requests/${id}/approve`, { price }, { params: { token } });
+              Alert.alert('Sucesso', 'Solicitação aprovada! O paciente será notificado para pagar.');
+              loadRequest();
+            } catch (error: any) {
+              Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aprovar.');
+            } finally {
+              setActionLoading(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleReject = async () => {
-    Alert.alert(
-      'Recusar Solicitação',
-      'Tem certeza que deseja recusar esta solicitação?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Recusar',
-          style: 'destructive',
-          onPress: async () => {
-            setActionLoading('reject');
-            try {
-              await requestsAPI.update(id!, { status: 'rejected' });
-              Alert.alert('Solicitação recusada');
-              router.back();
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível recusar a solicitação.');
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
-    );
-  };
+    if (!rejectReason.trim()) {
+      Alert.alert('Atenção', 'Por favor, informe o motivo da recusa.');
+      return;
+    }
 
-  const handleStartConsultation = async () => {
-    setActionLoading('start');
+    setActionLoading('reject');
     try {
-      const result = await consultationAPI.start(id!);
-      if (result.success) {
-        Alert.alert(
-          'Consulta Iniciada',
-          'O paciente será notificado. Deseja abrir a videochamada?',
-          [
-            { text: 'Depois', style: 'cancel', onPress: () => loadRequest() },
-            {
-              text: 'Abrir Videochamada',
-              onPress: () => {
-                // Navigate to video call screen
-                if (result.video_room?.room_url) {
-                  router.push(`/video/${id}?room_url=${encodeURIComponent(result.video_room.room_url)}`);
-                } else {
-                  router.push(`/video/${id}`);
-                }
-              },
-            },
-          ]
-        );
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível iniciar a consulta.');
+      const token = await AsyncStorage.getItem('token');
+      await api.post(`/requests/${id}/reject`, { reason: rejectReason }, { params: { token } });
+      setShowRejectModal(false);
+      Alert.alert('Solicitação Recusada', 'O paciente será notificado.');
+      router.back();
+    } catch (error: any) {
+      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível recusar.');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const openVideoCall = () => {
-    if (request?.video_room?.room_url) {
-      router.push(`/video/${id}?room_url=${encodeURIComponent(request.video_room.room_url)}`);
-    } else {
-      router.push(`/video/${id}`);
+  const handleSign = async () => {
+    setActionLoading('sign');
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await api.post(`/requests/${id}/sign`, null, { params: { token } });
+      Alert.alert('Sucesso', 'Receita assinada digitalmente! O paciente pode baixar agora.');
+      loadRequest();
+    } catch (error: any) {
+      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível assinar.');
+    } finally {
+      setActionLoading(null);
     }
-  };
-
-  const handleEndConsultation = async () => {
-    Alert.alert(
-      'Finalizar Consulta',
-      'Deseja finalizar esta consulta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Finalizar',
-          onPress: async () => {
-            setActionLoading('end');
-            try {
-              const result = await consultationAPI.end(id!);
-              if (result.success) {
-                Alert.alert(
-                  'Consulta Finalizada',
-                  `Duração: ${result.duration_minutes} minutos`
-                );
-                loadRequest();
-              }
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível finalizar a consulta.');
-            } finally {
-              setActionLoading(null);
-            }
-          },
-        },
-      ]
-    );
   };
 
   const openChat = () => {
     router.push(`/doctor/chat/${id}?patient=${encodeURIComponent(request?.patient_name || '')}`);
   };
 
-  const getRequestIcon = (type: string): keyof typeof Ionicons.glyphMap => {
-    switch (type) {
-      case 'prescription': return 'document-text';
-      case 'exam': return 'flask';
-      case 'consultation': return 'videocam';
-      default: return 'document';
-    }
+  const getStatusColor = (status: string) => {
+    const colors: any = {
+      submitted: COLORS.warning,
+      in_review: COLORS.primary,
+      approved_pending_payment: COLORS.healthGreen,
+      paid: COLORS.healthGreen,
+      signed: COLORS.healthPurple,
+      delivered: COLORS.healthGreen,
+      rejected: COLORS.error,
+      pending: COLORS.warning,
+      analyzing: COLORS.primary,
+    };
+    return colors[status] || COLORS.textMuted;
   };
 
-  const getRequestColor = (type: string): string => {
-    switch (type) {
-      case 'prescription': return COLORS.healthGreen;
-      case 'exam': return COLORS.healthPurple;
-      case 'consultation': return COLORS.primary;
-      default: return COLORS.textMuted;
-    }
-  };
-
-  const getRequestTypeName = (req: Request): string => {
-    switch (req.request_type) {
-      case 'prescription':
-        return `Receita ${req.prescription_type === 'simple' ? 'Simples' : req.prescription_type === 'controlled' ? 'Controlada' : 'Azul'}`;
-      case 'exam':
-        return `Pedido de Exame ${req.exam_type === 'laboratory' ? 'Laboratorial' : 'de Imagem'}`;
-      case 'consultation':
-        return `Consulta - ${req.specialty}`;
-      default:
-        return 'Solicitação';
-    }
+  const getStatusLabel = (status: string) => {
+    const labels: any = {
+      submitted: 'Aguardando análise',
+      in_review: 'Em análise',
+      approved_pending_payment: 'Aprovada - Aguardando pagamento',
+      paid: 'Pago - Aguardando assinatura',
+      signed: 'Assinada',
+      delivered: 'Entregue',
+      rejected: 'Recusada',
+      pending: 'Pendente',
+      analyzing: 'Em análise',
+    };
+    return labels[status] || status;
   };
 
   if (isLoading) {
@@ -224,10 +193,9 @@ export default function RequestDetail() {
   }
 
   const isMyRequest = request.doctor_id === user?.id;
-  const isPending = request.status === 'pending';
-  const isAnalyzing = request.status === 'analyzing';
-  const isInProgress = request.status === 'in_progress';
-  const isConsultation = request.request_type === 'consultation';
+  const canAccept = ['submitted', 'pending'].includes(request.status) && !request.doctor_id;
+  const canApproveReject = ['in_review', 'analyzing'].includes(request.status) && isMyRequest;
+  const canSign = request.status === 'paid' && isMyRequest;
 
   return (
     <View style={styles.container}>
@@ -236,90 +204,138 @@ export default function RequestDetail() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes</Text>
+        <Text style={styles.headerTitle}>Detalhes da Solicitação</Text>
         <TouchableOpacity style={styles.chatButton} onPress={openChat}>
           <Ionicons name="chatbubbles" size={24} color={COLORS.textWhite} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Request Info Card */}
-        <Card style={styles.mainCard}>
-          <View style={styles.requestHeader}>
-            <View style={[styles.requestIcon, { backgroundColor: getRequestColor(request.request_type) + '15' }]}>
-              <Ionicons name={getRequestIcon(request.request_type)} size={28} color={getRequestColor(request.request_type)} />
+        {/* Status Card */}
+        <Card style={[styles.statusCard, { borderLeftColor: getStatusColor(request.status) }]}>
+          <View style={styles.statusRow}>
+            <View>
+              <Text style={styles.statusLabel}>Status</Text>
+              <Text style={[styles.statusValue, { color: getStatusColor(request.status) }]}>
+                {getStatusLabel(request.status)}
+              </Text>
             </View>
-            <View style={styles.requestInfo}>
-              <Text style={styles.requestType}>{getRequestTypeName(request)}</Text>
-              <StatusBadge status={request.status} />
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* Patient Info */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Paciente</Text>
-            <View style={styles.patientRow}>
-              <View style={styles.patientAvatar}>
-                <Text style={styles.patientInitials}>
-                  {request.patient_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.patientName}>{request.patient_name}</Text>
-                <Text style={styles.requestDate}>
-                  Solicitado em {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Request Details */}
-          {request.request_type === 'prescription' && request.medications && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Medicamentos</Text>
-              {request.medications.map((med, index) => (
-                <View key={index} style={styles.medicationItem}>
-                  <Text style={styles.medicationName}>{med.name}</Text>
-                  <Text style={styles.medicationDosage}>{med.dosage} - {med.quantity}</Text>
-                  <Text style={styles.medicationInstructions}>{med.instructions}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {request.request_type === 'exam' && request.exams && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Exames Solicitados</Text>
-              {request.exams.map((exam, index) => (
-                <View key={index} style={styles.examItem}>
-                  <Ionicons name="checkmark-circle" size={18} color={COLORS.healthGreen} />
-                  <Text style={styles.examName}>{exam}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {request.notes && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Observações</Text>
-              <Text style={styles.notes}>{request.notes}</Text>
-            </View>
-          )}
-
-          {/* Price */}
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Valor</Text>
-            <Text style={styles.priceValue}>R$ {request.price.toFixed(2)}</Text>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]} />
           </View>
         </Card>
 
+        {/* Patient Info */}
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Paciente</Text>
+          <View style={styles.patientRow}>
+            <View style={styles.patientAvatar}>
+              <Text style={styles.patientInitials}>
+                {request.patient_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              </Text>
+            </View>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>{request.patient_name}</Text>
+              <Text style={styles.requestDate}>
+                Solicitado em {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* Request Type */}
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>Tipo de Solicitação</Text>
+          <View style={styles.typeRow}>
+            <Ionicons 
+              name={request.request_type === 'prescription' ? 'document-text' : request.request_type === 'exam' ? 'flask' : 'videocam'} 
+              size={24} 
+              color={COLORS.primary} 
+            />
+            <View style={styles.typeInfo}>
+              <Text style={styles.typeName}>
+                {request.request_type === 'prescription' ? 'Renovação de Receita' : 
+                 request.request_type === 'exam' ? 'Pedido de Exame' : 'Consulta'}
+              </Text>
+              {request.prescription_type && (
+                <Text style={styles.typeSubtitle}>
+                  {request.prescription_type === 'simple' ? 'Receita Simples' : 
+                   request.prescription_type === 'controlled' ? 'Receita Controlada' : 'Receita Azul'}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.price}>R$ {(request.price || 0).toFixed(2)}</Text>
+          </View>
+        </Card>
+
+        {/* Prescription Images */}
+        {request.prescription_images && request.prescription_images.length > 0 && (
+          <Card style={styles.card}>
+            <Text style={styles.sectionTitle}>Fotos da Receita Anterior</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+              {request.prescription_images.map((img: string, index: number) => (
+                <TouchableOpacity key={index} onPress={() => setSelectedImage(img)}>
+                  <Image source={{ uri: img }} style={styles.thumbnailImage} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Card>
+        )}
+
+        {/* Medications */}
+        {request.medications && request.medications.length > 0 && (
+          <Card style={styles.card}>
+            <Text style={styles.sectionTitle}>Medicamentos</Text>
+            {request.medications.map((med: any, index: number) => (
+              <View key={index} style={styles.medicationItem}>
+                <Text style={styles.medicationName}>{med.name}</Text>
+                <Text style={styles.medicationDosage}>{med.dosage} - {med.quantity}</Text>
+                {med.instructions && (
+                  <Text style={styles.medicationInstructions}>{med.instructions}</Text>
+                )}
+              </View>
+            ))}
+          </Card>
+        )}
+
+        {/* Notes */}
+        {request.notes && (
+          <Card style={styles.card}>
+            <Text style={styles.sectionTitle}>Observações do Paciente</Text>
+            <Text style={styles.notes}>{request.notes}</Text>
+          </Card>
+        )}
+
+        {/* Rejection Reason */}
+        {request.rejection_reason && (
+          <Card style={[styles.card, styles.rejectionCard]}>
+            <Text style={styles.sectionTitle}>Motivo da Recusa</Text>
+            <Text style={styles.rejectionReason}>{request.rejection_reason}</Text>
+          </Card>
+        )}
+
+        {/* Price Input for Approval */}
+        {canApproveReject && (
+          <Card style={styles.card}>
+            <Text style={styles.sectionTitle}>Valor da Consulta</Text>
+            <View style={styles.priceInputRow}>
+              <Text style={styles.pricePrefix}>R$</Text>
+              <TextInput
+                style={styles.priceInput}
+                value={priceInput}
+                onChangeText={setPriceInput}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+                placeholderTextColor={COLORS.textMuted}
+              />
+            </View>
+          </Card>
+        )}
+
         {/* Actions */}
         <View style={styles.actions}>
-          {isPending && !isMyRequest && (
+          {canAccept && (
             <Button
-              title="Aceitar Solicitação"
+              title="Aceitar para Análise"
               onPress={handleAccept}
               loading={actionLoading === 'accept'}
               fullWidth
@@ -327,10 +343,10 @@ export default function RequestDetail() {
             />
           )}
 
-          {isAnalyzing && isMyRequest && !isConsultation && (
+          {canApproveReject && (
             <>
               <Button
-                title="Aprovar"
+                title="Aprovar Solicitação"
                 onPress={handleApprove}
                 loading={actionLoading === 'approve'}
                 variant="success"
@@ -338,9 +354,8 @@ export default function RequestDetail() {
                 icon={<Ionicons name="checkmark" size={20} color={COLORS.textWhite} />}
               />
               <Button
-                title="Recusar"
-                onPress={handleReject}
-                loading={actionLoading === 'reject'}
+                title="Recusar Solicitação"
+                onPress={() => setShowRejectModal(true)}
                 variant="outline"
                 fullWidth
                 style={{ marginTop: SIZES.sm }}
@@ -348,33 +363,14 @@ export default function RequestDetail() {
             </>
           )}
 
-          {isAnalyzing && isMyRequest && isConsultation && (
+          {canSign && (
             <Button
-              title="Iniciar Videochamada"
-              onPress={handleStartConsultation}
-              loading={actionLoading === 'start'}
+              title="Assinar Receita Digitalmente"
+              onPress={handleSign}
+              loading={actionLoading === 'sign'}
               fullWidth
-              icon={<Ionicons name="videocam" size={20} color={COLORS.textWhite} />}
+              icon={<Ionicons name="finger-print" size={20} color={COLORS.textWhite} />}
             />
-          )}
-
-          {isInProgress && isMyRequest && isConsultation && (
-            <>
-              <Button
-                title="Abrir Videochamada"
-                onPress={openVideoCall}
-                fullWidth
-                icon={<Ionicons name="videocam" size={20} color={COLORS.textWhite} />}
-              />
-              <Button
-                title="Finalizar Consulta"
-                onPress={handleEndConsultation}
-                loading={actionLoading === 'end'}
-                variant="outline"
-                fullWidth
-                style={{ marginTop: SIZES.sm }}
-              />
-            </>
           )}
 
           <Button
@@ -387,6 +383,53 @@ export default function RequestDetail() {
           />
         </View>
       </ScrollView>
+
+      {/* Image Modal */}
+      <Modal visible={!!selectedImage} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
+            <Ionicons name="close" size={32} color={COLORS.textWhite} />
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.modalImage} resizeMode="contain" />
+          )}
+        </View>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal visible={showRejectModal} transparent animationType="slide">
+        <View style={styles.rejectModalOverlay}>
+          <View style={styles.rejectModalContent}>
+            <Text style={styles.rejectModalTitle}>Motivo da Recusa</Text>
+            <Text style={styles.rejectModalSubtitle}>
+              Informe ao paciente o motivo da recusa desta solicitação
+            </Text>
+            <TextInput
+              style={styles.rejectInput}
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              placeholder="Ex: Receita ilegível, necessita consulta presencial..."
+              placeholderTextColor={COLORS.textMuted}
+              multiline
+              numberOfLines={4}
+            />
+            <View style={styles.rejectModalActions}>
+              <Button
+                title="Cancelar"
+                onPress={() => setShowRejectModal(false)}
+                variant="outline"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Recusar"
+                onPress={handleReject}
+                loading={actionLoading === 'reject'}
+                style={{ flex: 1, marginLeft: SIZES.sm, backgroundColor: COLORS.error }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -413,7 +456,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: SIZES.fontXl,
+    fontSize: SIZES.fontLg,
     fontWeight: '700',
     color: COLORS.textWhite,
   },
@@ -445,45 +488,40 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: SIZES.lg,
+    paddingBottom: SIZES.xxl,
   },
-  mainCard: {
-    marginBottom: SIZES.lg,
+  statusCard: {
+    borderLeftWidth: 4,
+    marginBottom: SIZES.md,
   },
-  requestHeader: {
+  statusRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  requestIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
+  statusLabel: {
+    fontSize: SIZES.fontSm,
+    color: COLORS.textMuted,
   },
-  requestInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  requestType: {
+  statusValue: {
     fontSize: SIZES.fontLg,
     fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
+    marginTop: 2,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.borderLight,
-    marginVertical: SIZES.md,
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  section: {
+  card: {
     marginBottom: SIZES.md,
   },
   sectionTitle: {
     fontSize: SIZES.fontSm,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.textMuted,
     textTransform: 'uppercase',
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.md,
   },
   patientRow: {
     flexDirection: 'row',
@@ -496,12 +534,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: SIZES.md,
   },
   patientInitials: {
     fontSize: SIZES.fontLg,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary,
+  },
+  patientInfo: {
+    flex: 1,
+    marginLeft: SIZES.md,
   },
   patientName: {
     fontSize: SIZES.fontLg,
@@ -512,6 +553,38 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontSm,
     color: COLORS.textMuted,
     marginTop: 2,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  typeInfo: {
+    flex: 1,
+    marginLeft: SIZES.md,
+  },
+  typeName: {
+    fontSize: SIZES.fontMd,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  typeSubtitle: {
+    fontSize: SIZES.fontSm,
+    color: COLORS.textMuted,
+  },
+  price: {
+    fontSize: SIZES.fontLg,
+    fontWeight: '700',
+    color: COLORS.healthGreen,
+  },
+  imagesScroll: {
+    marginTop: SIZES.sm,
+  },
+  thumbnailImage: {
+    width: 120,
+    height: 160,
+    borderRadius: SIZES.radiusMd,
+    marginRight: SIZES.sm,
+    backgroundColor: COLORS.backgroundDark,
   },
   medicationItem: {
     backgroundColor: COLORS.backgroundDark,
@@ -535,40 +608,92 @@ const styles = StyleSheet.create({
     marginTop: SIZES.xs,
     fontStyle: 'italic',
   },
-  examItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SIZES.xs,
-    gap: SIZES.sm,
-  },
-  examName: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
   notes: {
     fontSize: SIZES.fontMd,
     color: COLORS.textSecondary,
     lineHeight: 22,
   },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: SIZES.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-    marginTop: SIZES.md,
+  rejectionCard: {
+    backgroundColor: COLORS.error + '10',
+    borderWidth: 1,
+    borderColor: COLORS.error + '30',
   },
-  priceLabel: {
+  rejectionReason: {
     fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
+    color: COLORS.error,
   },
-  priceValue: {
-    fontSize: SIZES.font2xl,
+  priceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.backgroundDark,
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SIZES.md,
+  },
+  pricePrefix: {
+    fontSize: SIZES.fontLg,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  priceInput: {
+    flex: 1,
+    fontSize: SIZES.fontXl,
     fontWeight: '700',
-    color: COLORS.healthGreen,
+    color: COLORS.textPrimary,
+    paddingVertical: SIZES.md,
+    marginLeft: SIZES.sm,
   },
   actions: {
-    marginBottom: SIZES.xl,
+    marginTop: SIZES.lg,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+  },
+  modalImage: {
+    width: '90%',
+    height: '70%',
+  },
+  rejectModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  rejectModalContent: {
+    backgroundColor: COLORS.cardBackground,
+    borderTopLeftRadius: SIZES.radiusXl,
+    borderTopRightRadius: SIZES.radiusXl,
+    padding: SIZES.xl,
+  },
+  rejectModalTitle: {
+    fontSize: SIZES.fontXl,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  rejectModalSubtitle: {
+    fontSize: SIZES.fontMd,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.xs,
+    marginBottom: SIZES.lg,
+  },
+  rejectInput: {
+    backgroundColor: COLORS.backgroundDark,
+    borderRadius: SIZES.radiusMd,
+    padding: SIZES.md,
+    fontSize: SIZES.fontMd,
+    color: COLORS.textPrimary,
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  rejectModalActions: {
+    flexDirection: 'row',
+    marginTop: SIZES.lg,
   },
 });
