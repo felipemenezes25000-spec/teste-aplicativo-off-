@@ -25,12 +25,20 @@ export default function DoctorDashboard() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const [queue, setQueue] = useState<{ pending: Request[]; analyzing: Request[] }>({ pending: [], analyzing: [] });
+  const [queue, setQueue] = useState<{ 
+    pending: Request[]; 
+    analyzing: Request[];
+    awaiting_payment: Request[];
+    awaiting_signature: Request[];
+  }>({ pending: [], analyzing: [], awaiting_payment: [], awaiting_signature: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadQueue();
+    // Auto-refresh every 15 seconds for real-time sync
+    const interval = setInterval(loadQueue, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadQueue = async () => {
