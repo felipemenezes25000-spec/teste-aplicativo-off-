@@ -29,6 +29,9 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     loadRequests();
+    // Auto-refresh every 15 seconds for real-time sync
+    const interval = setInterval(loadRequests, 15000);
+    return () => clearInterval(interval);
   }, [filter]);
 
   const loadRequests = async () => {
