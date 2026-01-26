@@ -166,7 +166,7 @@ export default function HistoryScreen() {
             <Card
               key={request.id}
               style={styles.requestCard}
-              onPress={() => router.push(`/chat/${request.id}` as any)}
+              onPress={() => router.push(`/request/${request.id}` as any)}
             >
               <View style={styles.requestHeader}>
                 <View
