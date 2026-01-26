@@ -36,9 +36,13 @@ export default function LoginScreen() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Google Auth setup
+  // Google Auth setup - using same client ID for all platforms (web type)
+  // For production, create separate Android and iOS OAuth clients
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID,
+    androidClientId: GOOGLE_CLIENT_ID,
+    iosClientId: GOOGLE_CLIENT_ID,
+    expoClientId: GOOGLE_CLIENT_ID,
     selectAccount: true,
   });
 
