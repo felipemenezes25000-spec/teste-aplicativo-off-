@@ -88,7 +88,7 @@ export const requestsAPI = {
   createPrescription: async (data: {
     prescription_type: string;
     medications?: object[];
-    image_base64?: string;
+    prescription_images?: string[];  // Base64 images
     notes?: string;
   }) => {
     const params = await getAuthParams();
