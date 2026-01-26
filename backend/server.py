@@ -62,7 +62,7 @@ class UserCreate(BaseModel):
     password: str
     phone: Optional[str] = None
     cpf: Optional[str] = None
-    role: Literal["patient", "doctor", "admin"] = "patient"
+    role: Literal["patient", "doctor", "admin", "nurse"] = "patient"
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -77,6 +77,16 @@ class DoctorRegister(BaseModel):
     crm: str
     crm_state: str
     specialty: str
+
+class NurseRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    phone: Optional[str] = None
+    cpf: Optional[str] = None
+    coren: str
+    coren_state: str
+    specialty: Optional[str] = "Enfermagem Geral"
 
 class User(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
