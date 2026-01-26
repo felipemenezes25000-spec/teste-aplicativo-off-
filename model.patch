@@ -1,145 +1,150 @@
 diff --git a/model.patch b/model.patch
-index a0f9a8a..e69de29 100644
+index 94b845d..e69de29 100644
 --- a/model.patch
 +++ b/model.patch
-@@ -1,13 +0,0 @@
--diff --git a/backend/integrations.py b/backend/integrations.py
--index 48d8ada..93c77f9 100644
----- a/backend/integrations.py
--+++ b/backend/integrations.py
--@@ -38,7 +38,7 @@ class MercadoPagoService(PaymentService):
--     
--     def __init__(self):
--         self.access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
---        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_' and not str(self.access_token and not self.access_token.startswith('YOUR_').startswith("YOUR_")))
--+        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_'))
--         
--     async def create_pix_payment(self, amount: float, description: str, payer_email: str) -> Dict[str, Any]:
--         if not self.is_configured:
-diff --git a/test_result.md b/test_result.md
-index eec964c..d53deff 100644
---- a/test_result.md
-+++ b/test_result.md
-@@ -109,51 +109,63 @@ user_problem_statement: |
- backend:
-   - task: "Queue System - Auto Assign Requests"
-     implemented: true
--    working: "NA"
-+    working: true
-     file: "backend/queue_manager.py"
-     stuck_count: 0
-     priority: "high"
--    needs_retesting: true
-+    needs_retesting: false
-     status_history:
-       - working: "NA"
-         agent: "main"
-         comment: "Sistema de fila implementado com distribuição round-robin. Endpoints: /api/queue/assign, /api/queue/auto-assign, /api/queue/stats"
-+      - working: true
-+        agent: "testing"
-+        comment: "✅ TESTED: Queue system working correctly. All endpoints tested: GET /api/queue/stats (returns queue statistics), POST /api/queue/assign/{request_id} (doctor self-assignment working), auto-assignment logic implemented in QueueManager class with smart distribution by specialty and load balancing."
- 
-   - task: "Chat API - Send and Get Messages"
-     implemented: true
--    working: "NA"
-+    working: true
-     file: "backend/server.py"
-     stuck_count: 0
-     priority: "high"
--    needs_retesting: true
-+    needs_retesting: false
-     status_history:
-       - working: "NA"
-         agent: "main"
-         comment: "Endpoints de chat implementados: POST /api/chat, GET /api/chat/{request_id}, /api/chat/unread-count, /api/chat/{request_id}/mark-read"
-+      - working: true
-+        agent: "testing"
-+        comment: "✅ TESTED: Chat system fully functional. All endpoints working: POST /api/chat (message sending), GET /api/chat/{request_id} (message retrieval), GET /api/chat/unread-count (unread count), POST /api/chat/{request_id}/mark-read (mark as read). ChatManager class handles real-time messaging with notifications."
- 
-   - task: "Consultation Management - Start/End"
-     implemented: true
--    working: "NA"
-+    working: true
-     file: "backend/queue_manager.py"
-     stuck_count: 0
-     priority: "high"
--    needs_retesting: true
-+    needs_retesting: false
-     status_history:
-       - working: "NA"
-         agent: "main"
-         comment: "Endpoints de consulta: POST /api/consultation/start/{id}, POST /api/consultation/end/{id}"
-+      - working: true
-+        agent: "testing"
-+        comment: "✅ TESTED: Consultation management working correctly. POST /api/consultation/start/{request_id} (starts video consultation with room creation), POST /api/consultation/end/{request_id} (ends consultation with duration tracking). ConsultationManager integrates with video services and chat system."
- 
-   - task: "Doctor Availability"
-     implemented: true
--    working: "NA"
-+    working: true
-     file: "backend/server.py"
-     stuck_count: 0
-     priority: "medium"
--    needs_retesting: true
-+    needs_retesting: false
-     status_history:
-       - working: "NA"
-         agent: "main"
-         comment: "Endpoint PUT /api/doctor/availability para atualizar disponibilidade"
-+      - working: true
-+        agent: "testing"
-+        comment: "✅ TESTED: Doctor availability system working. PUT /api/doctor/availability (updates availability status), GET /api/doctor/my-patients (retrieves doctor's patients), GET /api/doctors/queue (gets doctor queue). All endpoints functional."
- 
- frontend:
-   - task: "Chat Component"
-@@ -195,14 +207,11 @@ frontend:
- metadata:
-   created_by: "main_agent"
-   version: "1.0"
--  test_sequence: 1
-+  test_sequence: 2
-   run_ui: false
- 
- test_plan:
--  current_focus:
--    - "Queue System - Auto Assign Requests"
--    - "Chat API - Send and Get Messages"
--    - "Consultation Management - Start/End"
-+  current_focus: []
-   stuck_tasks: []
-   test_all: false
-   test_priority: "high_first"
-@@ -228,4 +237,30 @@ agent_communication:
-       1. POST /api/queue/assign/{request_id} - atribuir médico a solicitação
-       2. POST /api/chat - enviar mensagem
-       3. GET /api/chat/{request_id} - buscar mensagens
--      4. GET /api/queue/stats - estatísticas da fila
-\ No newline at end of file
-+      4. GET /api/queue/stats - estatísticas da fila
-+  - agent: "testing"
-+    message: |
-+      ✅ BACKEND TESTING COMPLETED - ALL SYSTEMS WORKING
-+      
-+      **Comprehensive Testing Results:**
-+      - ✅ Authentication: Patient & Doctor registration working
-+      - ✅ Queue System: Stats, assignment, auto-assignment all functional
-+      - ✅ Chat System: Message sending, retrieval, unread count, mark-read all working
-+      - ✅ Consultation Management: Start/end consultation with video room creation working
-+      - ✅ Doctor Management: Availability updates, patient lists, queue access working
-+      
-+      **Key Findings:**
-+      - All 16 backend endpoints tested successfully (100% pass rate)
-+      - QueueManager implements smart distribution by specialty and load balancing
-+      - ChatManager handles real-time messaging with notifications
-+      - ConsultationManager integrates video services with chat system
-+      - Authentication and authorization working correctly
-+      
-+      **System Architecture Verified:**
-+      - FastAPI backend with MongoDB integration working
-+      - Token-based authentication functional
-+      - Queue distribution algorithm operational
-+      - Real-time chat with notification system active
-+      - Video consultation workflow complete
-+      
-+      All backend systems are production-ready and fully functional.
-\ No newline at end of file
+@@ -1,145 +0,0 @@
+-diff --git a/model.patch b/model.patch
+-index a0f9a8a..e69de29 100644
+---- a/model.patch
+-+++ b/model.patch
+-@@ -1,13 +0,0 @@
+--diff --git a/backend/integrations.py b/backend/integrations.py
+--index 48d8ada..93c77f9 100644
+----- a/backend/integrations.py
+--+++ b/backend/integrations.py
+--@@ -38,7 +38,7 @@ class MercadoPagoService(PaymentService):
+--     
+--     def __init__(self):
+--         self.access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+---        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_' and not str(self.access_token and not self.access_token.startswith('YOUR_').startswith("YOUR_")))
+--+        self.is_configured = bool(self.access_token and not self.access_token.startswith('YOUR_'))
+--         
+--     async def create_pix_payment(self, amount: float, description: str, payer_email: str) -> Dict[str, Any]:
+--         if not self.is_configured:
+-diff --git a/test_result.md b/test_result.md
+-index eec964c..d53deff 100644
+---- a/test_result.md
+-+++ b/test_result.md
+-@@ -109,51 +109,63 @@ user_problem_statement: |
+- backend:
+-   - task: "Queue System - Auto Assign Requests"
+-     implemented: true
+--    working: "NA"
+-+    working: true
+-     file: "backend/queue_manager.py"
+-     stuck_count: 0
+-     priority: "high"
+--    needs_retesting: true
+-+    needs_retesting: false
+-     status_history:
+-       - working: "NA"
+-         agent: "main"
+-         comment: "Sistema de fila implementado com distribuição round-robin. Endpoints: /api/queue/assign, /api/queue/auto-assign, /api/queue/stats"
+-+      - working: true
+-+        agent: "testing"
+-+        comment: "✅ TESTED: Queue system working correctly. All endpoints tested: GET /api/queue/stats (returns queue statistics), POST /api/queue/assign/{request_id} (doctor self-assignment working), auto-assignment logic implemented in QueueManager class with smart distribution by specialty and load balancing."
+- 
+-   - task: "Chat API - Send and Get Messages"
+-     implemented: true
+--    working: "NA"
+-+    working: true
+-     file: "backend/server.py"
+-     stuck_count: 0
+-     priority: "high"
+--    needs_retesting: true
+-+    needs_retesting: false
+-     status_history:
+-       - working: "NA"
+-         agent: "main"
+-         comment: "Endpoints de chat implementados: POST /api/chat, GET /api/chat/{request_id}, /api/chat/unread-count, /api/chat/{request_id}/mark-read"
+-+      - working: true
+-+        agent: "testing"
+-+        comment: "✅ TESTED: Chat system fully functional. All endpoints working: POST /api/chat (message sending), GET /api/chat/{request_id} (message retrieval), GET /api/chat/unread-count (unread count), POST /api/chat/{request_id}/mark-read (mark as read). ChatManager class handles real-time messaging with notifications."
+- 
+-   - task: "Consultation Management - Start/End"
+-     implemented: true
+--    working: "NA"
+-+    working: true
+-     file: "backend/queue_manager.py"
+-     stuck_count: 0
+-     priority: "high"
+--    needs_retesting: true
+-+    needs_retesting: false
+-     status_history:
+-       - working: "NA"
+-         agent: "main"
+-         comment: "Endpoints de consulta: POST /api/consultation/start/{id}, POST /api/consultation/end/{id}"
+-+      - working: true
+-+        agent: "testing"
+-+        comment: "✅ TESTED: Consultation management working correctly. POST /api/consultation/start/{request_id} (starts video consultation with room creation), POST /api/consultation/end/{request_id} (ends consultation with duration tracking). ConsultationManager integrates with video services and chat system."
+- 
+-   - task: "Doctor Availability"
+-     implemented: true
+--    working: "NA"
+-+    working: true
+-     file: "backend/server.py"
+-     stuck_count: 0
+-     priority: "medium"
+--    needs_retesting: true
+-+    needs_retesting: false
+-     status_history:
+-       - working: "NA"
+-         agent: "main"
+-         comment: "Endpoint PUT /api/doctor/availability para atualizar disponibilidade"
+-+      - working: true
+-+        agent: "testing"
+-+        comment: "✅ TESTED: Doctor availability system working. PUT /api/doctor/availability (updates availability status), GET /api/doctor/my-patients (retrieves doctor's patients), GET /api/doctors/queue (gets doctor queue). All endpoints functional."
+- 
+- frontend:
+-   - task: "Chat Component"
+-@@ -195,14 +207,11 @@ frontend:
+- metadata:
+-   created_by: "main_agent"
+-   version: "1.0"
+--  test_sequence: 1
+-+  test_sequence: 2
+-   run_ui: false
+- 
+- test_plan:
+--  current_focus:
+--    - "Queue System - Auto Assign Requests"
+--    - "Chat API - Send and Get Messages"
+--    - "Consultation Management - Start/End"
+-+  current_focus: []
+-   stuck_tasks: []
+-   test_all: false
+-   test_priority: "high_first"
+-@@ -228,4 +237,30 @@ agent_communication:
+-       1. POST /api/queue/assign/{request_id} - atribuir médico a solicitação
+-       2. POST /api/chat - enviar mensagem
+-       3. GET /api/chat/{request_id} - buscar mensagens
+--      4. GET /api/queue/stats - estatísticas da fila
+-\ No newline at end of file
+-+      4. GET /api/queue/stats - estatísticas da fila
+-+  - agent: "testing"
+-+    message: |
+-+      ✅ BACKEND TESTING COMPLETED - ALL SYSTEMS WORKING
+-+      
+-+      **Comprehensive Testing Results:**
+-+      - ✅ Authentication: Patient & Doctor registration working
+-+      - ✅ Queue System: Stats, assignment, auto-assignment all functional
+-+      - ✅ Chat System: Message sending, retrieval, unread count, mark-read all working
+-+      - ✅ Consultation Management: Start/end consultation with video room creation working
+-+      - ✅ Doctor Management: Availability updates, patient lists, queue access working
+-+      
+-+      **Key Findings:**
+-+      - All 16 backend endpoints tested successfully (100% pass rate)
+-+      - QueueManager implements smart distribution by specialty and load balancing
+-+      - ChatManager handles real-time messaging with notifications
+-+      - ConsultationManager integrates video services with chat system
+-+      - Authentication and authorization working correctly
+-+      
+-+      **System Architecture Verified:**
+-+      - FastAPI backend with MongoDB integration working
+-+      - Token-based authentication functional
+-+      - Queue distribution algorithm operational
+-+      - Real-time chat with notification system active
+-+      - Video consultation workflow complete
+-+      
+-+      All backend systems are production-ready and fully functional.
+-\ No newline at end of file
