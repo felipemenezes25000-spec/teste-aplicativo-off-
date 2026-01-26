@@ -14,12 +14,12 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../../src/components/Card';
-import { Button } from '../../../src/components/Button';
-import { StatusBadge } from '../../../src/components/StatusBadge';
-import { useAuth } from '../../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../../src/utils/constants';
-import api from '../../../src/services/api';
+import { Card } from '../../src/components/Card';
+import { Button } from '../../src/components/Button';
+import { StatusBadge } from '../../src/components/StatusBadge';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { COLORS, SIZES } from '../../src/utils/constants';
+import api from '../../src/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

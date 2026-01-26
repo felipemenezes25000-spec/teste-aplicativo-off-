@@ -2,8 +2,8 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Chat } from '../../../src/components/Chat';
-import { COLORS } from '../../../src/utils/constants';
+import { Chat } from '../../src/components/Chat';
+import { COLORS } from '../../src/utils/constants';
 
 export default function DoctorChatScreen() {
   const { id, patient } = useLocalSearchParams<{ id: string; patient?: string }>();
