@@ -448,6 +448,12 @@ async def login(data: UserLogin):
         dp = await db.doctor_profiles.find_one({"user_id": user["id"]})
         doctor_profile = clean_mongo_doc(dp)
     
+    # Get nurse profile if nurse
+    nurse_profile = None
+    if user.get("role") == "nurse":
+        np = await db.nurse_profiles.find_one({"user_id": user["id"]})
+        nurse_profile = clean_mongo_doc(np)
+    
     return Token(
         access_token=token,
         user={
@@ -458,7 +464,8 @@ async def login(data: UserLogin):
             "cpf": user.get("cpf"),
             "role": user.get("role", "patient"),
             "avatar_url": user.get("avatar_url"),
-            "doctor_profile": doctor_profile
+            "doctor_profile": doctor_profile,
+            "nurse_profile": nurse_profile
         }
     )
 
