@@ -945,13 +945,24 @@ async def confirm_payment(payment_id: str, token: str):
         {"$set": {"status": "completed", "paid_at": datetime.utcnow()}}
     )
     
-    # Update request status
+    # Update request status to PAID (awaiting doctor signature)
     await db.requests.update_one(
         {"id": payment["request_id"]},
-        {"$set": {"status": "pending", "updated_at": datetime.utcnow()}}
+        {"$set": {"status": "paid", "paid_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
-    return {"message": "Pagamento confirmado com sucesso", "status": "completed"}
+    # Notify the doctor that payment was received
+    request = await db.requests.find_one({"id": payment["request_id"]})
+    if request and request.get("doctor_id"):
+        notification = Notification(
+            user_id=request["doctor_id"],
+            title="💰 Pagamento Recebido!",
+            message=f"O paciente {request.get('patient_name', 'N/A')} realizou o pagamento. A receita precisa ser assinada.",
+            notification_type="success"
+        )
+        await db.notifications.insert_one(notification.dict())
+    
+    return {"message": "Pagamento confirmado com sucesso", "status": "paid"}
 
 # ============== CHAT ROUTES ==============
 
