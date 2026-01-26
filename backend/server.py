@@ -1563,6 +1563,225 @@ async def get_all_doctors(token: str):
     
     return result
 
+# ============== NURSING WORKFLOW ROUTES ==============
+
+class NursingApprovalRequest(BaseModel):
+    price: float
+    exam_type: Optional[str] = None
+    exams: Optional[List[str]] = None
+    notes: Optional[str] = None
+
+class NursingRejectionRequest(BaseModel):
+    reason: str
+    notes: Optional[str] = None
+
+class NursingForwardRequest(BaseModel):
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+@api_router.get("/nursing/queue")
+async def get_nursing_queue(token: str):
+    """Fila de triagem da enfermagem - solicitações de exames"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "nurse":
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para enfermeiros")
+    
+    # Solicitações de exames pendentes de triagem
+    pending = await db.requests.find({
+        "request_type": "exam",
+        "status": "submitted",
+        "nurse_id": None
+    }).sort("created_at", 1).to_list(50)
+    
+    # Solicitações em análise pela enfermagem
+    in_review = await db.requests.find({
+        "request_type": "exam",
+        "nurse_id": user["id"],
+        "status": "in_nursing_review"
+    }).to_list(50)
+    
+    # Solicitações aguardando pagamento (aprovadas pela enfermagem)
+    awaiting_payment = await db.requests.find({
+        "nurse_id": user["id"],
+        "status": "approved_by_nursing_pending_payment"
+    }).to_list(50)
+    
+    return {
+        "pending": clean_mongo_doc(pending),
+        "in_review": clean_mongo_doc(in_review),
+        "awaiting_payment": clean_mongo_doc(awaiting_payment)
+    }
+
+@api_router.post("/nursing/accept/{request_id}")
+async def nursing_accept_request(request_id: str, token: str):
+    """Enfermeiro aceita uma solicitação de exame para triagem"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "nurse":
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para enfermeiros")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("request_type") != "exam":
+        raise HTTPException(status_code=400, detail="Apenas solicitações de exames vão para enfermagem")
+    
+    if request.get("status") != "submitted":
+        raise HTTPException(status_code=400, detail="Solicitação não está disponível para triagem")
+    
+    # Atribuir enfermeiro
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "in_nursing_review",
+            "nurse_id": user["id"],
+            "nurse_name": user["name"],
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="🩺 Triagem Iniciada",
+        message="Sua solicitação de exames está sendo analisada pela equipe de enfermagem.",
+        notification_type="info"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação aceita para triagem"}
+
+@api_router.post("/nursing/approve/{request_id}")
+async def nursing_approve_request(request_id: str, token: str, data: NursingApprovalRequest):
+    """Enfermeiro aprova solicitação de exame (dentro do protocolo)"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "nurse":
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para enfermeiros")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("nurse_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Você não está atribuído a esta solicitação")
+    
+    if request.get("status") != "in_nursing_review":
+        raise HTTPException(status_code=400, detail="Solicitação não está em triagem")
+    
+    # Aprovar pela enfermagem
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "approved_by_nursing_pending_payment",
+            "price": data.price,
+            "exam_type": data.exam_type,
+            "exams": data.exams,
+            "approved_by": "nurse",
+            "approved_at": datetime.utcnow(),
+            "notes": data.notes,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Incrementar contador do enfermeiro
+    await db.nurse_profiles.update_one(
+        {"user_id": user["id"]},
+        {"$inc": {"total_triages": 1}}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="✅ Exames Aprovados!",
+        message=f"Sua solicitação de exames foi aprovada. Realize o pagamento de R$ {data.price:.2f} para receber o pedido.",
+        notification_type="success"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação aprovada pela enfermagem"}
+
+@api_router.post("/nursing/forward-to-doctor/{request_id}")
+async def nursing_forward_to_doctor(request_id: str, token: str, data: NursingForwardRequest):
+    """Enfermeiro encaminha solicitação para validação médica"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "nurse":
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para enfermeiros")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("nurse_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Você não está atribuído a esta solicitação")
+    
+    if request.get("status") != "in_nursing_review":
+        raise HTTPException(status_code=400, detail="Solicitação não está em triagem")
+    
+    # Encaminhar para médico
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "in_medical_review",
+            "notes": f"Encaminhado pela enfermagem: {data.reason or 'Requer validação médica'}",
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="🔄 Encaminhado ao Médico",
+        message="Sua solicitação foi encaminhada para validação médica. Você será notificado em breve.",
+        notification_type="info"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação encaminhada para médico"}
+
+@api_router.post("/nursing/reject/{request_id}")
+async def nursing_reject_request(request_id: str, token: str, data: NursingRejectionRequest):
+    """Enfermeiro rejeita solicitação de exame"""
+    user = await get_current_user(token)
+    
+    if user.get("role") != "nurse":
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para enfermeiros")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("nurse_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Você não está atribuído a esta solicitação")
+    
+    if request.get("status") != "in_nursing_review":
+        raise HTTPException(status_code=400, detail="Solicitação não está em triagem")
+    
+    # Rejeitar
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": data.reason,
+            "approved_by": "nurse",  # Indica que a decisão foi da enfermagem
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="❌ Solicitação Recusada",
+        message=f"Sua solicitação de exames foi recusada. Motivo: {data.reason}",
+        notification_type="error"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação recusada"}
+
 # ============== QUEUE MANAGEMENT ROUTES ==============
 
 # ============== PRESCRIPTION WORKFLOW ROUTES ==============
