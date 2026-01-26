@@ -39,6 +39,9 @@ export default function DoctorRequestDetail() {
 
   useEffect(() => {
     loadRequest();
+    // Auto-refresh every 10 seconds to get status updates (e.g., when patient pays)
+    const interval = setInterval(loadRequest, 10000);
+    return () => clearInterval(interval);
   }, [id]);
 
   const loadRequest = async () => {
