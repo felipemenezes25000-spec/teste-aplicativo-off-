@@ -153,23 +153,32 @@ class Request(BaseModel):
     patient_id: str
     patient_name: str
     request_type: Literal["prescription", "exam", "consultation"]
-    # Status conforme fluxo: submitted -> in_review -> approved_pending_payment/rejected -> paid -> signed -> delivered
+    # Status completo com fluxo de enfermagem para exames
     status: Literal[
         "submitted",           # Enviada pelo paciente
-        "in_review",           # Na fila do médico
+        # Fluxo de Enfermagem (exames)
+        "in_nursing_review",   # Na triagem da enfermagem
+        "approved_by_nursing_pending_payment",  # Aprovado pela enfermagem, aguardando pagamento
+        # Fluxo Médico
+        "in_review",           # Na fila do médico (receita) ou encaminhado pela enfermagem (exame)
+        "in_medical_review",   # Na validação médica (exame encaminhado)
         "rejected",            # Recusada com motivo
-        "approved_pending_payment",  # Aprovada, aguardando pagamento
+        "approved_pending_payment",  # Aprovada pelo médico, aguardando pagamento
         "paid",                # Pagamento confirmado
         "signed",              # Documento assinado
-        "delivered",           # Receita entregue
+        "delivered",           # Entregue
         # Legacy status (para compatibilidade)
         "pending", "analyzing", "approved", "in_progress", "completed"
     ] = "submitted"
     price: float = 0.0
     notes: Optional[str] = None
     rejection_reason: Optional[str] = None  # Motivo da rejeição
+    # Profissional responsável
     doctor_id: Optional[str] = None
     doctor_name: Optional[str] = None
+    nurse_id: Optional[str] = None
+    nurse_name: Optional[str] = None
+    approved_by: Optional[str] = None  # "nurse" ou "doctor"
     # Prescription specific
     prescription_type: Optional[str] = None
     medications: Optional[List[dict]] = None
@@ -178,6 +187,8 @@ class Request(BaseModel):
     # Exam specific
     exam_type: Optional[str] = None
     exams: Optional[List[str]] = None
+    exam_images: Optional[List[str]] = None  # Fotos de pedidos/descrições
+    exam_description: Optional[str] = None  # Texto livre do paciente
     # Consultation specific
     specialty: Optional[str] = None
     duration: Optional[int] = None
