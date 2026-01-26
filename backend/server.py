@@ -96,7 +96,7 @@ class User(BaseModel):
     cpf: Optional[str] = None
     birth_date: Optional[str] = None
     avatar_url: Optional[str] = None
-    role: str = "patient"
+    role: str = "patient"  # patient, doctor, admin, nurse
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class DoctorProfile(BaseModel):
@@ -108,6 +108,16 @@ class DoctorProfile(BaseModel):
     bio: Optional[str] = None
     rating: float = 5.0
     total_consultations: int = 0
+    available: bool = True
+
+class NurseProfile(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    coren: str
+    coren_state: str
+    specialty: str = "Enfermagem Geral"
+    bio: Optional[str] = None
+    total_triages: int = 0
     available: bool = True
 
 class Token(BaseModel):
