@@ -1425,6 +1425,248 @@ async def get_all_doctors(token: str):
 
 # ============== QUEUE MANAGEMENT ROUTES ==============
 
+# ============== PRESCRIPTION WORKFLOW ROUTES ==============
+
+class DoctorApprovalRequest(BaseModel):
+    price: Optional[float] = None
+    notes: Optional[str] = None
+
+class DoctorRejectionRequest(BaseModel):
+    reason: str
+    notes: Optional[str] = None
+
+@api_router.post("/requests/{request_id}/accept")
+async def doctor_accept_request(request_id: str, token: str):
+    """Médico aceita analisar a solicitação (move para in_review)"""
+    user = await get_current_user(token)
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem aceitar solicitações")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("status") not in ["submitted", "pending"]:
+        raise HTTPException(status_code=400, detail="Solicitação não está disponível para análise")
+    
+    # Atribuir médico e mover para análise
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "in_review",
+            "doctor_id": user["id"],
+            "doctor_name": user["name"],
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="Solicitação em análise",
+        message=f"Dr(a). {user['name']} está analisando sua solicitação.",
+        notification_type="info"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação aceita para análise", "status": "in_review"}
+
+@api_router.post("/requests/{request_id}/approve")
+async def doctor_approve_request(request_id: str, token: str, data: DoctorApprovalRequest = None):
+    """Médico aprova a solicitação (move para approved_pending_payment)"""
+    user = await get_current_user(token)
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem aprovar solicitações")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("doctor_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Você não está atribuído a esta solicitação")
+    
+    if request.get("status") not in ["in_review", "analyzing"]:
+        raise HTTPException(status_code=400, detail="Solicitação não está em análise")
+    
+    # Definir preço se fornecido
+    update_data = {
+        "status": "approved_pending_payment",
+        "approved_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    
+    if data and data.price:
+        update_data["price"] = data.price
+    if data and data.notes:
+        update_data["doctor_notes"] = data.notes
+    
+    await db.requests.update_one({"id": request_id}, {"$set": update_data})
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="✅ Solicitação Aprovada!",
+        message=f"Sua solicitação foi aprovada por Dr(a). {user['name']}. Realize o pagamento para receber sua receita assinada.",
+        notification_type="success"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {
+        "success": True, 
+        "message": "Solicitação aprovada. Aguardando pagamento do paciente.",
+        "status": "approved_pending_payment",
+        "price": update_data.get("price", request.get("price", 0))
+    }
+
+@api_router.post("/requests/{request_id}/reject")
+async def doctor_reject_request(request_id: str, token: str, data: DoctorRejectionRequest):
+    """Médico rejeita a solicitação com motivo"""
+    user = await get_current_user(token)
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem rejeitar solicitações")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("doctor_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Você não está atribuído a esta solicitação")
+    
+    if request.get("status") not in ["in_review", "analyzing"]:
+        raise HTTPException(status_code=400, detail="Solicitação não está em análise")
+    
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejection_reason": data.reason,
+            "doctor_notes": data.notes,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="❌ Solicitação Recusada",
+        message=f"Sua solicitação foi recusada. Motivo: {data.reason}",
+        notification_type="error"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {"success": True, "message": "Solicitação rejeitada", "status": "rejected", "reason": data.reason}
+
+@api_router.post("/requests/{request_id}/sign")
+async def sign_prescription(request_id: str, token: str):
+    """Assinar digitalmente a receita após pagamento confirmado"""
+    user = await get_current_user(token)
+    if user.get("role") != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem assinar receitas")
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("status") != "paid":
+        raise HTTPException(status_code=400, detail="Pagamento ainda não foi confirmado")
+    
+    # Gerar assinatura digital
+    from integrations import get_signature_service
+    signature_service = get_signature_service()
+    
+    document_data = {
+        "request_id": request_id,
+        "patient_name": request.get("patient_name"),
+        "medications": request.get("medications", []),
+        "prescription_type": request.get("prescription_type"),
+        "notes": request.get("notes"),
+        "doctor_name": user["name"],
+    }
+    
+    # Get doctor CRM
+    doctor_profile = await db.doctor_profiles.find_one({"user_id": user["id"]})
+    crm = f"{doctor_profile.get('crm', '')}/{doctor_profile.get('crm_state', '')}" if doctor_profile else ""
+    
+    signature_result = await signature_service.sign_document(document_data, user["name"], crm)
+    
+    # Atualizar solicitação
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "signed",
+            "signed_at": datetime.utcnow(),
+            "signature_data": signature_result,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    # Notificar paciente
+    notification = Notification(
+        user_id=request["patient_id"],
+        title="📝 Receita Assinada!",
+        message="Sua receita foi assinada digitalmente e está pronta para download.",
+        notification_type="success"
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return {
+        "success": True,
+        "message": "Receita assinada com sucesso",
+        "status": "signed",
+        "signature": signature_result
+    }
+
+@api_router.post("/requests/{request_id}/deliver")
+async def deliver_prescription(request_id: str, token: str):
+    """Marcar receita como entregue ao paciente"""
+    user = await get_current_user(token)
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("status") != "signed":
+        raise HTTPException(status_code=400, detail="Receita ainda não foi assinada")
+    
+    await db.requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "delivered",
+            "delivered_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    return {"success": True, "message": "Receita marcada como entregue", "status": "delivered"}
+
+@api_router.get("/requests/{request_id}/document")
+async def get_signed_document(request_id: str, token: str):
+    """Obter documento assinado para download"""
+    user = await get_current_user(token)
+    
+    request = await db.requests.find_one({"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Verificar se usuário tem acesso
+    if user["id"] != request.get("patient_id") and user["id"] != request.get("doctor_id") and user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissão para acessar este documento")
+    
+    if request.get("status") not in ["signed", "delivered"]:
+        raise HTTPException(status_code=400, detail="Documento ainda não está disponível")
+    
+    return {
+        "request_id": request_id,
+        "patient_name": request.get("patient_name"),
+        "doctor_name": request.get("doctor_name"),
+        "prescription_type": request.get("prescription_type"),
+        "medications": request.get("medications", []),
+        "notes": request.get("notes"),
+        "signature_data": request.get("signature_data"),
+        "signed_at": request.get("signed_at"),
+        "status": request.get("status")
+    }
+
 @api_router.get("/queue/stats")
 async def get_queue_stats(token: str):
     """Get queue statistics"""
