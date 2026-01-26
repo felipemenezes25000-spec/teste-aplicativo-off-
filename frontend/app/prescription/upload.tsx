@@ -476,4 +476,51 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.borderLight,
   },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SIZES.sm,
+    marginBottom: SIZES.lg,
+  },
+  imagePreview: {
+    position: 'relative',
+    width: '47%',
+  },
+  previewImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: SIZES.radiusMd,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: SIZES.xs,
+    right: SIZES.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SIZES.md,
+    backgroundColor: COLORS.primary + '08',
+    marginBottom: SIZES.md,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: SIZES.fontMd,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    marginBottom: SIZES.xs,
+  },
+  infoText: {
+    fontSize: SIZES.fontSm,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
 });
