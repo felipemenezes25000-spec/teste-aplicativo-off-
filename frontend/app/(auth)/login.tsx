@@ -43,7 +43,6 @@ export default function LoginScreen() {
     webClientId: GOOGLE_CLIENT_ID,
     androidClientId: GOOGLE_CLIENT_ID,
     iosClientId: GOOGLE_CLIENT_ID,
-    expoClientId: GOOGLE_CLIENT_ID,
     selectAccount: true,
   });
 
