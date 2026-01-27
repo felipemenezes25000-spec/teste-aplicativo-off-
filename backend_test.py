@@ -249,12 +249,12 @@ class RenoveJaBackendTester:
             if request_id:
                 # 2. Accept request (assign doctor)
                 success, response, error = self.make_request(
-                    "POST", f"/queue/accept/{request_id}", 
+                    "POST", f"/queue/assign/{request_id}", 
                     token=self.tokens["doctor"]
                 )
                 
                 if success:
-                    self.log_result("POST /queue/accept/{request_id}", True, "Request accepted by doctor")
+                    self.log_result("POST /queue/assign/{request_id}", True, "Request accepted by doctor")
                     
                     # 3. Approve request with price
                     approval_data = {"price": 49.90, "notes": "Receita aprovada"}
