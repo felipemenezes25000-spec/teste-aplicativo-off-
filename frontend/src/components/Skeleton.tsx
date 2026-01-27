@@ -83,13 +83,13 @@ export function SkeletonAvatar({ size = 48 }: { size?: number }) {
   return <Skeleton width={size} height={size} borderRadius={size / 2} />;
 }
 
-export function SkeletonText({ lines = 3, lastLineWidth = '60%' }: { lines?: number; lastLineWidth?: string }) {
+export function SkeletonText({ lines = 3, lastLineWidth = '60%' as `${number}%` }: { lines?: number; lastLineWidth?: `${number}%` }) {
   return (
     <View>
       {Array.from({ length: lines }).map((_, index) => (
         <Skeleton
           key={index}
-          width={index === lines - 1 ? lastLineWidth : '100%'}
+          width={index === lines - 1 ? lastLineWidth : '100%' as const}
           height={14}
           style={{ marginTop: index > 0 ? 8 : 0 }}
         />
