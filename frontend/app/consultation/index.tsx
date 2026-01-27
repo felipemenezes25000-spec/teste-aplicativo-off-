@@ -25,7 +25,7 @@ const SPECIALTY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'Neurologia': 'flash',
   'Ortopedia': 'fitness',
   'Pediatria': 'happy',
-  'Psiquiatria': 'brain',
+  'Psiquiatria': 'body',
   'Urologia': 'water',
 };
 
