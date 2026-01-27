@@ -256,6 +256,12 @@ export default function LoginScreen() {
                 <Text style={styles.footerLink}>Cadastre-se aqui</Text>
               </Link>
             </Text>
+            <Text style={styles.footerTextSmall}>
+              É enfermeiro(a)?{' '}
+              <Link href="/(auth)/register-nurse" asChild>
+                <Text style={styles.footerLink}>Cadastre-se aqui</Text>
+              </Link>
+            </Text>
           </View>
         </ScrollView>
       </View>
