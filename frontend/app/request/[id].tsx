@@ -40,11 +40,13 @@ export default function PatientRequestDetail() {
 
   useEffect(() => {
     // Auto-check payment status every 10 seconds if waiting for payment
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval> | null = null;
     if (payment && payment.status === 'pending') {
       interval = setInterval(checkPaymentStatus, 10000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [payment]);
 
   const loadRequest = async () => {
