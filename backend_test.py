@@ -494,7 +494,7 @@ class RenoveJaBackendTester:
         }
         
         success, response, error = self.make_request(
-            "POST", "/payments/create", 
+            "POST", "/payments", 
             payment_data, 
             token=self.tokens["patient"]
         )
