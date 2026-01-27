@@ -7,7 +7,7 @@ export interface User {
   cpf?: string;
   birth_date?: string;
   avatar_url?: string;
-  role: 'patient' | 'doctor' | 'admin';
+  role: 'patient' | 'doctor' | 'admin' | 'nurse';
   address?: Address;
   doctor_profile?: DoctorProfile;
 }
@@ -95,7 +95,7 @@ export interface ChatMessage {
   request_id: string;
   sender_id: string;
   sender_name: string;
-  sender_type: 'patient' | 'doctor' | 'support';
+  sender_type: 'patient' | 'doctor' | 'support' | 'system';
   message: string;
   read: boolean;
   created_at: string;
