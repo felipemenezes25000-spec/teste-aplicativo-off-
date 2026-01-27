@@ -49,6 +49,19 @@ export const authAPI = {
     return response.data;
   },
   
+  registerNurse: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    cpf?: string;
+    coren: string;
+    coren_state: string;
+  }) => {
+    const response = await api.post('/auth/register-nurse', data);
+    return response.data;
+  },
+  
   googleAuth: async (idToken: string) => {
     const response = await api.post('/auth/google', { id_token: idToken });
     return response.data;
