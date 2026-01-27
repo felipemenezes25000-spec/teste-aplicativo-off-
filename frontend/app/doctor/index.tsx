@@ -11,9 +11,13 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Card } from '../../src/components/Card';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { Button } from '../../src/components/Button';
+import { SkeletonList } from '../../src/components/Skeleton';
+import { EmptyState } from '../../src/components/EmptyState';
+import { showToast } from '../../src/components/Toast';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { doctorsAPI, requestsAPI, queueAPI } from '../../src/services/api';
 import { Request } from '../../src/types';
@@ -47,6 +51,7 @@ export default function DoctorDashboard() {
       setQueue(data);
     } catch (error) {
       console.error('Error loading queue:', error);
+      showToast.error('Erro', 'Não foi possível carregar a fila');
     } finally {
       setIsLoading(false);
     }
