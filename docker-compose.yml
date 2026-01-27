@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:latest
+    container_name: renoveja-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  # Backend (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: renoveja-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=renoveja
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+
+  # Frontend (Expo Web)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: renoveja-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - EXPO_PUBLIC_BACKEND_URL=http://localhost:8001
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
