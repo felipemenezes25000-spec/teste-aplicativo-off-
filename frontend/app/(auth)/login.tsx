@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, Link } from 'expo-router';
@@ -15,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as Haptics from 'expo-haptics';
 import { Logo } from '../../src/components/Logo';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
+import { showToast } from '../../src/components/Toast';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { COLORS, SIZES } from '../../src/utils/constants';
 
