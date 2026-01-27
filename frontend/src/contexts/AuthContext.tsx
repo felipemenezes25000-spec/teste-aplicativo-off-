@@ -147,6 +147,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const registerNurse = async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    coren: string;
+    coren_state: string;
+  }) => {
+    try {
+      const response = await authAPI.registerNurse(data);
+      
+      await AsyncStorage.setItem('token', response.access_token);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      
+      setToken(response.access_token);
+      setUser(response.user);
+      
+      return { success: true };
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Erro ao criar conta de enfermeiro';
+      return { success: false, error: message };
+    }
+  };
+
   const logout = async () => {
     try {
       await authAPI.logout();
