@@ -3,14 +3,14 @@ import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { COLORS, SIZES } from '../utils/constants';
 
 interface SkeletonProps {
-  width?: number | string;
+  width?: number | `${number}%` | 'auto';
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;
 }
 
 export function Skeleton({ 
-  width = '100%', 
+  width = '100%' as const, 
   height = 20, 
   borderRadius = SIZES.radiusMd,
   style 
