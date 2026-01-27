@@ -199,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         register,
         registerDoctor,
+        registerNurse,
         logout,
         updateUser,
       }}
