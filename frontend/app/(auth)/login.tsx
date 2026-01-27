@@ -103,18 +103,22 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Por favor, preencha todos os campos');
+      showToast.warning('Atenção', 'Por favor, preencha todos os campos');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     setIsLoading(true);
     setError('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const result = await login(email, password);
     
     setIsLoading(false);
 
     if (result.success) {
+      showToast.success('Bem-vindo!', 'Login realizado com sucesso');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Check user role and redirect accordingly
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
@@ -132,6 +136,8 @@ export default function LoginScreen() {
         router.replace('/(tabs)');
       }
     } else {
+      showToast.error('Erro', result.error || 'Erro ao fazer login');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(result.error || 'Erro ao fazer login');
     }
   };
