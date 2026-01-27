@@ -18,7 +18,7 @@ import { Button } from '../../src/components/Button';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { COLORS, SIZES } from '../../src/utils/constants';
-import api from '../../src/services/api';
+import api, { getToken } from '../../src/services/api';
 
 interface Request {
   id: string;
@@ -50,7 +50,7 @@ export default function NurseDashboard() {
 
   const loadQueue = async () => {
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       const response = await api.get('/nursing/queue', { params: { token } });
       setQueue(response.data);
     } catch (error) {
@@ -68,7 +68,7 @@ export default function NurseDashboard() {
 
   const handleAcceptRequest = async (request: Request) => {
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       await api.post(`/nursing/accept/${request.id}`, {}, { params: { token } });
       Alert.alert('Sucesso', 'Solicitação aceita para triagem');
       loadQueue();
