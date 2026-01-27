@@ -515,7 +515,7 @@ class RenoveJaBackendTester:
             else:
                 self.log_result("GET /payments/{id}/status", False, error=error)
         else:
-            self.log_result("POST /payments/create", False, error=error)
+            self.log_result("POST /payments", False, error=error)
     
     def test_digital_signature(self):
         """Test digital signature workflow"""
