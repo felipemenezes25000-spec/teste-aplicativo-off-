@@ -1,6 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { COLORS, SIZES } from '../utils/constants';
 
 interface NotificationBadgeProps {
@@ -18,6 +17,24 @@ export function NotificationBadge({
   color = COLORS.error,
   style,
 }: NotificationBadgeProps) {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (count > 0) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 5,
+      }).start();
+    } else {
+      Animated.timing(scaleAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [count]);
+
   if (count <= 0) return null;
 
   const displayCount = count > maxCount ? `${maxCount}+` : count.toString();
@@ -37,13 +54,13 @@ export function NotificationBadge({
 
   return (
     <Animated.View
-      entering={ZoomIn.springify()}
       style={[
         styles.badge,
         {
           minWidth: sizeStyle.minWidth,
           height: sizeStyle.height,
           backgroundColor: color,
+          transform: [{ scale: scaleAnim }],
         },
         style,
       ]}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Text,
   StyleSheet,
@@ -6,17 +6,10 @@ import {
   ViewStyle,
   TextStyle,
   Pressable,
+  Animated,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { COLORS, SIZES } from '../utils/constants';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface AnimatedButtonProps {
   title: string;
@@ -45,22 +38,20 @@ export function AnimatedButton({
   fullWidth = false,
   haptic = true,
 }: AnimatedButtonProps) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
-    opacity.value = withTiming(0.9, { duration: 100 });
+    Animated.spring(scaleAnim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-    opacity.value = withTiming(1, { duration: 100 });
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePress = () => {
@@ -129,45 +120,46 @@ export function AnimatedButton({
   };
 
   return (
-    <AnimatedPressable
-      style={[
-        styles.button,
-        {
-          backgroundColor: getBackgroundColor(),
-          height: getHeight(),
-          borderWidth: variant === 'outline' ? 2 : 0,
-          borderColor: variant === 'outline' ? COLORS.primary : undefined,
-        },
-        fullWidth && styles.fullWidth,
-        animatedStyle,
-        style,
-      ]}
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      disabled={disabled || loading}
-    >
-      {loading ? (
-        <ActivityIndicator color={getTextColor()} size="small" />
-      ) : (
-        <>
-          {icon}
-          <Text
-            style={[
-              styles.text,
-              {
-                color: getTextColor(),
-                fontSize: getFontSize(),
-                marginLeft: icon ? SIZES.sm : 0,
-              },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
-        </>
-      )}
-    </AnimatedPressable>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        style={[
+          styles.button,
+          {
+            backgroundColor: getBackgroundColor(),
+            height: getHeight(),
+            borderWidth: variant === 'outline' ? 2 : 0,
+            borderColor: variant === 'outline' ? COLORS.primary : undefined,
+          },
+          fullWidth && styles.fullWidth,
+          style,
+        ]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled || loading}
+      >
+        {loading ? (
+          <ActivityIndicator color={getTextColor()} size="small" />
+        ) : (
+          <>
+            {icon}
+            <Text
+              style={[
+                styles.text,
+                {
+                  color: getTextColor(),
+                  fontSize: getFontSize(),
+                  marginLeft: icon ? SIZES.sm : 0,
+                },
+                textStyle,
+              ]}
+            >
+              {title}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
