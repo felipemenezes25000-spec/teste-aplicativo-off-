@@ -269,7 +269,7 @@ class RenoveJaBackendTester:
                     else:
                         self.log_result("POST /requests/{id}/approve", False, error=error)
                 else:
-                    self.log_result("POST /queue/accept/{request_id}", False, error=error)
+                    self.log_result("POST /queue/assign/{request_id}", False, error=error)
             else:
                 self.log_result("Doctor Queue Workflow", False, error="No request ID available for testing")
         else:
