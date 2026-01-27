@@ -6,13 +6,16 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Card } from '../../src/components/Card';
 import { StatusBadge } from '../../src/components/StatusBadge';
+import { SkeletonList } from '../../src/components/Skeleton';
+import { EmptyState } from '../../src/components/EmptyState';
+import { showToast } from '../../src/components/Toast';
 import { requestsAPI } from '../../src/services/api';
 import { Request } from '../../src/types';
 import { COLORS, SIZES } from '../../src/utils/constants';
@@ -40,6 +43,7 @@ export default function HistoryScreen() {
       setRequests(data);
     } catch (error) {
       console.error('Error loading requests:', error);
+      showToast.error('Erro', 'Não foi possível carregar o histórico');
     } finally {
       setIsLoading(false);
     }
@@ -47,6 +51,7 @@ export default function HistoryScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await loadRequests();
     setRefreshing(false);
   };
