@@ -91,6 +91,10 @@ export const STATUS_LABELS: Record<string, string> = {
   signed: 'Receita pronta!',
   delivered: 'Entregue',
   rejected: 'Recusado',
+  // Nursing workflow status
+  in_nursing_review: 'Em triagem (Enfermagem)',
+  approved_by_nursing_pending_payment: 'Aprovado - Aguard. pagamento',
+  in_medical_review: 'Aguardando validação médica',
   // Legacy status
   pending: 'Pendente',
   analyzing: 'Em Análise',
@@ -108,6 +112,10 @@ export const STATUS_COLORS: Record<string, string> = {
   signed: COLORS.healthGreen,
   delivered: COLORS.healthGreen,
   rejected: COLORS.error,
+  // Nursing workflow status
+  in_nursing_review: COLORS.healthPurple,
+  approved_by_nursing_pending_payment: COLORS.healthGreen,
+  in_medical_review: COLORS.warning,
   // Legacy status
   pending: COLORS.warning,
   analyzing: COLORS.info,
