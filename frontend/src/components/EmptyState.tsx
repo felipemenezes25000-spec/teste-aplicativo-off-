@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, BounceIn } from 'react-native-reanimated';
 import { Button } from './Button';
 import { COLORS, SIZES } from '../utils/constants';
 
@@ -48,10 +47,10 @@ export function EmptyState({
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={styles.container}>
-      <Animated.View entering={BounceIn.delay(200)} style={styles.iconContainer}>
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>
         <Ionicons name={getIcon()} size={64} color={getIconColor()} />
-      </Animated.View>
+      </View>
       <Text style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
       {actionLabel && onAction && (
@@ -62,7 +61,7 @@ export function EmptyState({
           style={styles.button}
         />
       )}
-    </Animated.View>
+    </View>
   );
 }
 
