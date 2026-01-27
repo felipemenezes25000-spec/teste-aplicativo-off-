@@ -126,7 +126,10 @@ export default function HistoryScreen() {
               styles.filterButton,
               filter === f.id && styles.filterButtonActive,
             ]}
-            onPress={() => setFilter(f.id)}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setFilter(f.id);
+            }}
           >
             <Text
               style={[
@@ -142,25 +145,17 @@ export default function HistoryScreen() {
 
       {/* Content */}
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.list}>
+          <SkeletonList count={4} />
         </View>
       ) : requests.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIcon}>
-            <Ionicons name="document-outline" size={48} color={COLORS.textMuted} />
-          </View>
-          <Text style={styles.emptyTitle}>Nenhuma solicitação</Text>
-          <Text style={styles.emptyText}>
-            Você ainda não fez nenhuma solicitação. Comece agora mesmo!
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
-            onPress={() => router.push('/(tabs)')}
-          >
-            <Text style={styles.emptyButtonText}>Fazer solicitação</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon="document-text-outline"
+          title="Nenhuma solicitação"
+          description="Você ainda não fez nenhuma solicitação. Comece agora mesmo!"
+          actionLabel="Fazer solicitação"
+          onAction={() => router.push('/(tabs)')}
+        />
       ) : (
         <ScrollView
           style={styles.list}
