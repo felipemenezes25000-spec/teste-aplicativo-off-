@@ -7,23 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  Image,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeInDown,
-  FadeInRight,
-  FadeInUp,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withRepeat,
-  withTiming,
-  interpolate,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { NotificationBadge } from '../../src/components/NotificationBadge';
@@ -32,8 +21,6 @@ import { COLORS, SIZES } from '../../src/utils/constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
-
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -41,32 +28,16 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationCount] = useState(2);
 
-  // Animations
-  const pulseAnim = useSharedValue(1);
-  const floatAnim = useSharedValue(0);
+  // Simple fade animation
+  const fadeAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
-    // Pulse animation for CTA
-    pulseAnim.value = withRepeat(
-      withTiming(1.05, { duration: 1500 }),
-      -1,
-      true
-    );
-    // Float animation
-    floatAnim.value = withRepeat(
-      withTiming(1, { duration: 2000 }),
-      -1,
-      true
-    );
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
   }, []);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseAnim.value }],
-  }));
-
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(floatAnim.value, [0, 1], [0, -8]) }],
-  }));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -150,12 +121,12 @@ export default function HomeScreen() {
         style={[styles.header, { paddingTop: insets.top + SIZES.sm }]}
       >
         {/* Decorative circles */}
-        <Animated.View style={[styles.headerDecor1, floatStyle]} />
+        <View style={styles.headerDecor1} />
         <View style={styles.headerDecor2} />
         <View style={styles.headerDecor3} />
 
         {/* Top bar */}
-        <Animated.View entering={FadeInDown.delay(100)} style={styles.topBar}>
+        <Animated.View style={[styles.topBar, { opacity: fadeAnim }]}>
           <View style={styles.logoContainer}>
             <View style={styles.logoIcon}>
               <Ionicons name="medical" size={20} color={COLORS.primary} />
@@ -182,7 +153,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Welcome Section */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.welcomeSection}>
+        <Animated.View style={[styles.welcomeSection, { opacity: fadeAnim }]}>
           <TouchableOpacity 
             style={styles.avatarContainer}
             onPress={() => router.push('/(tabs)/profile')}
@@ -208,7 +179,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* Search/CTA Banner */}
-        <Animated.View entering={FadeInUp.delay(300)}>
+        <Animated.View style={{ opacity: fadeAnim }}>
           <TouchableOpacity 
             style={styles.ctaBanner}
             onPress={() => handleServicePress('/prescription')}
@@ -242,7 +213,7 @@ export default function HomeScreen() {
         }
       >
         {/* Quick Stats */}
-        <Animated.View entering={FadeInRight.delay(400)} style={styles.statsContainer}>
+        <View style={styles.statsContainer}>
           {quickStats.map((stat, index) => (
             <TouchableOpacity 
               key={stat.label} 
@@ -256,20 +227,19 @@ export default function HomeScreen() {
               <Text style={styles.statLabel}>{stat.label}</Text>
             </TouchableOpacity>
           ))}
-        </Animated.View>
+        </View>
 
         {/* Section Title */}
-        <Animated.View entering={FadeInDown.delay(500)} style={styles.sectionHeader}>
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Nossos Serviços</Text>
           <Text style={styles.sectionSubtitle}>Selecione o que você precisa</Text>
-        </Animated.View>
+        </View>
 
         {/* Main Services - Big Cards */}
         <View style={styles.servicesGrid}>
           {mainServices.map((service, index) => (
-            <Animated.View
+            <View
               key={service.id}
-              entering={FadeInUp.delay(600 + index * 100)}
               style={[
                 styles.serviceCardWrapper,
                 index === 0 && styles.serviceCardLarge,
@@ -308,12 +278,12 @@ export default function HomeScreen() {
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
-            </Animated.View>
+            </View>
           ))}
         </View>
 
         {/* Trust Features */}
-        <Animated.View entering={FadeInUp.delay(900)} style={styles.trustSection}>
+        <View style={styles.trustSection}>
           <View style={styles.trustCard}>
             <View style={styles.trustRow}>
               <View style={styles.trustItem}>
@@ -342,39 +312,37 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-        </Animated.View>
+        </View>
 
         {/* WhatsApp Support */}
-        <Animated.View entering={FadeInUp.delay(1000)}>
-          <TouchableOpacity 
-            style={styles.whatsappButton}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              showToast.info('Em breve', 'Suporte via WhatsApp em breve!');
-            }}
+        <TouchableOpacity 
+          style={styles.whatsappButton}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            showToast.info('Em breve', 'Suporte via WhatsApp em breve!');
+          }}
+        >
+          <LinearGradient
+            colors={['#25D366', '#128C7E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.whatsappGradient}
           >
-            <LinearGradient
-              colors={['#25D366', '#128C7E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.whatsappGradient}
-            >
-              <Ionicons name="logo-whatsapp" size={24} color="white" />
-              <Text style={styles.whatsappText}>Precisa de ajuda? Fale conosco!</Text>
-              <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
+            <Ionicons name="logo-whatsapp" size={24} color="white" />
+            <Text style={styles.whatsappText}>Precisa de ajuda? Fale conosco!</Text>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* Footer Info */}
-        <Animated.View entering={FadeInUp.delay(1100)} style={styles.footer}>
+        <View style={styles.footer}>
           <Text style={styles.footerText}>
             ✅ Atendimento médico digital dentro das normas do CFM
           </Text>
           <Text style={styles.footerSubtext}>
             Receitas e pedidos de exames assinados digitalmente
           </Text>
-        </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -601,7 +569,7 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.xs,
   },
   statValue: {
-    fontSize: SIZES.fontXl,
+    fontSize: SIZES.font2xl,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
@@ -616,13 +584,13 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.md,
   },
   sectionTitle: {
-    fontSize: SIZES.font2xl,
+    fontSize: SIZES.fontXl,
     fontWeight: '700',
     color: COLORS.textPrimary,
   },
   sectionSubtitle: {
     fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   
@@ -641,15 +609,15 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     borderRadius: 20,
-    padding: SIZES.lg,
-    height: 140,
-    position: 'relative',
-    overflow: 'hidden',
+    padding: SIZES.md,
+    minHeight: 140,
+    justifyContent: 'space-between',
   },
   serviceCardLargeInner: {
-    height: 120,
+    minHeight: 120,
     flexDirection: 'row',
     alignItems: 'center',
+    padding: SIZES.lg,
   },
   popularBadge: {
     position: 'absolute',
@@ -658,7 +626,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: SIZES.sm,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: SIZES.radiusFull,
   },
   popularBadgeText: {
     fontSize: SIZES.fontXs,
@@ -678,14 +646,16 @@ const styles = StyleSheet.create({
     fontSize: SIZES.fontMd,
     fontWeight: '700',
     color: 'white',
-    marginBottom: 2,
   },
   serviceTitleLarge: {
     fontSize: SIZES.fontLg,
+    marginLeft: SIZES.md,
+    flex: 1,
   },
   serviceSubtitle: {
     fontSize: SIZES.fontXs,
     color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
   },
   serviceArrow: {
     position: 'absolute',
@@ -700,7 +670,7 @@ const styles = StyleSheet.create({
   trustCard: {
     backgroundColor: COLORS.cardBackground,
     borderRadius: 20,
-    padding: SIZES.lg,
+    padding: SIZES.md,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -714,7 +684,6 @@ const styles = StyleSheet.create({
   },
   trustItem: {
     alignItems: 'center',
-    flex: 1,
   },
   trustIcon: {
     width: 48,
@@ -722,18 +691,17 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SIZES.sm,
+    marginBottom: SIZES.xs,
   },
   trustLabel: {
     fontSize: SIZES.fontXs,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    textAlign: 'center',
   },
   trustDivider: {
     width: 1,
-    height: 50,
-    backgroundColor: COLORS.border,
+    height: 40,
+    backgroundColor: COLORS.borderLight,
   },
   
   // WhatsApp Button
@@ -745,7 +713,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 5,
   },
   whatsappGradient: {
     flexDirection: 'row',
@@ -763,18 +731,17 @@ const styles = StyleSheet.create({
   // Footer
   footer: {
     alignItems: 'center',
-    paddingTop: SIZES.sm,
+    paddingVertical: SIZES.lg,
   },
   footerText: {
     fontSize: SIZES.fontSm,
+    fontWeight: '600',
     color: COLORS.textSecondary,
     textAlign: 'center',
-    fontWeight: '500',
   },
   footerSubtext: {
     fontSize: SIZES.fontXs,
     color: COLORS.textMuted,
-    textAlign: 'center',
     marginTop: 4,
   },
 });
