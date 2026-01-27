@@ -502,7 +502,7 @@ class RenoveJaBackendTester:
         if success and response.get("id"):
             payment_id = response["id"]
             self.payments_created.append(payment_id)
-            self.log_result("POST /payments/create", True, f"PIX payment created: {payment_id}")
+            self.log_result("POST /payments", True, f"PIX payment created: {payment_id}")
             
             # 2. Check payment status
             success, response, error = self.make_request(
