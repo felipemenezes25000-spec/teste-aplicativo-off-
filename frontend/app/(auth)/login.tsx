@@ -122,6 +122,8 @@ export default function LoginScreen() {
           router.replace('/admin');
         } else if (userData.role === 'doctor') {
           router.replace('/doctor');
+        } else if (userData.role === 'nurse') {
+          router.replace('/nurse');
         } else {
           router.replace('/(tabs)');
         }
