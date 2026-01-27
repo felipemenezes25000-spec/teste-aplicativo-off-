@@ -64,7 +64,6 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View
-        colors={[COLORS.background, COLORS.healthGreen + '08', COLORS.background]}
         style={styles.gradient}
       >
         <ScrollView

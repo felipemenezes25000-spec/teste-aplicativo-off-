@@ -87,7 +87,6 @@ export default function DoctorRegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View
-        colors={[COLORS.background, COLORS.healthPurple + '08', COLORS.background]}
         style={styles.gradient}
       >
         <ScrollView
