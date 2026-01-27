@@ -482,16 +482,16 @@ const styles = StyleSheet.create({
     gap: SIZES.sm,
     marginBottom: SIZES.lg,
   },
-  imagePreview: {
+  imagePreviewContainer: {
     position: 'relative',
     width: '47%',
   },
-  previewImage: {
+  previewImageSmall: {
     width: '100%',
     height: 150,
     borderRadius: SIZES.radiusMd,
   },
-  removeImageButton: {
+  removeImageBtn: {
     position: 'absolute',
     top: SIZES.xs,
     right: SIZES.xs,
