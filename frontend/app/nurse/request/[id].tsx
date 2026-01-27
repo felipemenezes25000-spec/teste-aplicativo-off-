@@ -22,7 +22,7 @@ import { Button } from '../../../src/components/Button';
 import { StatusBadge } from '../../../src/components/StatusBadge';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { COLORS, SIZES } from '../../../src/utils/constants';
-import api from '../../../src/services/api';
+import api, { getToken } from '../../../src/services/api';
 
 export default function NurseRequestDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,7 +51,7 @@ export default function NurseRequestDetail() {
 
   const loadRequest = async () => {
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       const response = await api.get(`/requests/${id}`, { params: { token } });
       setRequest(response.data);
     } catch (error) {
@@ -67,7 +67,7 @@ export default function NurseRequestDetail() {
       return;
     }
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       await api.post(`/nursing/approve/${id}`, {
         price: parseFloat(price),
         exam_type: examType || 'Exames laboratoriais',
@@ -87,7 +87,7 @@ export default function NurseRequestDetail() {
       return;
     }
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       await api.post(`/nursing/reject/${id}`, {
         reason: rejectReason,
       }, { params: { token } });
@@ -101,7 +101,7 @@ export default function NurseRequestDetail() {
 
   const handleForwardToDoctor = async () => {
     try {
-      const token = await api.getToken();
+      const token = await getToken();
       await api.post(`/nursing/forward-to-doctor/${id}`, {
         reason: forwardReason || 'Requer validação médica',
       }, { params: { token } });

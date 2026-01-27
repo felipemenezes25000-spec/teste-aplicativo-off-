@@ -66,6 +66,7 @@ export const SIZES = {
   fontMd: 14,
   fontLg: 16,
   fontXl: 18,
+  fontXxl: 20,
   font2xl: 20,
   font3xl: 24,
   font4xl: 32,
