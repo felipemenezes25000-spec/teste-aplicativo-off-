@@ -11,9 +11,14 @@ const api = axios.create({
   },
 });
 
+// Helper to get token
+export const getToken = async () => {
+  return await AsyncStorage.getItem('token');
+};
+
 // Helper to get token and add to requests
 const getAuthParams = async () => {
-  const token = await AsyncStorage.getItem('token');
+  const token = await getToken();
   return token ? { token } : {};
 };
 
