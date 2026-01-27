@@ -20,6 +20,14 @@ interface AuthContextType {
     crm_state: string;
     specialty: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  registerNurse: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    coren: string;
+    coren_state: string;
+  }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
 }
