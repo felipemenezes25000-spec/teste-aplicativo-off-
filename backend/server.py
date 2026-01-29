@@ -1051,6 +1051,152 @@ async def assign_doctor_to_request(request_id: str, token: str, doctor_id: Optio
     
     return {"success": True, "message": "Solicitação atribuída com sucesso"}
 
+# ============== DOCTOR AVAILABILITY ==============
+
+@api_router.put("/doctor/availability")
+async def update_doctor_availability(token: str, available: bool = True):
+    """Update doctor availability status"""
+    user = await get_current_user(token)
+    if user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Apenas médicos podem alterar disponibilidade")
+    
+    doctor_profile = await find_one("doctor_profiles", {"user_id": user["id"]})
+    if doctor_profile:
+        await update_one("doctor_profiles", {"user_id": user["id"]}, {"available": available, "updated_at": datetime.utcnow().isoformat()})
+    
+    return {"message": f"Disponibilidade atualizada para {'disponível' if available else 'indisponível'}"}
+
+# ============== VIDEO / CONSULTATION ==============
+
+@api_router.post("/video/create-room")
+async def create_video_room(token: str, request_id: str, room_name: str = None):
+    """Create a Jitsi video room for consultation"""
+    user = await get_current_user(token)
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Generate room name if not provided
+    if not room_name:
+        room_name = f"renoveja-{request_id[:8]}-{secrets.token_hex(4)}"
+    
+    room_url = f"https://meet.jit.si/{room_name}"
+    
+    video_room = {
+        "room_name": room_name,
+        "room_url": room_url,
+        "created_at": datetime.utcnow().isoformat(),
+        "created_by": user["id"]
+    }
+    
+    await update_one("requests", {"id": request_id}, {"video_room": video_room})
+    
+    return {"video_room": video_room}
+
+@api_router.get("/video/room/{request_id}")
+async def get_video_room(request_id: str, token: str):
+    """Get video room info for a consultation"""
+    user = await get_current_user(token)
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    return request.get("video_room")
+
+@api_router.post("/consultation/start/{request_id}")
+async def start_consultation(request_id: str, token: str):
+    """Start a consultation (doctor only)"""
+    user = await get_current_user(token)
+    if user["role"] not in ["doctor", "admin"]:
+        raise HTTPException(status_code=403, detail="Apenas médicos podem iniciar consultas")
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    await update_one("requests", {"id": request_id}, {
+        "status": "in_consultation",
+        "consultation_started_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    })
+    
+    return {"message": "Consulta iniciada", "started_at": datetime.utcnow().isoformat()}
+
+@api_router.post("/consultation/end/{request_id}")
+async def end_consultation(request_id: str, token: str, notes: str = None):
+    """End a consultation (doctor only)"""
+    user = await get_current_user(token)
+    if user["role"] not in ["doctor", "admin"]:
+        raise HTTPException(status_code=403, detail="Apenas médicos podem encerrar consultas")
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    started_at = request.get("consultation_started_at")
+    duration_minutes = 0
+    if started_at:
+        try:
+            start_time = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+            duration_minutes = int((datetime.utcnow() - start_time.replace(tzinfo=None)).total_seconds() / 60)
+        except:
+            pass
+    
+    update_data = {
+        "status": "completed",
+        "consultation_ended_at": datetime.utcnow().isoformat(),
+        "consultation_duration_minutes": duration_minutes,
+        "completed_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    if notes:
+        update_data["consultation_notes"] = notes
+    
+    await update_one("requests", {"id": request_id}, update_data)
+    
+    # Update doctor stats
+    doctor_profile = await find_one("doctor_profiles", {"user_id": user["id"]})
+    if doctor_profile:
+        total = doctor_profile.get("total_consultations", 0) + 1
+        await update_one("doctor_profiles", {"user_id": user["id"]}, {"total_consultations": total})
+    
+    return {"message": "Consulta encerrada", "duration_minutes": duration_minutes}
+
+@api_router.post("/queue/auto-assign")
+async def auto_assign_queue(token: str):
+    """Auto-assign pending requests to available doctors"""
+    user = await get_current_user(token)
+    if user["role"] not in ["admin", "doctor"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Get pending requests
+    pending = await find_many("requests", filters={"status": "submitted"}, order="created_at.asc", limit=10)
+    
+    # Get available doctors
+    available_doctors = await find_many("doctor_profiles", filters={"available": True}, limit=10)
+    
+    assigned_count = 0
+    for request in pending:
+        if not available_doctors:
+            break
+        
+        doctor_profile = available_doctors.pop(0)
+        doctor = await find_one("users", {"id": doctor_profile["user_id"]})
+        
+        if doctor:
+            await update_one("requests", {"id": request["id"]}, {
+                "status": "analyzing",
+                "doctor_id": doctor["id"],
+                "doctor_name": doctor["name"],
+                "assigned_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat()
+            })
+            assigned_count += 1
+    
+    return {"message": f"{assigned_count} solicitações atribuídas automaticamente", "assigned": assigned_count}
+
 # ============== SPECIALTIES ==============
 
 @api_router.get("/specialties")
@@ -1085,6 +1231,37 @@ async def get_admin_stats(token: str = None):
         "completed_today": 0,
         "total_revenue": 0.0
     }
+
+@api_router.get("/admin/users")
+async def get_admin_users(token: str, role: str = None):
+    """Get all users (admin only)"""
+    user = await get_current_user(token)
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    filters = {"role": role} if role else None
+    users = await find_many("users", filters=filters, order="created_at.desc", limit=500)
+    
+    # Remove sensitive data
+    for u in users:
+        u.pop("password_hash", None)
+    
+    return users
+
+@api_router.put("/admin/users/{user_id}/status")
+async def update_user_status(user_id: str, token: str, active: bool = True):
+    """Activate/deactivate user (admin only)"""
+    user = await get_current_user(token)
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    target_user = await find_one("users", {"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    await update_one("users", {"id": user_id}, {"active": active, "updated_at": datetime.utcnow().isoformat()})
+    
+    return {"message": f"Usuário {'ativado' if active else 'desativado'} com sucesso"}
 
 @api_router.get("/integrations/status")
 async def get_integrations_status():
