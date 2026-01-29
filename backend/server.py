@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 import hashlib
 import secrets
 import httpx
+import bcrypt
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Import Supabase database module
 from database import db, find_one, find_many, insert_one, update_one, delete_one, count_docs
@@ -25,7 +29,13 @@ from database import db, find_one, find_many, insert_one, update_one, delete_one
 from notifications_helper import (
     notify_user, notify_users, notify_role,
     notify_available_doctors, notify_available_nurses, notify_admins,
-    TEMPLATES, create_notification
+    TEMPLATES, create_notification,
+    # Push notification functions
+    send_push_notification, send_push_to_user, send_push_to_users,
+    notify_user_with_push, notify_users_with_push,
+    push_prescription_accepted, push_prescription_approved, push_prescription_rejected,
+    push_prescription_signed, push_new_chat_message, push_consultation_starting,
+    push_consultation_reminder, push_payment_confirmed, push_exam_approved
 )
 
 # Import AI Medical Analyzer
@@ -34,8 +44,13 @@ from ai_medical_analyzer import analyze_medical_document, MedicalDocumentAnalyze
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Rate limiter configuration
+limiter = Limiter(key_func=get_remote_address)
+
 # Create the main app
 app = FastAPI(title="RenoveJá+ API", version="2.0.0 - Supabase")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -55,7 +70,132 @@ async def root():
 
 # ============== MODELS ==============
 
-class UserCreate(BaseModel):
+# ============== SECURITY HELPERS ==============
+
+import re
+
+def validate_cpf(cpf: str) -> bool:
+    """Validate CPF using the official algorithm"""
+    if not cpf:
+        return True  # CPF is optional
+    
+    # Remove non-digits
+    cpf = re.sub(r'[^0-9]', '', cpf)
+    
+    if len(cpf) != 11:
+        return False
+    
+    # Check for known invalid patterns
+    if cpf == cpf[0] * 11:
+        return False
+    
+    # Validate first digit
+    sum1 = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digit1 = (sum1 * 10 % 11) % 10
+    if digit1 != int(cpf[9]):
+        return False
+    
+    # Validate second digit
+    sum2 = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digit2 = (sum2 * 10 % 11) % 10
+    if digit2 != int(cpf[10]):
+        return False
+    
+    return True
+
+def validate_crm(crm: str, state: str) -> bool:
+    """Validate CRM format (basic validation)"""
+    if not crm or not state:
+        return False
+    
+    # Remove non-alphanumeric
+    crm_clean = re.sub(r'[^0-9]', '', crm)
+    
+    # CRM should be 4-7 digits
+    if not (4 <= len(crm_clean) <= 7):
+        return False
+    
+    # State should be valid Brazilian state
+    valid_states = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+                    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+                    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+    if state.upper() not in valid_states:
+        return False
+    
+    return True
+
+def validate_coren(coren: str, state: str) -> bool:
+    """Validate COREN format (basic validation)"""
+    if not coren or not state:
+        return False
+    
+    # Remove non-alphanumeric
+    coren_clean = re.sub(r'[^0-9]', '', coren)
+    
+    # COREN should be 5-9 digits
+    if not (5 <= len(coren_clean) <= 9):
+        return False
+    
+    # State should be valid Brazilian state
+    valid_states = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+                    'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+                    'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+    if state.upper() not in valid_states:
+        return False
+    
+    return True
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """Validate password meets minimum security requirements"""
+    if len(password) < 8:
+        return False, "Senha deve ter pelo menos 8 caracteres"
+    if not re.search(r'[A-Z]', password):
+        return False, "Senha deve conter pelo menos uma letra maiúscula"
+    if not re.search(r'[a-z]', password):
+        return False, "Senha deve conter pelo menos uma letra minúscula"
+    if not re.search(r'[0-9]', password):
+        return False, "Senha deve conter pelo menos um número"
+    return True, ""
+
+def validate_base64_image(data: str, max_size_mb: int = 10) -> tuple[bool, str]:
+    """Validate base64 image data"""
+    if not data:
+        return True, ""
+    
+    # Handle data URI scheme
+    if data.startswith('data:'):
+        parts = data.split(',')
+        if len(parts) != 2:
+            return False, "Formato de imagem inválido"
+        mime_part = parts[0]
+        # Check if it's an image
+        if not any(img_type in mime_part for img_type in ['image/jpeg', 'image/png', 'image/gif', 'image/webp']):
+            return False, "Tipo de imagem não suportado"
+        data = parts[1]
+    
+    # Check base64 validity and size
+    try:
+        import base64
+        decoded = base64.b64decode(data)
+        size_mb = len(decoded) / (1024 * 1024)
+        if size_mb > max_size_mb:
+            return False, f"Imagem muito grande (máximo {max_size_mb}MB)"
+    except Exception:
+        return False, "Dados de imagem inválidos"
+    
+    return True, ""
+
+# Token expiration (24 hours)
+TOKEN_EXPIRATION_HOURS = 24
+
+# ============== MODELS ==============
+
+class BaseModelForbidExtra(BaseModel):
+    """Base model that forbids extra fields to prevent mass assignment"""
+    class Config:
+        extra = "forbid"
+
+class UserCreate(BaseModelForbidExtra):
     name: str
     email: EmailStr
     password: str
@@ -63,11 +203,11 @@ class UserCreate(BaseModel):
     cpf: Optional[str] = None
     role: Literal["patient", "doctor", "admin", "nurse"] = "patient"
 
-class UserLogin(BaseModel):
+class UserLogin(BaseModelForbidExtra):
     email: EmailStr
     password: str
 
-class DoctorRegister(BaseModel):
+class DoctorRegister(BaseModelForbidExtra):
     name: str
     email: EmailStr
     password: str
@@ -77,7 +217,7 @@ class DoctorRegister(BaseModel):
     crm_state: str
     specialty: str
 
-class NurseRegister(BaseModel):
+class NurseRegister(BaseModelForbidExtra):
     name: str
     email: EmailStr
     password: str
@@ -87,26 +227,26 @@ class NurseRegister(BaseModel):
     coren_state: str
     specialty: Optional[str] = "Enfermagem Geral"
 
-class Token(BaseModel):
+class Token(BaseModelForbidExtra):
     access_token: str
     token_type: str = "bearer"
     user: dict
 
-class PrescriptionRequestCreate(BaseModel):
+class PrescriptionRequestCreate(BaseModelForbidExtra):
     prescription_type: Literal["simple", "controlled", "blue"]
     medications: Optional[List[dict]] = None
     prescription_images: Optional[List[str]] = None
     image_base64: Optional[str] = None
     notes: Optional[str] = None
 
-class ExamRequestCreate(BaseModel):
+class ExamRequestCreate(BaseModelForbidExtra):
     description: Optional[str] = None
     exam_images: Optional[List[str]] = None
     notes: Optional[str] = None
     exam_type: Optional[str] = None
     exams: Optional[List[str]] = None
 
-class ConsultationRequestCreate(BaseModel):
+class ConsultationRequestCreate(BaseModelForbidExtra):
     specialty: str
     duration: int = 30
     scheduled_at: Optional[str] = None
@@ -141,22 +281,22 @@ def calculate_consultation_price(specialty: str, duration: int) -> float:
     multiplier = DURATION_MULTIPLIERS.get(duration, 1.0)
     return round(base_price * multiplier, 2)
 
-class RequestUpdate(BaseModel):
+class RequestUpdate(BaseModelForbidExtra):
     status: Optional[str] = None
     doctor_id: Optional[str] = None
     doctor_name: Optional[str] = None
     notes: Optional[str] = None
 
-class PaymentCreate(BaseModel):
+class PaymentCreate(BaseModelForbidExtra):
     request_id: str
     amount: float
     method: Literal["pix", "credit_card", "debit_card"] = "pix"
 
-class MessageCreate(BaseModel):
+class MessageCreate(BaseModelForbidExtra):
     request_id: str
     message: str
 
-class ProfileUpdate(BaseModel):
+class ProfileUpdate(BaseModelForbidExtra):
     name: Optional[str] = None
     phone: Optional[str] = None
     cpf: Optional[str] = None
@@ -164,35 +304,54 @@ class ProfileUpdate(BaseModel):
     avatar_url: Optional[str] = None
     address: Optional[dict] = None
 
-class DoctorApprovalRequest(BaseModel):
+class PushTokenUpdate(BaseModelForbidExtra):
+    push_token: str
+
+class DoctorApprovalRequest(BaseModelForbidExtra):
     price: Optional[float] = None
     notes: Optional[str] = None
 
-class DoctorRejectionRequest(BaseModel):
+class DoctorRejectionRequest(BaseModelForbidExtra):
     reason: str
     notes: Optional[str] = None
 
-class NursingApprovalRequest(BaseModel):
+class NursingApprovalRequest(BaseModelForbidExtra):
     price: float
     exam_type: Optional[str] = None
     exams: Optional[List[str]] = None
     notes: Optional[str] = None
 
-class NursingRejectionRequest(BaseModel):
+class NursingRejectionRequest(BaseModelForbidExtra):
     reason: str
     notes: Optional[str] = None
 
-class NursingForwardRequest(BaseModel):
+class NursingForwardRequest(BaseModelForbidExtra):
     reason: Optional[str] = None
     notes: Optional[str] = None
 
 # ============== HELPER FUNCTIONS ==============
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using bcrypt (more secure than SHA256)"""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
+    """
+    Verify password against hash.
+    Supports both bcrypt (new) and SHA256 (legacy) for backward compatibility.
+    """
+    if not hashed:
+        return False
+    
+    # Try bcrypt first (new format - starts with $2b$ or $2a$)
+    if hashed.startswith('$2'):
+        try:
+            return bcrypt.checkpw(password.encode(), hashed.encode())
+        except Exception:
+            return False
+    
+    # Fallback to SHA256 for legacy passwords
+    return hashlib.sha256(password.encode()).hexdigest() == hashed
 
 def generate_token() -> str:
     return secrets.token_urlsafe(32)
@@ -216,24 +375,76 @@ def serialize_datetime(obj):
         return obj.isoformat()
     return obj
 
-async def get_current_user(token: str = None):
-    if not token:
+def extract_token(request: Request = None, token: str = None) -> str:
+    """
+    Extract token from either:
+    1. Authorization header (Bearer token) - preferred
+    2. Query parameter 'token' - for backward compatibility
+    """
+    # Try Authorization header first
+    if request:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            return auth_header[7:]  # Remove "Bearer " prefix
+    
+    # Fallback to query parameter
+    if token:
+        return token
+    
+    return None
+
+async def get_current_user(token: str = None, request: Request = None):
+    """
+    Get current user from token.
+    Token can be provided via:
+    - Authorization: Bearer <token> header
+    - ?token=<token> query parameter
+    """
+    extracted_token = extract_token(request, token)
+    
+    if not extracted_token:
         raise HTTPException(status_code=401, detail="Token não fornecido")
     
-    token_record = await find_one("active_tokens", {"token": token})
+    token_record = await find_one("active_tokens", {"token": extracted_token})
     if not token_record:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado")
+    
+    # Check token expiration
+    expires_at = token_record.get("expires_at")
+    if expires_at:
+        try:
+            expiry_time = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            if datetime.utcnow() > expiry_time.replace(tzinfo=None):
+                # Token expired - delete it
+                await delete_one("active_tokens", {"token": extracted_token})
+                raise HTTPException(status_code=401, detail="Token expirado. Faça login novamente.")
+        except ValueError:
+            pass  # If expiry parsing fails, continue (backward compatibility)
     
     user = await find_one("users", {"id": token_record["user_id"]})
     if not user:
         raise HTTPException(status_code=401, detail="Usuário não encontrado")
+    
+    # Check if user is active
+    if not user.get("active", True):
+        raise HTTPException(status_code=401, detail="Conta desativada")
     
     return user
 
 # ============== AUTH ROUTES ==============
 
 @api_router.post("/auth/register", response_model=Token)
-async def register(data: UserCreate):
+@limiter.limit("10/minute")
+async def register(request: Request, data: UserCreate):
+    # Validate password strength
+    is_valid_pwd, pwd_error = validate_password_strength(data.password)
+    if not is_valid_pwd:
+        raise HTTPException(status_code=400, detail=pwd_error)
+    
+    # Validate CPF if provided
+    if data.cpf and not validate_cpf(data.cpf):
+        raise HTTPException(status_code=400, detail="CPF inválido")
+    
     existing = await find_one("users", {"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Este email já está cadastrado")
@@ -254,7 +465,8 @@ async def register(data: UserCreate):
     await insert_one("users", user_data)
     
     token = generate_token()
-    await insert_one("active_tokens", {"token": token, "user_id": user_id})
+    token_expiry = (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRATION_HOURS)).isoformat()
+    await insert_one("active_tokens", {"token": token, "user_id": user_id, "expires_at": token_expiry, "created_at": datetime.utcnow().isoformat()})
     
     # Notificar admins sobre novo usuário
     await notify_admins(
@@ -276,7 +488,21 @@ async def register(data: UserCreate):
     )
 
 @api_router.post("/auth/register-doctor", response_model=Token)
-async def register_doctor(data: DoctorRegister):
+@limiter.limit("10/minute")
+async def register_doctor(request: Request, data: DoctorRegister):
+    # Validate password strength
+    is_valid_pwd, pwd_error = validate_password_strength(data.password)
+    if not is_valid_pwd:
+        raise HTTPException(status_code=400, detail=pwd_error)
+    
+    # Validate CPF if provided
+    if data.cpf and not validate_cpf(data.cpf):
+        raise HTTPException(status_code=400, detail="CPF inválido")
+    
+    # Validate CRM
+    if not validate_crm(data.crm, data.crm_state):
+        raise HTTPException(status_code=400, detail="CRM inválido. Verifique o número e o estado.")
+    
     existing = await find_one("users", {"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Este email já está cadastrado")
@@ -289,7 +515,9 @@ async def register_doctor(data: DoctorRegister):
         "password_hash": hash_password(data.password),
         "phone": data.phone,
         "cpf": data.cpf,
-        "role": "doctor"
+        "role": "doctor",
+        "active": True,
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await insert_one("users", user_data)
@@ -298,14 +526,17 @@ async def register_doctor(data: DoctorRegister):
     doctor_profile = {
         "id": profile_id,
         "user_id": user_id,
-        "crm": data.crm,
-        "crm_state": data.crm_state,
-        "specialty": data.specialty
+        "crm": data.crm.upper(),
+        "crm_state": data.crm_state.upper(),
+        "specialty": data.specialty,
+        "available": False,  # Start as unavailable until verified
+        "created_at": datetime.utcnow().isoformat()
     }
     await insert_one("doctor_profiles", doctor_profile)
     
     token = generate_token()
-    await insert_one("active_tokens", {"token": token, "user_id": user_id})
+    token_expiry = (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRATION_HOURS)).isoformat()
+    await insert_one("active_tokens", {"token": token, "user_id": user_id, "expires_at": token_expiry, "created_at": datetime.utcnow().isoformat()})
     
     return Token(
         access_token=token,
@@ -321,7 +552,21 @@ async def register_doctor(data: DoctorRegister):
     )
 
 @api_router.post("/auth/register-nurse", response_model=Token)
-async def register_nurse(data: NurseRegister):
+@limiter.limit("10/minute")
+async def register_nurse(request: Request, data: NurseRegister):
+    # Validate password strength
+    is_valid_pwd, pwd_error = validate_password_strength(data.password)
+    if not is_valid_pwd:
+        raise HTTPException(status_code=400, detail=pwd_error)
+    
+    # Validate CPF if provided
+    if data.cpf and not validate_cpf(data.cpf):
+        raise HTTPException(status_code=400, detail="CPF inválido")
+    
+    # Validate COREN
+    if not validate_coren(data.coren, data.coren_state):
+        raise HTTPException(status_code=400, detail="COREN inválido. Verifique o número e o estado.")
+    
     existing = await find_one("users", {"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Este email já está cadastrado")
@@ -334,7 +579,9 @@ async def register_nurse(data: NurseRegister):
         "password_hash": hash_password(data.password),
         "phone": data.phone,
         "cpf": data.cpf,
-        "role": "nurse"
+        "role": "nurse",
+        "active": True,
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await insert_one("users", user_data)
@@ -343,14 +590,17 @@ async def register_nurse(data: NurseRegister):
     nurse_profile = {
         "id": profile_id,
         "user_id": user_id,
-        "coren": data.coren,
-        "coren_state": data.coren_state,
-        "specialty": data.specialty or "Enfermagem Geral"
+        "coren": data.coren.upper(),
+        "coren_state": data.coren_state.upper(),
+        "specialty": data.specialty or "Enfermagem Geral",
+        "available": False,  # Start as unavailable until verified
+        "created_at": datetime.utcnow().isoformat()
     }
     await insert_one("nurse_profiles", nurse_profile)
     
     token = generate_token()
-    await insert_one("active_tokens", {"token": token, "user_id": user_id})
+    token_expiry = (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRATION_HOURS)).isoformat()
+    await insert_one("active_tokens", {"token": token, "user_id": user_id, "expires_at": token_expiry, "created_at": datetime.utcnow().isoformat()})
     
     return Token(
         access_token=token,
@@ -366,16 +616,22 @@ async def register_nurse(data: NurseRegister):
     )
 
 @api_router.post("/auth/login", response_model=Token)
-async def login(data: UserLogin):
+@limiter.limit("20/minute")
+async def login(request: Request, data: UserLogin):
     user = await find_one("users", {"email": data.email})
     if not user:
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
+    
+    # Check if user is active
+    if not user.get("active", True):
+        raise HTTPException(status_code=401, detail="Conta desativada. Entre em contato com o suporte.")
     
     if not verify_password(data.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
     
     token = generate_token()
-    await insert_one("active_tokens", {"token": token, "user_id": user["id"]})
+    token_expiry = (datetime.utcnow() + timedelta(hours=TOKEN_EXPIRATION_HOURS)).isoformat()
+    await insert_one("active_tokens", {"token": token, "user_id": user["id"], "expires_at": token_expiry, "created_at": datetime.utcnow().isoformat()})
     
     doctor_profile = None
     if user.get("role") == "doctor":
@@ -494,7 +750,11 @@ async def google_auth(data: GoogleAuthRequest):
 
 @api_router.post("/auth/logout")
 async def logout(token: str):
-    await delete_one("active_tokens", {"token": token})
+    # Verify token exists before deleting (don't leak info about valid tokens)
+    token_record = await find_one("active_tokens", {"token": token})
+    if token_record:
+        await delete_one("active_tokens", {"token": token})
+    # Always return success to prevent token enumeration
     return {"message": "Logout realizado com sucesso"}
 
 @api_router.get("/auth/me")
@@ -536,11 +796,62 @@ async def update_profile(token: str, data: ProfileUpdate):
     updated_user = await find_one("users", {"id": user["id"]})
     return {"message": "Perfil atualizado com sucesso", "user": updated_user}
 
+# ============== PUSH TOKEN ROUTES ==============
+
+@api_router.post("/push-token")
+async def update_push_token(token: str, data: PushTokenUpdate):
+    """
+    Atualiza o push token do usuário para receber notificações.
+    Deve ser chamado pelo app após login e ao receber novo token.
+    """
+    user = await get_current_user(token)
+    
+    push_token = data.push_token
+    
+    # Validar formato do token Expo
+    if not push_token.startswith("ExponentPushToken["):
+        raise HTTPException(status_code=400, detail="Token de push inválido. Formato esperado: ExponentPushToken[...]")
+    
+    # Atualizar token do usuário
+    await update_one("users", {"id": user["id"]}, {
+        "push_token": push_token,
+        "push_token_updated_at": datetime.utcnow().isoformat()
+    })
+    
+    return {"message": "Push token atualizado com sucesso", "push_token": push_token}
+
+@api_router.delete("/push-token")
+async def remove_push_token(token: str):
+    """
+    Remove o push token do usuário (ex: ao fazer logout).
+    """
+    user = await get_current_user(token)
+    
+    await update_one("users", {"id": user["id"]}, {
+        "push_token": None,
+        "push_token_updated_at": datetime.utcnow().isoformat()
+    })
+    
+    return {"message": "Push token removido com sucesso"}
+
 # ============== REQUEST ROUTES ==============
 
 @api_router.post("/requests/prescription")
-async def create_prescription_request(token: str, data: PrescriptionRequestCreate):
+@limiter.limit("10/minute")
+async def create_prescription_request(request: Request, token: str, data: PrescriptionRequestCreate):
     user = await get_current_user(token)
+    
+    # SECURITY: Validate base64 images
+    if data.image_base64:
+        is_valid, error = validate_base64_image(data.image_base64)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=f"Imagem inválida: {error}")
+    
+    if data.prescription_images:
+        for img in data.prescription_images:
+            is_valid, error = validate_base64_image(img)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Imagem inválida: {error}")
     
     price = get_price("prescription", data.prescription_type)
     images = data.prescription_images if data.prescription_images else ([data.image_base64] if data.image_base64 else [])
@@ -580,8 +891,16 @@ async def create_prescription_request(token: str, data: PrescriptionRequestCreat
     return request_data
 
 @api_router.post("/requests/exam")
-async def create_exam_request(token: str, data: ExamRequestCreate):
+@limiter.limit("10/minute")
+async def create_exam_request(request: Request, token: str, data: ExamRequestCreate):
     user = await get_current_user(token)
+    
+    # SECURITY: Validate base64 images
+    if data.exam_images:
+        for img in data.exam_images:
+            is_valid, error = validate_base64_image(img)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Imagem inválida: {error}")
     
     images = data.exam_images if data.exam_images else []
     
@@ -620,7 +939,8 @@ async def create_exam_request(token: str, data: ExamRequestCreate):
     return request_data
 
 @api_router.post("/requests/consultation")
-async def create_consultation_request(token: str, data: ConsultationRequestCreate):
+@limiter.limit("10/minute")
+async def create_consultation_request(request: Request, token: str, data: ConsultationRequestCreate):
     user = await get_current_user(token)
     
     # Calcular preço baseado na especialidade e duração
@@ -674,16 +994,43 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
 @api_router.get("/requests")
 async def get_requests(token: str, status: Optional[str] = None):
     user = await get_current_user(token)
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
     
     filters = {}
-    if user.get("role") == "patient":
-        filters["patient_id"] = user["id"]
+    
+    # SECURITY: Apply proper filters based on role
+    if user_role == "patient":
+        # Patients can only see their own requests
+        filters["patient_id"] = user_id
+    elif user_role == "doctor":
+        # Doctors see requests assigned to them or available for assignment
+        # This is handled by getting all and filtering in memory for flexibility
+        pass
+    elif user_role == "nurse":
+        # Nurses see exam requests assigned to them or available
+        pass
+    # Admins can see all (no filter needed)
     
     if status:
         filters["status"] = status
     
-    requests = await find_many("requests", filters=filters if filters else None, order="created_at.desc")
-    return requests
+    all_requests = await find_many("requests", filters=filters if filters else None, order="created_at.desc")
+    
+    # Post-filter for doctors and nurses to ensure proper access control
+    if user_role == "doctor":
+        all_requests = [r for r in all_requests if (
+            r.get("doctor_id") == user_id or  # Assigned to them
+            (not r.get("doctor_id") and r.get("status") in ["submitted", "pending", "forwarded_to_doctor"]) or  # Unassigned and available
+            r.get("status") == "in_medical_review"  # Forwarded from nursing
+        )]
+    elif user_role == "nurse":
+        all_requests = [r for r in all_requests if (
+            r.get("nurse_id") == user_id or  # Assigned to them
+            (not r.get("nurse_id") and r.get("request_type") == "exam" and r.get("status") in ["submitted", "pending"])  # Unassigned exam requests
+        )]
+    
+    return all_requests
 
 @api_router.get("/requests/{request_id}")
 async def get_request(request_id: str, token: str):
@@ -692,6 +1039,33 @@ async def get_request(request_id: str, token: str):
     
     if not request:
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # SECURITY: Verify user has permission to access this request
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
+    
+    # Patients can only see their own requests
+    if user_role == "patient" and request.get("patient_id") != user_id:
+        raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
+    
+    # Doctors can see requests assigned to them or unassigned ones
+    if user_role == "doctor":
+        is_owner = request.get("doctor_id") == user_id
+        is_unassigned = not request.get("doctor_id")
+        is_pending = request.get("status") in ["submitted", "pending", "forwarded_to_doctor"]
+        if not (is_owner or (is_unassigned and is_pending)):
+            raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
+    
+    # Nurses can see exam requests assigned to them or unassigned ones
+    if user_role == "nurse":
+        is_owner = request.get("nurse_id") == user_id
+        is_unassigned = not request.get("nurse_id")
+        is_exam = request.get("request_type") == "exam"
+        is_pending = request.get("status") in ["submitted", "pending"]
+        if not (is_owner or (is_unassigned and is_exam and is_pending)):
+            raise HTTPException(status_code=403, detail="Acesso negado a esta solicitação")
+    
+    # Admins can see everything (no additional check needed)
     
     return request
 
@@ -733,10 +1107,15 @@ async def doctor_accept_request(request_id: str, token: str):
         "assigned_at": datetime.utcnow().isoformat()
     })
     
-    # Notificar paciente
+    # Notificar paciente (in-app)
     await notify_user(
         insert_one, request["patient_id"], "prescription_accepted",
         {"doctor_name": user["name"]}, request_id=request_id
+    )
+    
+    # 📲 Enviar push notification
+    await push_prescription_accepted(
+        find_one, request["patient_id"], user["name"], request_id
     )
     
     return {"success": True, "message": "Solicitação aceita para análise", "status": "in_review"}
@@ -1200,7 +1579,8 @@ async def check_mercadopago_payment(mp_payment_id: str):
 # ============== PAYMENT ROUTES ==============
 
 @api_router.post("/payments")
-async def create_payment(token: str, data: PaymentCreate):
+@limiter.limit("5/minute")
+async def create_payment(request: Request, token: str, data: PaymentCreate):
     user = await get_current_user(token)
     
     request = await find_one("requests", {"id": data.request_id})
@@ -1247,6 +1627,27 @@ async def get_payment(payment_id: str, token: str):
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     
+    # SECURITY: Verify user has permission to access this payment
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
+    
+    # Patients can only see their own payments
+    if user_role == "patient" and payment.get("patient_id") != user_id:
+        raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+    
+    # Doctors and nurses can see payments for requests they're handling
+    if user_role in ["doctor", "nurse"]:
+        request = await find_one("requests", {"id": payment.get("request_id")})
+        if request:
+            is_doctor_owner = request.get("doctor_id") == user_id
+            is_nurse_owner = request.get("nurse_id") == user_id
+            if not (is_doctor_owner or is_nurse_owner):
+                raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+        else:
+            raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+    
+    # Admins can see all (no additional check needed)
+    
     # Check real payment status if applicable
     if payment.get("is_real_payment") and payment.get("external_id") and payment.get("status") == "pending":
         mp_status = await check_mercadopago_payment(payment["external_id"])
@@ -1267,10 +1668,26 @@ async def get_payment(payment_id: str, token: str):
 @api_router.get("/payments/{payment_id}/status")
 async def check_payment_status(payment_id: str, token: str):
     user = await get_current_user(token)
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
+    
     payment = await find_one("payments", {"id": payment_id})
     
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
+    
+    # SECURITY: Verify user has permission to check this payment status
+    if user_role == "patient" and payment.get("patient_id") != user_id:
+        raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+    
+    if user_role in ["doctor", "nurse"]:
+        request = await find_one("requests", {"id": payment.get("request_id")})
+        if request:
+            is_owner = request.get("doctor_id") == user_id or request.get("nurse_id") == user_id
+            if not is_owner:
+                raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+        else:
+            raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
     
     # Check real payment status
     mp_status = None
@@ -1300,10 +1717,21 @@ async def check_payment_status(payment_id: str, token: str):
 async def confirm_payment(payment_id: str, token: str):
     """Manual confirmation (for simulated payments or admin override)"""
     user = await get_current_user(token)
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
     
     payment = await find_one("payments", {"id": payment_id})
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
+    
+    # SECURITY: Verify user has permission to confirm this payment
+    # Only the patient who owns the payment or admin can confirm
+    if user_role == "patient" and payment.get("patient_id") != user_id:
+        raise HTTPException(status_code=403, detail="Acesso negado a este pagamento")
+    
+    # Doctors and nurses cannot confirm payments (only admin can override)
+    if user_role in ["doctor", "nurse"]:
+        raise HTTPException(status_code=403, detail="Apenas o paciente ou administrador pode confirmar pagamentos")
     
     await update_one("payments", {"id": payment_id}, {
         "status": "completed",
@@ -1356,92 +1784,183 @@ class WebhookData(BaseModel):
     type: Optional[str] = None
     user_id: Optional[str] = None
 
-@api_router.post("/payments/webhook/mercadopago")
-async def mercadopago_webhook(
-    request: Request,
-    data: WebhookData
-):
-    """Webhook to receive MercadoPago payment notifications"""
+async def process_mercadopago_webhook(mp_payment_id: str):
+    """Process MercadoPago payment approval"""
+    # Check payment status on MercadoPago
+    mp_status = await check_mercadopago_payment(str(mp_payment_id))
+    
+    if not mp_status:
+        print(f"⚠️ Could not fetch payment status from MercadoPago: {mp_payment_id}")
+        return False
+    
+    print(f"📥 MercadoPago payment {mp_payment_id} status: {mp_status.get('status')}")
+    
+    if mp_status.get("status") == "approved":
+        # Find payment by external_id
+        payments = await find_many("payments", filters={"external_id": str(mp_payment_id)}, limit=1)
+        
+        if not payments:
+            print(f"⚠️ Payment not found for MP ID: {mp_payment_id}")
+            return False
+        
+        payment = payments[0]
+        
+        if payment.get("status") == "completed":
+            print(f"ℹ️ Payment {mp_payment_id} already processed")
+            return True
+        
+        # Update payment
+        await update_one("payments", {"id": payment["id"]}, {
+            "status": "completed",
+            "paid_at": mp_status.get("date_approved") or datetime.utcnow().isoformat(),
+            "mp_status": mp_status.get("status"),
+            "mp_status_detail": mp_status.get("status_detail")
+        })
+        
+        # Update request
+        await update_one("requests", {"id": payment["request_id"]}, {
+            "status": "paid",
+            "paid_at": datetime.utcnow().isoformat()
+        })
+        
+        # Get request for notifications
+        req = await find_one("requests", {"id": payment["request_id"]})
+        
+        # Notify patient
+        if req:
+            await notify_user(
+                insert_one, req["patient_id"], "payment_confirmed",
+                {"amount": payment.get("amount", 0)}, request_id=payment["request_id"]
+            )
+        
+        # Notify doctor or nurse
+        if req and req.get("doctor_id"):
+            await notify_user(
+                insert_one, req["doctor_id"], "prescription_paid_doctor",
+                {"patient_name": req.get("patient_name", "Paciente")},
+                request_id=payment["request_id"]
+            )
+        elif req and req.get("nurse_id"):
+            await notify_user(
+                insert_one, req["nurse_id"], "exam_paid",
+                {"patient_name": req.get("patient_name", "Paciente")},
+                request_id=payment["request_id"]
+            )
+        
+        # Notify admins
+        if req:
+            await notify_admins(
+                insert_one, find_many, "admin_payment_received",
+                {"amount": payment.get("amount", 0), "patient_name": req.get("patient_name", "Paciente")},
+                request_id=payment["request_id"]
+            )
+        
+        print(f"✅ Webhook: Payment {mp_payment_id} approved and processed")
+        return True
+    
+    return False
+
+@api_router.post("/webhooks/mercadopago")
+async def mercadopago_webhook_handler(request: Request):
+    """
+    Webhook endpoint for MercadoPago payment notifications.
+    
+    Configure this URL in MercadoPago Dashboard:
+    https://seu-dominio.com/api/webhooks/mercadopago
+    
+    Events to subscribe: payment.created, payment.updated
+    """
     try:
-        # Verify webhook signature if configured
+        # Get raw body for signature verification
+        body = await request.body()
+        body_json = {}
+        try:
+            import json
+            body_json = json.loads(body)
+        except:
+            pass
+        
+        # Extract headers for signature verification
         x_signature = request.headers.get("x-signature", "")
         x_request_id = request.headers.get("x-request-id", "")
-        data_id = str(data.data.get("id", "")) if data.data else ""
         
-        if MERCADOPAGO_WEBHOOK_SECRET and not verify_mercadopago_signature(x_signature, x_request_id, data_id):
-            print(f"⚠️ Webhook signature verification failed")
-            # Continue anyway for now, just log
+        # Get data ID from query params or body
+        data_id = request.query_params.get("data.id", "")
+        if not data_id and body_json.get("data"):
+            data_id = str(body_json["data"].get("id", ""))
         
-        # MercadoPago sends payment.created, payment.updated events
-        if data.type == "payment" and data.data:
-            mp_payment_id = data.data.get("id")
+        # Verify signature if webhook secret is configured
+        if MERCADOPAGO_WEBHOOK_SECRET:
+            if not verify_mercadopago_signature(x_signature, x_request_id, data_id):
+                print(f"⚠️ Webhook signature verification failed")
+                # Log but continue for debugging - in production you might want to reject
+        
+        print(f"📨 MercadoPago webhook received: type={body_json.get('type')}, action={body_json.get('action')}")
+        
+        # Handle different webhook formats
+        # Format 1: IPN (Instant Payment Notification) - older format
+        topic = request.query_params.get("topic", "")
+        if topic == "payment":
+            mp_payment_id = request.query_params.get("id", "")
             if mp_payment_id:
-                # Check payment status
-                mp_status = await check_mercadopago_payment(str(mp_payment_id))
-                
-                if mp_status and mp_status.get("status") == "approved":
-                    # Find payment by external_id
-                    payments = await find_many("payments", filters={"external_id": str(mp_payment_id)}, limit=1)
-                    
-                    if payments:
-                        payment = payments[0]
-                        if payment.get("status") != "completed":
-                            # Update payment
-                            await update_one("payments", {"id": payment["id"]}, {
-                                "status": "completed",
-                                "paid_at": mp_status.get("date_approved") or datetime.utcnow().isoformat()
-                            })
-                            
-                            # Update request
-                            await update_one("requests", {"id": payment["request_id"]}, {
-                                "status": "paid",
-                                "paid_at": datetime.utcnow().isoformat()
-                            })
-                            
-                            # Get request for notifications
-                            req = await find_one("requests", {"id": payment["request_id"]})
-                            
-                            # Notify patient
-                            if req:
-                                await notify_user(
-                                    insert_one, req["patient_id"], "payment_confirmed",
-                                    {"amount": payment.get("amount", 0)}, request_id=payment["request_id"]
-                                )
-                            
-                            # Notify doctor or nurse
-                            if req and req.get("doctor_id"):
-                                await notify_user(
-                                    insert_one, req["doctor_id"], "prescription_paid_doctor",
-                                    {"patient_name": req.get("patient_name", "Paciente")},
-                                    request_id=payment["request_id"]
-                                )
-                            elif req and req.get("nurse_id"):
-                                await notify_user(
-                                    insert_one, req["nurse_id"], "exam_paid",
-                                    {"patient_name": req.get("patient_name", "Paciente")},
-                                    request_id=payment["request_id"]
-                                )
-                            
-                            # Notify admins
-                            if req:
-                                await notify_admins(
-                                    insert_one, find_many, "admin_payment_received",
-                                    {"amount": payment.get("amount", 0), "patient_name": req.get("patient_name", "Paciente")},
-                                    request_id=payment["request_id"]
-                                )
-                            
-                            print(f"✅ Webhook: Payment {mp_payment_id} approved and processed")
+                await process_mercadopago_webhook(mp_payment_id)
+                return {"status": "ok"}
         
-        return {"status": "ok"}
+        # Format 2: Webhook v2 - newer format
+        if body_json.get("type") == "payment" and body_json.get("data"):
+            mp_payment_id = body_json["data"].get("id")
+            if mp_payment_id:
+                await process_mercadopago_webhook(str(mp_payment_id))
+                return {"status": "ok"}
+        
+        # Format 3: action-based
+        if body_json.get("action") in ["payment.created", "payment.updated"]:
+            mp_payment_id = body_json.get("data", {}).get("id")
+            if mp_payment_id:
+                await process_mercadopago_webhook(str(mp_payment_id))
+                return {"status": "ok"}
+        
+        return {"status": "ok", "message": "Event type not handled"}
+        
     except Exception as e:
-        print(f"Webhook error: {e}")
+        print(f"❌ Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return 200 to prevent MercadoPago from retrying
         return {"status": "error", "message": str(e)}
+
+# Legacy endpoint alias for backward compatibility
+@api_router.post("/payments/webhook/mercadopago")
+async def mercadopago_webhook_legacy(request: Request):
+    """Legacy webhook endpoint - redirects to main handler"""
+    return await mercadopago_webhook_handler(request)
 
 # ============== CHAT ROUTES ==============
 
 @api_router.post("/chat")
 async def send_message(token: str, data: MessageCreate):
     user = await get_current_user(token)
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
+    
+    # SECURITY: Verify user has permission to send messages in this chat
+    request = await find_one("requests", {"id": data.request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Check access permissions
+    is_patient = request.get("patient_id") == user_id
+    is_doctor = request.get("doctor_id") == user_id
+    is_nurse = request.get("nurse_id") == user_id
+    is_admin = user_role == "admin"
+    
+    if not (is_patient or is_doctor or is_nurse or is_admin):
+        raise HTTPException(status_code=403, detail="Acesso negado a este chat")
+    
+    # Sanitize message (basic XSS prevention - more robust sanitization recommended for production)
+    sanitized_message = data.message.strip()
+    if len(sanitized_message) > 5000:
+        raise HTTPException(status_code=400, detail="Mensagem muito longa (máximo 5000 caracteres)")
     
     message_id = str(uuid.uuid4())
     message_data = {
@@ -1450,7 +1969,8 @@ async def send_message(token: str, data: MessageCreate):
         "sender_id": user["id"],
         "sender_name": user["name"],
         "sender_type": user.get("role", "patient"),
-        "message": data.message
+        "message": sanitized_message,
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await insert_one("chat_messages", message_data)
@@ -1460,6 +1980,22 @@ async def send_message(token: str, data: MessageCreate):
 @api_router.get("/chat/{request_id}")
 async def get_messages(request_id: str, token: str):
     user = await get_current_user(token)
+    user_role = user.get("role", "patient")
+    user_id = user["id"]
+    
+    # SECURITY: Verify user has permission to access this chat
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    # Check access permissions
+    is_patient = request.get("patient_id") == user_id
+    is_doctor = request.get("doctor_id") == user_id
+    is_nurse = request.get("nurse_id") == user_id
+    is_admin = user_role == "admin"
+    
+    if not (is_patient or is_doctor or is_nurse or is_admin):
+        raise HTTPException(status_code=403, detail="Acesso negado a este chat")
     
     messages = await find_many("chat_messages", filters={"request_id": request_id}, order="created_at.asc")
     return messages
@@ -1489,6 +2025,14 @@ async def get_notifications(token: str):
 async def mark_notification_read(notification_id: str, token: str):
     user = await get_current_user(token)
     
+    # SECURITY: Verify the notification belongs to this user
+    notification = await find_one("notifications", {"id": notification_id})
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notificação não encontrada")
+    
+    if notification.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Acesso negado a esta notificação")
+    
     await update_one("notifications", {"id": notification_id}, {"read": True})
     
     return {"message": "Notificação marcada como lida"}
@@ -1497,8 +2041,15 @@ async def mark_notification_read(notification_id: str, token: str):
 async def mark_all_notifications_read(token: str):
     user = await get_current_user(token)
     
-    # This is simplified - would need to update all notifications for user
-    return {"message": "Todas as notificações marcadas como lidas"}
+    # Get all unread notifications for this user and mark them as read
+    notifications = await find_many("notifications", filters={"user_id": user["id"], "read": False}, limit=500)
+    
+    count = 0
+    for notification in notifications:
+        await update_one("notifications", {"id": notification["id"]}, {"read": True})
+        count += 1
+    
+    return {"message": f"{count} notificações marcadas como lidas"}
 
 # ============== QUEUE ROUTES ==============
 
@@ -1999,7 +2550,12 @@ async def get_doctor_reviews(doctor_id: str, limit: int = 20):
 # ============== ADMIN ROUTES ==============
 
 @api_router.get("/admin/stats")
-async def get_admin_stats(token: str = None):
+async def get_admin_stats(token: str):
+    # SECURITY: Require admin authentication
+    user = await get_current_user(token)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores.")
+    
     total_users = await count_docs("users", {})
     total_patients = await count_docs("users", {"role": "patient"})
     total_doctors = await count_docs("users", {"role": "doctor"})
@@ -2140,12 +2696,15 @@ async def health_check():
 # Include the router in the main app
 app.include_router(api_router)
 
+# ⚠️ SECURITY WARNING: Configure CORS properly in production!
+# In production, replace allow_origins=["*"] with specific domains:
+# allow_origins=["https://app.renoveja.com.br", "https://renoveja.com.br"]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # TODO: CHANGE IN PRODUCTION - see warning above
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # Configure logging

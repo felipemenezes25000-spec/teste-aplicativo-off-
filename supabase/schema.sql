@@ -245,6 +245,25 @@ CREATE TRIGGER update_requests_updated_at BEFORE UPDATE ON requests
 -- ============================================
 -- ROW LEVEL SECURITY (RLS) - Optional but recommended
 -- ============================================
+-- 
+-- ⚠️  IMPORTANTE PARA PRODUÇÃO:
+-- As policies abaixo são genéricas ("Service role full access") e permitem
+-- acesso total via service_role key. Em produção, você DEVE:
+--
+-- 1. Criar policies específicas por role (patient, doctor, nurse, admin)
+-- 2. Restringir acesso baseado em auth.uid() do Supabase Auth
+-- 3. Pacientes só veem seus próprios dados (requests, payments, notifications)
+-- 4. Médicos veem apenas requests atribuídos a eles
+-- 5. Enfermeiros veem apenas triagens (exams) atribuídas a eles
+-- 6. Admins têm acesso total
+--
+-- Exemplo de policy para pacientes:
+-- CREATE POLICY "Patients see own requests" ON requests
+--   FOR SELECT USING (auth.uid() = patient_id);
+--
+-- Consulte a documentação do Supabase RLS para implementar corretamente:
+-- https://supabase.com/docs/guides/auth/row-level-security
+-- ============================================
 
 -- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;

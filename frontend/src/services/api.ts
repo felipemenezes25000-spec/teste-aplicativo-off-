@@ -66,6 +66,13 @@ export const api = {
     return response.data;
   },
 
+  // ============== PUSH NOTIFICATIONS ==============
+  updatePushToken: async (pushToken: string) => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.post('/push-token', { push_token: pushToken }, { params });
+    return response.data;
+  },
+
   // ============== PROFILE ==============
   updateProfile: async (data: { name?: string; phone?: string; cpf?: string; birth_date?: string; avatar_url?: string; address?: object }) => {
     const params = await getAuthParams();
@@ -213,7 +220,7 @@ export const api = {
 
   checkPaymentStatus: async (id: string) => {
     const params = await getAuthParams();
-    const response = await axiosInstance.get(`/payments/${id}`, { params });
+    const response = await axiosInstance.get(`/payments/${id}/status`, { params });
     return response.data;
   },
 

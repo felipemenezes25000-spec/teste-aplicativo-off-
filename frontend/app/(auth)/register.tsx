@@ -36,9 +36,38 @@ export default function RegisterScreen() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  // Email validation regex
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Password strength validation
+  const validatePassword = (pwd: string): { valid: boolean; message: string } => {
+    if (pwd.length < 8) {
+      return { valid: false, message: 'A senha deve ter pelo menos 8 caracteres' };
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return { valid: false, message: 'A senha deve conter pelo menos uma letra maiúscula' };
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return { valid: false, message: 'A senha deve conter pelo menos uma letra minúscula' };
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return { valid: false, message: 'A senha deve conter pelo menos um número' };
+    }
+    return { valid: true, message: '' };
+  };
+
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
       Alert.alert('Atenção', 'Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    // Validate email format
+    if (!isValidEmail(email.trim())) {
+      Alert.alert('Atenção', 'Por favor, insira um email válido');
       return;
     }
 
@@ -47,8 +76,10 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Atenção', 'A senha deve ter pelo menos 6 caracteres');
+    // Validate password strength
+    const pwdValidation = validatePassword(password);
+    if (!pwdValidation.valid) {
+      Alert.alert('Senha fraca', pwdValidation.message);
       return;
     }
 
@@ -59,12 +90,14 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await register(name.trim(), email.trim(), password, phone.trim());
+      await register(name.trim(), email.trim().toLowerCase(), password, phone.trim());
       Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
         { text: 'OK', onPress: () => router.replace('/(tabs)') }
       ]);
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao criar conta');
+      // Don't expose internal error details
+      const userMessage = error.response?.data?.detail || 'Erro ao criar conta. Tente novamente.';
+      Alert.alert('Erro', userMessage);
     } finally {
       setLoading(false);
     }
@@ -172,21 +205,32 @@ export default function RegisterScreen() {
             {renderInput('lock-closed-outline', 'Confirmar senha *', confirmPassword, setConfirmPassword, 'confirmPassword', { secureTextEntry: true })}
 
             {/* Terms */}
-            <TouchableOpacity 
-              style={styles.termsContainer}
-              onPress={() => setAcceptedTerms(!acceptedTerms)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
-                {acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-              </View>
+            <View style={styles.termsContainer}>
+              <TouchableOpacity 
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                  {acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                </View>
+              </TouchableOpacity>
               <Text style={styles.termsText}>
                 Li e aceito os{' '}
-                <Text style={styles.termsLink}>Termos de Uso</Text>
+                <Text 
+                  style={styles.termsLink}
+                  onPress={() => router.push('/legal/terms')}
+                >
+                  Termos de Uso
+                </Text>
                 {' '}e{' '}
-                <Text style={styles.termsLink}>Política de Privacidade</Text>
+                <Text 
+                  style={styles.termsLink}
+                  onPress={() => router.push('/legal/privacy')}
+                >
+                  Política de Privacidade
+                </Text>
               </Text>
-            </TouchableOpacity>
+            </View>
 
             {/* Register Button */}
             <TouchableOpacity

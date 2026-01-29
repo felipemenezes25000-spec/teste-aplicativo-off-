@@ -33,9 +33,15 @@ Fluxos de Notificação:
 - Nova solicitação criada
 - Pagamento recebido
 - Consulta finalizada
+
+📲 PUSH NOTIFICATIONS:
+- Integração com Expo Push API
+- Enviadas em paralelo com notificações in-app
 """
 
 import uuid
+import httpx
+import asyncio
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
@@ -315,3 +321,271 @@ async def notify_available_nurses(db_insert_func, db_find_func, template_key: st
 async def notify_admins(db_insert_func, db_find_func, template_key: str, data: Dict = None, request_id: str = None):
     """Send notification to all admins"""
     return await notify_role(db_insert_func, db_find_func, "admin", template_key, data, request_id)
+
+
+# ============== PUSH NOTIFICATIONS (EXPO) ==============
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+
+async def send_push_notification(
+    push_token: str,
+    title: str,
+    body: str,
+    data: Dict = None,
+    sound: str = "default",
+    badge: int = None,
+    channel_id: str = "default"
+) -> Dict:
+    """
+    Envia uma push notification via Expo Push API.
+    
+    Args:
+        push_token: Expo push token (ExponentPushToken[xxx])
+        title: Título da notificação
+        body: Corpo da notificação
+        data: Dados extras para deep linking
+        sound: Som da notificação (default, null, ou custom)
+        badge: Número do badge no ícone do app
+        channel_id: Android notification channel
+    
+    Returns:
+        Resposta da API do Expo ou erro
+    """
+    if not push_token or not push_token.startswith("ExponentPushToken"):
+        return {"success": False, "error": "Invalid push token"}
+    
+    message = {
+        "to": push_token,
+        "title": title,
+        "body": body,
+        "sound": sound,
+        "channelId": channel_id,
+    }
+    
+    if data:
+        message["data"] = data
+    
+    if badge is not None:
+        message["badge"] = badge
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                EXPO_PUSH_URL,
+                json=message,
+                headers={
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip, deflate",
+                    "Content-Type": "application/json",
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return {"success": True, "result": result}
+            else:
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+    except Exception as e:
+        print(f"Push notification error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def send_push_to_user(
+    db_find_func,
+    user_id: str,
+    title: str,
+    body: str,
+    data: Dict = None
+) -> Dict:
+    """
+    Envia push notification para um usuário específico pelo ID.
+    Busca o push_token no banco e envia se disponível.
+    """
+    try:
+        user = await db_find_func("users", {"id": user_id})
+        if not user:
+            return {"success": False, "error": "User not found"}
+        
+        # user pode ser dict ou lista
+        if isinstance(user, list):
+            user = user[0] if user else None
+        
+        if not user:
+            return {"success": False, "error": "User not found"}
+            
+        push_token = user.get("push_token")
+        if not push_token:
+            return {"success": False, "error": "User has no push token"}
+        
+        return await send_push_notification(push_token, title, body, data)
+    except Exception as e:
+        print(f"Error sending push to user {user_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def send_push_to_users(
+    db_find_func,
+    user_ids: List[str],
+    title: str,
+    body: str,
+    data: Dict = None
+) -> List[Dict]:
+    """
+    Envia push notification para múltiplos usuários.
+    """
+    results = []
+    for user_id in user_ids:
+        result = await send_push_to_user(db_find_func, user_id, title, body, data)
+        results.append({"user_id": user_id, **result})
+    return results
+
+
+# ============== NOTIFICAÇÃO COMPLETA (IN-APP + PUSH) ==============
+
+async def notify_user_with_push(
+    db_insert_func,
+    db_find_func,
+    user_id: str,
+    template_key: str,
+    data: Dict = None,
+    request_id: str = None
+):
+    """
+    Envia notificação in-app E push notification para um usuário.
+    """
+    # 1. Criar notificação in-app
+    notification = await notify_user(db_insert_func, user_id, template_key, data, request_id)
+    
+    # 2. Enviar push notification
+    push_data = {
+        "type": template_key,
+        "request_id": request_id,
+        **(data or {})
+    }
+    
+    push_result = await send_push_to_user(
+        db_find_func,
+        user_id,
+        notification["title"],
+        notification["message"],
+        push_data
+    )
+    
+    return {
+        "notification": notification,
+        "push_result": push_result
+    }
+
+
+async def notify_users_with_push(
+    db_insert_func,
+    db_find_func,
+    user_ids: List[str],
+    template_key: str,
+    data: Dict = None,
+    request_id: str = None
+):
+    """
+    Envia notificação in-app E push notification para múltiplos usuários.
+    """
+    results = []
+    for user_id in user_ids:
+        result = await notify_user_with_push(
+            db_insert_func, db_find_func, user_id, template_key, data, request_id
+        )
+        results.append(result)
+    return results
+
+
+# ============== NOTIFICAÇÕES ESPECÍFICAS COM PUSH ==============
+
+async def push_prescription_accepted(db_find_func, user_id: str, doctor_name: str, request_id: str):
+    """Push: Médico aceitou a solicitação"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "👨‍⚕️ Médico Analisando",
+        f"Dr(a). {doctor_name} está analisando sua solicitação.",
+        {"type": "prescription_accepted", "request_id": request_id}
+    )
+
+
+async def push_prescription_approved(db_find_func, user_id: str, doctor_name: str, price: float, request_id: str):
+    """Push: Receita aprovada, aguardando pagamento"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "✅ Receita Aprovada!",
+        f"Dr(a). {doctor_name} aprovou. Pague R$ {price:.2f} para receber.",
+        {"type": "prescription_approved", "request_id": request_id, "price": price}
+    )
+
+
+async def push_prescription_rejected(db_find_func, user_id: str, doctor_name: str, reason: str, request_id: str):
+    """Push: Solicitação rejeitada"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "❌ Solicitação Recusada",
+        f"Motivo: {reason}",
+        {"type": "prescription_rejected", "request_id": request_id, "reason": reason}
+    )
+
+
+async def push_prescription_signed(db_find_func, user_id: str, doctor_name: str, request_id: str):
+    """Push: Receita assinada e pronta"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "📝 Receita Pronta!",
+        f"Sua receita foi assinada por Dr(a). {doctor_name}. Faça o download!",
+        {"type": "prescription_signed", "request_id": request_id}
+    )
+
+
+async def push_new_chat_message(db_find_func, user_id: str, sender_name: str, request_id: str):
+    """Push: Nova mensagem no chat"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        f"💬 Nova mensagem de {sender_name}",
+        "Toque para ver a mensagem",
+        {"type": "new_message", "request_id": request_id}
+    )
+
+
+async def push_consultation_starting(db_find_func, user_id: str, doctor_name: str, request_id: str):
+    """Push: Teleconsulta prestes a começar"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "🎥 Teleconsulta Iniciando!",
+        f"Sua consulta com Dr(a). {doctor_name} está começando. Toque para entrar.",
+        {"type": "consultation_starting", "request_id": request_id}
+    )
+
+
+async def push_consultation_reminder(db_find_func, user_id: str, doctor_name: str, minutes: int, request_id: str):
+    """Push: Lembrete de consulta"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "⏰ Lembrete de Consulta",
+        f"Sua consulta com Dr(a). {doctor_name} começa em {minutes} minutos.",
+        {"type": "consultation_reminder", "request_id": request_id, "minutes": minutes}
+    )
+
+
+async def push_payment_confirmed(db_find_func, user_id: str, amount: float, request_id: str):
+    """Push: Pagamento confirmado"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "✅ Pagamento Confirmado!",
+        f"Seu pagamento de R$ {amount:.2f} foi confirmado.",
+        {"type": "payment_confirmed", "request_id": request_id, "amount": amount}
+    )
+
+
+async def push_exam_approved(db_find_func, user_id: str, nurse_name: str, price: float, request_id: str):
+    """Push: Exames aprovados"""
+    return await send_push_to_user(
+        db_find_func, user_id,
+        "✅ Exames Aprovados!",
+        f"Aprovado por Enf. {nurse_name}. Pague R$ {price:.2f}.",
+        {"type": "exam_approved", "request_id": request_id, "price": price}
+    )

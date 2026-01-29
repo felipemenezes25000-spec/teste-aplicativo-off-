@@ -1,9 +1,15 @@
 /**
- * 💳 Payment Screen - Modern Design
+ * 💳 Payment Screen - MercadoPago PIX Integration
  * RenoveJá+ Telemedicina
+ * 
+ * Features:
+ * - QR Code PIX real (via MercadoPago)
+ * - Código copia-e-cola
+ * - Polling automático para verificar pagamento
+ * - Fallback para modo simulado
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,24 +19,70 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
-  Clipboard,
+  Image,
+  Animated,
+  Platform,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
 
+// Polling interval in milliseconds
+const POLL_INTERVAL = 5000; // 5 seconds
+const MAX_POLL_TIME = 30 * 60 * 1000; // 30 minutes
+
 export default function PaymentScreen() {
   const router = useRouter();
   const { requestId, amount = '49.90' } = useLocalSearchParams<{ requestId: string; amount: string }>();
+  
   const [selectedMethod, setSelectedMethod] = useState<'pix' | 'credit'>('pix');
   const [loading, setLoading] = useState(false);
-  const [pixCode, setPixCode] = useState<string | null>(null);
+  const [paymentData, setPaymentData] = useState<{
+    id: string;
+    pix_code: string;
+    qr_code_base64?: string;
+    pix_qr_base64?: string;
+    ticket_url?: string;
+    is_real_payment: boolean;
+    status: string;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
-
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'checking' | 'completed' | 'expired'>('pending');
+  const [pollCount, setPollCount] = useState(0);
+  
+  // Animation for pulse effect
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+  
   const price = parseFloat(amount);
 
-  const generatePixCode = async () => {
+  // Pulse animation for QR code
+  useEffect(() => {
+    if (paymentStatus === 'pending' && paymentData) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.02, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [paymentStatus, paymentData]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const generatePixPayment = async () => {
     setLoading(true);
     try {
       const response = await api.createPayment({
@@ -38,35 +90,154 @@ export default function PaymentScreen() {
         amount: price,
         method: 'pix',
       });
-      setPixCode(response.pix_code || 'PIX123456789RENOVEJA');
+      
+      setPaymentData({
+        id: response.id,
+        pix_code: response.pix_code,
+        qr_code_base64: response.qr_code_base64 || response.pix_qr_base64,
+        pix_qr_base64: response.pix_qr_base64,
+        ticket_url: response.ticket_url,
+        is_real_payment: response.is_real_payment || false,
+        status: response.status || 'pending',
+      });
+      
+      // Start polling for payment status
+      startPolling(response.id);
+      startTimeRef.current = Date.now();
+      
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao gerar PIX');
+      Alert.alert('Erro', error.message || 'Erro ao gerar PIX. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const copyPixCode = () => {
-    if (pixCode) {
-      Clipboard.setString(pixCode);
+  const startPolling = (paymentId: string) => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    
+    pollIntervalRef.current = setInterval(async () => {
+      // Check if max time exceeded
+      if (Date.now() - startTimeRef.current > MAX_POLL_TIME) {
+        stopPolling();
+        setPaymentStatus('expired');
+        return;
+      }
+      
+      await checkPaymentStatus(paymentId);
+    }, POLL_INTERVAL);
+  };
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const checkPaymentStatus = async (paymentId: string) => {
+    try {
+      setPaymentStatus('checking');
+      setPollCount(prev => prev + 1);
+      
+      const response = await api.checkPaymentStatus(paymentId);
+      
+      if (response.status === 'completed' || response.status === 'approved') {
+        stopPolling();
+        setPaymentStatus('completed');
+        
+        // Show success and navigate
+        setTimeout(() => {
+          Alert.alert(
+            'Pagamento Confirmado! 🎉',
+            paymentData?.is_real_payment 
+              ? 'Seu pagamento foi confirmado pelo MercadoPago. Sua receita será assinada em breve.'
+              : 'Pagamento confirmado! Sua receita será assinada em breve.',
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+          );
+        }, 500);
+      } else {
+        setPaymentStatus('pending');
+      }
+    } catch (error) {
+      console.log('Error checking payment status:', error);
+      setPaymentStatus('pending');
+    }
+  };
+
+  const copyPixCode = async () => {
+    if (paymentData?.pix_code) {
+      await Clipboard.setStringAsync(paymentData.pix_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const confirmPayment = async () => {
-    setLoading(true);
-    try {
-      // Simular confirmação de pagamento
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      Alert.alert('Pagamento Confirmado! 🎉', 'Sua receita será assinada em breve.', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
-    } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao confirmar pagamento');
-    } finally {
-      setLoading(false);
+  const openTicketUrl = () => {
+    if (paymentData?.ticket_url) {
+      // Open in browser
+      if (Platform.OS === 'web') {
+        window.open(paymentData.ticket_url, '_blank');
+      } else {
+        // For mobile, use Linking
+        import('react-native').then(({ Linking }) => {
+          Linking.openURL(paymentData.ticket_url!);
+        });
+      }
     }
+  };
+
+  const manualConfirm = async () => {
+    if (!paymentData?.id) return;
+    
+    // For simulated payments, allow manual confirmation
+    if (!paymentData.is_real_payment) {
+      setLoading(true);
+      try {
+        await api.confirmPayment(paymentData.id);
+        stopPolling();
+        setPaymentStatus('completed');
+        
+        Alert.alert('Pagamento Confirmado! 🎉', 'Sua receita será assinada em breve.', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
+      } catch (error: any) {
+        Alert.alert('Erro', error.message || 'Erro ao confirmar pagamento');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // For real payments, just check status
+      await checkPaymentStatus(paymentData.id);
+    }
+  };
+
+  const renderQRCode = () => {
+    const qrBase64 = paymentData?.qr_code_base64 || paymentData?.pix_qr_base64;
+    
+    if (qrBase64) {
+      // Real QR Code from MercadoPago
+      return (
+        <Animated.View style={[styles.qrCodeContainer, { transform: [{ scale: pulseAnim }] }]}>
+          <Image
+            source={{ uri: `data:image/png;base64,${qrBase64}` }}
+            style={styles.qrCodeImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      );
+    }
+    
+    // Fallback placeholder for simulated payments
+    return (
+      <View style={styles.qrPlaceholder}>
+        <Ionicons name="qr-code" size={100} color="#00B4CD" />
+        <Text style={styles.qrPlaceholderText}>QR Code PIX</Text>
+        <Text style={styles.simulatedBadge}>Modo Simulado</Text>
+      </View>
+    );
   };
 
   return (
@@ -104,6 +275,12 @@ export default function PaymentScreen() {
         <View style={styles.amountCard}>
           <Text style={styles.amountLabel}>Valor Total</Text>
           <Text style={styles.amountValue}>R$ {price.toFixed(2)}</Text>
+          {paymentData?.is_real_payment && (
+            <View style={styles.realPaymentBadge}>
+              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Text style={styles.realPaymentText}>MercadoPago</Text>
+            </View>
+          )}
         </View>
 
         {/* Payment Methods */}
@@ -146,10 +323,10 @@ export default function PaymentScreen() {
         {/* PIX Section */}
         {selectedMethod === 'pix' && (
           <View style={styles.pixSection}>
-            {!pixCode ? (
+            {!paymentData ? (
               <TouchableOpacity
                 style={styles.generatePixButton}
-                onPress={generatePixCode}
+                onPress={generatePixPayment}
                 disabled={loading}
               >
                 {loading ? (
@@ -163,16 +340,43 @@ export default function PaymentScreen() {
               </TouchableOpacity>
             ) : (
               <View style={styles.pixCodeContainer}>
-                <View style={styles.pixQrPlaceholder}>
-                  <Ionicons name="qr-code" size={80} color="#00B4CD" />
-                  <Text style={styles.pixQrText}>QR Code PIX</Text>
-                </View>
+                {/* QR Code */}
+                {renderQRCode()}
 
+                {/* Status Indicator */}
+                {paymentStatus === 'checking' && (
+                  <View style={styles.statusIndicator}>
+                    <ActivityIndicator size="small" color="#00B4CD" />
+                    <Text style={styles.statusText}>Verificando pagamento...</Text>
+                  </View>
+                )}
+                
+                {paymentStatus === 'pending' && pollCount > 0 && (
+                  <View style={styles.statusIndicator}>
+                    <Ionicons name="time-outline" size={16} color="#F59E0B" />
+                    <Text style={styles.statusTextPending}>Aguardando pagamento...</Text>
+                  </View>
+                )}
+
+                {paymentStatus === 'completed' && (
+                  <View style={styles.statusIndicatorSuccess}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Text style={styles.statusTextSuccess}>Pagamento confirmado!</Text>
+                  </View>
+                )}
+
+                {/* PIX Code */}
                 <Text style={styles.pixCodeLabel}>Código PIX (Copia e Cola)</Text>
                 <View style={styles.pixCodeBox}>
-                  <Text style={styles.pixCodeText} numberOfLines={1}>{pixCode}</Text>
+                  <Text style={styles.pixCodeText} numberOfLines={1} ellipsizeMode="middle">
+                    {paymentData.pix_code}
+                  </Text>
                   <TouchableOpacity style={styles.copyButton} onPress={copyPixCode}>
-                    <Ionicons name={copied ? 'checkmark' : 'copy'} size={20} color={copied ? '#10B981' : '#00B4CD'} />
+                    <Ionicons 
+                      name={copied ? 'checkmark' : 'copy'} 
+                      size={20} 
+                      color={copied ? '#10B981' : '#00B4CD'} 
+                    />
                   </TouchableOpacity>
                 </View>
 
@@ -180,12 +384,26 @@ export default function PaymentScreen() {
                   <Text style={styles.copiedText}>✓ Código copiado!</Text>
                 )}
 
+                {/* Ticket URL (if available) */}
+                {paymentData.ticket_url && (
+                  <TouchableOpacity style={styles.ticketButton} onPress={openTicketUrl}>
+                    <Ionicons name="open-outline" size={18} color="#00B4CD" />
+                    <Text style={styles.ticketButtonText}>Abrir página de pagamento</Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Instructions */}
                 <View style={styles.pixInstructions}>
                   <Text style={styles.instructionsTitle}>Como pagar:</Text>
                   <Text style={styles.instructionsText}>1. Abra o app do seu banco</Text>
                   <Text style={styles.instructionsText}>2. Escolha pagar com PIX</Text>
                   <Text style={styles.instructionsText}>3. Cole o código ou escaneie o QR</Text>
                   <Text style={styles.instructionsText}>4. Confirme o pagamento</Text>
+                  {paymentData.is_real_payment && (
+                    <Text style={styles.instructionsHighlight}>
+                      ✨ O pagamento será confirmado automaticamente!
+                    </Text>
+                  )}
                 </View>
               </View>
             )}
@@ -205,10 +423,10 @@ export default function PaymentScreen() {
           </View>
         )}
 
-        {/* Confirm Button */}
-        {pixCode && (
+        {/* Confirm Button (for simulated payments or manual check) */}
+        {paymentData && paymentStatus !== 'completed' && (
           <TouchableOpacity
-            onPress={confirmPayment}
+            onPress={manualConfirm}
             disabled={loading}
             activeOpacity={0.8}
             style={{ marginTop: 24 }}
@@ -224,7 +442,9 @@ export default function PaymentScreen() {
               ) : (
                 <>
                   <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-                  <Text style={styles.confirmButtonText}>Já paguei</Text>
+                  <Text style={styles.confirmButtonText}>
+                    {paymentData.is_real_payment ? 'Verificar pagamento' : 'Já paguei'}
+                  </Text>
                 </>
               )}
             </LinearGradient>
@@ -236,6 +456,16 @@ export default function PaymentScreen() {
           <Ionicons name="shield-checkmark" size={16} color="#10B981" />
           <Text style={styles.securityText}>Pagamento 100% seguro</Text>
         </View>
+
+        {/* Expiration warning */}
+        {paymentStatus === 'expired' && (
+          <View style={styles.expiredWarning}>
+            <Ionicons name="alert-circle" size={20} color="#EF4444" />
+            <Text style={styles.expiredText}>
+              Tempo expirado. Gere um novo código PIX.
+            </Text>
+          </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -257,9 +487,31 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentContainer: { padding: 24 },
 
-  amountCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  amountCard: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 20, 
+    padding: 24, 
+    alignItems: 'center', 
+    marginBottom: 24, 
+    shadowColor: '#1A3A4A', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.06, 
+    shadowRadius: 12, 
+    elevation: 3 
+  },
   amountLabel: { fontSize: 14, color: '#6B7C85', marginBottom: 4 },
   amountValue: { fontSize: 36, fontWeight: '700', color: '#00B4CD' },
+  realPaymentBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginTop: 8, 
+    backgroundColor: '#ECFDF5', 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 12,
+    gap: 4,
+  },
+  realPaymentText: { fontSize: 12, color: '#10B981', fontWeight: '600' },
 
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
 
@@ -279,17 +531,89 @@ const styles = StyleSheet.create({
   generatePixText: { fontSize: 16, fontWeight: '600', color: '#00B4CD' },
 
   pixCodeContainer: { alignItems: 'center' },
-  pixQrPlaceholder: { width: 200, height: 200, backgroundColor: '#E6F7FA', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  pixQrText: { marginTop: 8, fontSize: 12, color: '#6B7C85' },
+  
+  qrCodeContainer: {
+    width: 220,
+    height: 220,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 10,
+    marginBottom: 20,
+    shadowColor: '#00B4CD',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrCodeImage: {
+    width: 200,
+    height: 200,
+  },
+  qrPlaceholder: { 
+    width: 200, 
+    height: 200, 
+    backgroundColor: '#E6F7FA', 
+    borderRadius: 20, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginBottom: 20 
+  },
+  qrPlaceholderText: { marginTop: 8, fontSize: 12, color: '#6B7C85' },
+  simulatedBadge: {
+    marginTop: 8,
+    fontSize: 10,
+    color: '#F59E0B',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+
+  statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+    backgroundColor: '#E6F7FA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: { fontSize: 13, color: '#00B4CD' },
+  statusTextPending: { fontSize: 13, color: '#F59E0B' },
+  statusIndicatorSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  statusTextSuccess: { fontSize: 14, color: '#10B981', fontWeight: '600' },
+
   pixCodeLabel: { fontSize: 14, fontWeight: '500', color: '#1A3A4A', marginBottom: 8, alignSelf: 'flex-start' },
   pixCodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F7', borderRadius: 12, padding: 14, width: '100%' },
-  pixCodeText: { flex: 1, fontSize: 13, color: '#1A3A4A', fontFamily: 'monospace' },
+  pixCodeText: { flex: 1, fontSize: 12, color: '#1A3A4A', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
   copyButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   copiedText: { marginTop: 8, fontSize: 13, color: '#10B981', fontWeight: '500' },
+
+  ticketButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+  },
+  ticketButtonText: { fontSize: 14, color: '#00B4CD', fontWeight: '500' },
 
   pixInstructions: { marginTop: 20, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, width: '100%' },
   instructionsTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', marginBottom: 10 },
   instructionsText: { fontSize: 13, color: '#6B7C85', marginBottom: 4 },
+  instructionsHighlight: { fontSize: 13, color: '#10B981', marginTop: 8, fontWeight: '500' },
 
   creditSection: { marginTop: 20 },
   comingSoonCard: { alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 24 },
@@ -301,4 +625,15 @@ const styles = StyleSheet.create({
 
   securityBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, gap: 6 },
   securityText: { fontSize: 13, color: '#10B981' },
+
+  expiredWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    backgroundColor: '#FEF2F2',
+    padding: 16,
+    borderRadius: 12,
+  },
+  expiredText: { fontSize: 14, color: '#EF4444', flex: 1 },
 });

@@ -81,7 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authAPI.login(email, password);
+      // Normalize email to lowercase
+      const response = await authAPI.login(email.toLowerCase().trim(), password);
       
       await AsyncStorage.setItem('token', response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
@@ -91,7 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { success: true };
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Erro ao fazer login';
+      // Don't expose detailed error messages that could help attackers
+      const message = error.response?.data?.detail || 'Email ou senha incorretos';
+      // Log error for debugging (remove in production or use proper logging)
+      if (__DEV__) {
+        console.log('Login error:', error.response?.status);
+      }
       return { success: false, error: message };
     }
   };
@@ -115,7 +121,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: { name: string; email: string; password: string; phone?: string }) => {
     try {
-      const response = await authAPI.register(data);
+      // Normalize email to lowercase
+      const normalizedData = {
+        ...data,
+        email: data.email.toLowerCase().trim(),
+        name: data.name.trim(),
+      };
+      const response = await authAPI.register(normalizedData);
       
       await AsyncStorage.setItem('token', response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
@@ -125,7 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return { success: true };
     } catch (error: any) {
-      const message = error.response?.data?.detail || 'Erro ao criar conta';
+      // Provide user-friendly error messages
+      const message = error.response?.data?.detail || 'Erro ao criar conta. Tente novamente.';
       return { success: false, error: message };
     }
   };
