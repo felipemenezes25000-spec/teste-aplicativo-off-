@@ -33,11 +33,20 @@ export function Chat({ requestId, patientName, doctorName, onBack }: ChatProps) 
   const [isSending, setIsSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastMessageCountRef = useRef<number>(0);
+  const pollIntervalMs = useRef<number>(3000); // Start with 3 seconds
 
   useEffect(() => {
     loadMessages();
-    // Poll for new messages every 5 seconds
-    pollIntervalRef.current = setInterval(loadMessages, 5000);
+    
+    // Adaptive polling - faster when active, slower when idle
+    const startPolling = () => {
+      pollIntervalRef.current = setInterval(() => {
+        loadMessages();
+      }, pollIntervalMs.current);
+    };
+    
+    startPolling();
     
     return () => {
       if (pollIntervalRef.current) {
@@ -49,9 +58,22 @@ export function Chat({ requestId, patientName, doctorName, onBack }: ChatProps) 
   const loadMessages = async () => {
     try {
       const data = await chatAPI.getMessages(requestId);
+      
+      // Adaptive polling: slow down if no new messages
+      if (data.length === lastMessageCountRef.current) {
+        // No new messages, slow down polling (max 10 seconds)
+        pollIntervalMs.current = Math.min(pollIntervalMs.current + 1000, 10000);
+      } else {
+        // New messages arrived, speed up polling
+        pollIntervalMs.current = 3000;
+        lastMessageCountRef.current = data.length;
+      }
+      
       setMessages(data);
       // Mark messages as read
-      await chatAPI.markAsRead(requestId);
+      if (data.length > 0) {
+        await chatAPI.markAsRead(requestId).catch(() => {});
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {

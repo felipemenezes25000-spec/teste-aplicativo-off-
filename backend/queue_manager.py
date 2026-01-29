@@ -153,10 +153,11 @@ class QueueManager:
         Automatically assign pending requests to available doctors.
         Returns count of assigned requests.
         """
-        # Get all pending requests without a doctor
+        # Get all pending/submitted requests without a doctor
         pending_requests = await self.db.requests.find({
-            "status": "pending",
-            "doctor_id": None
+            "status": {"$in": ["pending", "submitted"]},
+            "doctor_id": None,
+            "request_type": {"$ne": "exam"}  # Exams go to nursing first
         }).sort("created_at", 1).to_list(100)
         
         assigned = 0
@@ -183,8 +184,8 @@ class QueueManager:
         """
         Get overall queue statistics.
         """
-        total_pending = await self.db.requests.count_documents({"status": "pending"})
-        total_analyzing = await self.db.requests.count_documents({"status": "analyzing"})
+        total_pending = await self.db.requests.count_documents({"status": {"$in": ["pending", "submitted"]}})
+        total_analyzing = await self.db.requests.count_documents({"status": {"$in": ["analyzing", "in_review"]}})
         total_completed_today = await self.db.requests.count_documents({
             "status": "completed",
             "completed_at": {"$gte": datetime.utcnow().replace(hour=0, minute=0, second=0)}
@@ -224,13 +225,14 @@ class QueueManager:
         # Requests assigned to this doctor
         my_requests = await self.db.requests.find({
             "doctor_id": doctor_id,
-            "status": {"$in": ["analyzing", "in_progress"]}
+            "status": {"$in": ["analyzing", "in_review", "in_progress"]}
         }).sort("assigned_at", 1).to_list(50)
         
-        # Unassigned requests this doctor could take
+        # Unassigned requests this doctor could take (excluding exams which go to nursing)
         available_requests = await self.db.requests.find({
-            "status": "pending",
-            "doctor_id": None
+            "status": {"$in": ["pending", "submitted"]},
+            "doctor_id": None,
+            "request_type": {"$ne": "exam"}
         }).sort("created_at", 1).to_list(50)
         
         return {

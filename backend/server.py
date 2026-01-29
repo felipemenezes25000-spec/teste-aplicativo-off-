@@ -221,9 +221,10 @@ class Payment(BaseModel):
     request_id: str
     amount: float
     method: str
-    status: Literal["pending", "processing", "completed", "failed"] = "pending"
+    status: Literal["pending", "processing", "completed", "failed", "approved"] = "pending"
     pix_code: Optional[str] = None
     pix_qr_base64: Optional[str] = None
+    external_id: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     paid_at: Optional[datetime] = None
 

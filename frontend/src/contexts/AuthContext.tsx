@@ -50,11 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (storedToken && storedUser) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
         
         // Verify token is still valid
         try {
           const userData = await authAPI.getMe();
+          // Preserve doctor_profile and nurse_profile from stored data if not in response
+          if (parsedUser.doctor_profile && !userData.doctor_profile) {
+            userData.doctor_profile = parsedUser.doctor_profile;
+          }
+          if (parsedUser.nurse_profile && !userData.nurse_profile) {
+            userData.nurse_profile = parsedUser.nurse_profile;
+          }
           setUser(userData);
           await AsyncStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {

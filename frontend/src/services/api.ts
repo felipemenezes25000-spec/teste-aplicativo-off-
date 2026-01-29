@@ -115,9 +115,10 @@ export const requestsAPI = {
   },
   
   createExam: async (data: {
-    exam_type: string;
-    exams: string[];
-    image_base64?: string;
+    description?: string;
+    exam_images?: string[];
+    exam_type?: string;
+    exams?: string[];
     notes?: string;
   }) => {
     const params = await getAuthParams();
@@ -157,6 +158,31 @@ export const requestsAPI = {
   }) => {
     const params = await getAuthParams();
     const response = await api.put(`/requests/${id}`, data, { params });
+    return response.data;
+  },
+  
+  // Doctor workflow actions
+  accept: async (id: string) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/requests/${id}/accept`, null, { params });
+    return response.data;
+  },
+  
+  approve: async (id: string, data?: { price?: number; notes?: string }) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/requests/${id}/approve`, data || {}, { params });
+    return response.data;
+  },
+  
+  reject: async (id: string, data: { reason: string; notes?: string }) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/requests/${id}/reject`, data, { params });
+    return response.data;
+  },
+  
+  sign: async (id: string) => {
+    const params = await getAuthParams();
+    const response = await api.post(`/requests/${id}/sign`, null, { params });
     return response.data;
   },
 };

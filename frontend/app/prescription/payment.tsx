@@ -35,7 +35,7 @@ export default function PrescriptionPaymentScreen() {
       // Create prescription request
       const request = await requestsAPI.createPrescription({
         prescription_type: type as any,
-        image_base64: image || undefined,
+        prescription_images: image ? [image] : undefined,
         notes: notes || undefined,
       });
 

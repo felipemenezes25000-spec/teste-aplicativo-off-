@@ -10,6 +10,7 @@ export interface User {
   role: 'patient' | 'doctor' | 'admin' | 'nurse';
   address?: Address;
   doctor_profile?: DoctorProfile;
+  nurse_profile?: NurseProfile;
 }
 
 export interface Address {
@@ -34,9 +35,35 @@ export interface DoctorProfile {
   available: boolean;
 }
 
+export interface NurseProfile {
+  id: string;
+  user_id: string;
+  coren: string;
+  coren_state: string;
+  specialty?: string;
+  bio?: string;
+  total_triages: number;
+  available: boolean;
+}
+
 // Request Types
 export type RequestType = 'prescription' | 'exam' | 'consultation';
-export type RequestStatus = 'pending' | 'analyzing' | 'approved' | 'rejected' | 'completed';
+export type RequestStatus = 
+  | 'submitted'
+  | 'pending'
+  | 'analyzing'
+  | 'in_review'
+  | 'in_nursing_review'
+  | 'approved_by_nursing_pending_payment'
+  | 'in_medical_review'
+  | 'approved_pending_payment'
+  | 'approved'
+  | 'paid'
+  | 'signed'
+  | 'delivered'
+  | 'rejected'
+  | 'completed'
+  | 'in_progress';
 export type PrescriptionType = 'simple' | 'controlled' | 'blue';
 export type ExamType = 'laboratory' | 'imaging';
 
@@ -48,22 +75,36 @@ export interface Request {
   status: RequestStatus;
   price: number;
   notes?: string;
+  rejection_reason?: string;
   doctor_id?: string;
   doctor_name?: string;
+  nurse_id?: string;
+  nurse_name?: string;
+  approved_by?: 'nurse' | 'doctor';
   // Prescription specific
   prescription_type?: PrescriptionType;
   medications?: Medication[];
   image_url?: string;
+  prescription_images?: string[];
   // Exam specific
   exam_type?: ExamType;
   exams?: string[];
+  exam_images?: string[];
+  exam_description?: string;
   // Consultation specific
   specialty?: string;
   duration?: number;
   scheduled_at?: string;
+  // Signature
+  signed_document_url?: string;
+  signature_data?: object;
   // Timestamps
   created_at: string;
   updated_at: string;
+  approved_at?: string;
+  paid_at?: string;
+  signed_at?: string;
+  delivered_at?: string;
 }
 
 export interface Medication {

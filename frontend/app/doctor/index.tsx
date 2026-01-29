@@ -32,9 +32,10 @@ export default function DoctorDashboard() {
   const [queue, setQueue] = useState<{ 
     pending: Request[]; 
     analyzing: Request[];
+    forwarded_from_nursing: Request[];
     awaiting_payment: Request[];
     awaiting_signature: Request[];
-  }>({ pending: [], analyzing: [], awaiting_payment: [], awaiting_signature: [] });
+  }>({ pending: [], analyzing: [], forwarded_from_nursing: [], awaiting_payment: [], awaiting_signature: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -84,10 +85,8 @@ export default function DoctorDashboard() {
 
   const handleApproveRequest = async (request: Request) => {
     try {
-      await requestsAPI.update(request.id, {
-        status: 'approved',
-      });
-      Alert.alert('Sucesso', 'Solicitação aprovada!');
+      await requestsAPI.approve(request.id);
+      Alert.alert('Sucesso', 'Solicitação aprovada! Aguardando pagamento do paciente.');
       loadQueue();
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível aprovar a solicitação.');
@@ -263,6 +262,41 @@ export default function DoctorDashboard() {
                       style={styles.actionButton}
                     />
                   </View>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
+        {/* 🏥 Forwarded from nursing (exams needing medical validation) */}
+        {queue.forwarded_from_nursing && queue.forwarded_from_nursing.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: COLORS.info }]}>
+              🏥 Encaminhados pela Enfermagem ({queue.forwarded_from_nursing.length})
+            </Text>
+            {queue.forwarded_from_nursing.map((request) => (
+              <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
+                <Card style={[styles.requestCard, { borderLeftWidth: 4, borderLeftColor: COLORS.info }]}>
+                  <View style={styles.requestHeader}>
+                    <View style={[styles.requestIcon, { backgroundColor: COLORS.info + '15' }]}>
+                      <Ionicons name="flask" size={20} color={COLORS.info} />
+                    </View>
+                    <View style={styles.requestInfo}>
+                      <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
+                      <Text style={styles.requestPatient}>{request.patient_name}</Text>
+                      <Text style={[styles.requestDate, { color: COLORS.info }]}>
+                        Encaminhado para validação médica
+                      </Text>
+                    </View>
+                    <StatusBadge status="in_medical_review" size="sm" />
+                  </View>
+                  <Button
+                    title="Analisar Exame"
+                    onPress={() => handleAcceptRequest(request)}
+                    fullWidth
+                    size="sm"
+                    style={{ marginTop: SIZES.md }}
+                  />
                 </Card>
               </TouchableOpacity>
             ))}

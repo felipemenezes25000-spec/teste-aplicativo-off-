@@ -25,7 +25,7 @@ import { COLORS, SIZES } from '../../src/utils/constants';
 // Required for web auth
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_CLIENT_ID = '864017403483-gvdaea3fm56go70jf0mqtk1ppajjppf1.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '864017403483-gvdaea3fm56go70jf0mqtk1ppajjppf1.apps.googleusercontent.com';
 
 export default function LoginScreen() {
   const router = useRouter();
