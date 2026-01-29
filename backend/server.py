@@ -28,6 +28,19 @@ app = FastAPI(title="RenoveJá+ API", version="2.0.0 - Supabase")
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ============== ROOT ROUTE ==============
+@app.get("/")
+async def root():
+    """Página inicial da API"""
+    return {
+        "app": "🏥 RenoveJá+ API",
+        "version": "2.0.0",
+        "status": "online",
+        "docs": "/docs",
+        "health": "/api/health",
+        "message": "Bem-vindo à API do RenoveJá!"
+    }
+
 # ============== MODELS ==============
 
 class UserCreate(BaseModel):
