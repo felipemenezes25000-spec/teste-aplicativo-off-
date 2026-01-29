@@ -1,3 +1,8 @@
+/**
+ * 👩‍⚕️ Nurse Registration - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -9,14 +14,13 @@ import {
   Platform,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  StatusBar,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Button } from '../../src/components/Button';
-import { Card } from '../../src/components/Card';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
@@ -26,7 +30,6 @@ const STATES = [
 
 export default function RegisterNurseScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { registerNurse } = useAuth();
   
   const [name, setName] = useState('');
@@ -36,316 +39,203 @@ export default function RegisterNurseScreen() {
   const [coren, setCoren] = useState('');
   const [corenState, setCorenState] = useState('SP');
   const [phone, setPhone] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showStateSelector, setShowStateSelector] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleRegister = async () => {
     if (!name || !email || !password || !coren || !corenState) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
       return;
     }
-
     if (password !== confirmPassword) {
       Alert.alert('Erro', 'As senhas não coincidem');
       return;
     }
-
     if (password.length < 6) {
       Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
     try {
-      await registerNurse({
-        name,
-        email,
-        password,
-        phone,
-        coren,
-        coren_state: corenState,
-      });
-      Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
+      await registerNurse({ name, email, password, phone, coren, coren_state: corenState });
+      Alert.alert('Sucesso! 🎉', 'Cadastro realizado com sucesso!', [
         { text: 'OK', onPress: () => router.replace('/nurse') }
       ]);
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Erro ao cadastrar');
+      Alert.alert('Erro', error.message || 'Erro ao cadastrar');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const renderInput = (
+    icon: string,
+    placeholder: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    inputKey: string,
+    options?: { keyboardType?: any; secureTextEntry?: boolean; autoCapitalize?: any }
+  ) => (
+    <View style={[styles.inputContainer, focusedInput === inputKey && styles.inputFocused]}>
+      <Ionicons name={icon as any} size={20} color={focusedInput === inputKey ? '#10B981' : '#9BA7AF'} style={styles.inputIcon} />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#9BA7AF"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={options?.keyboardType || 'default'}
+        secureTextEntry={options?.secureTextEntry}
+        autoCapitalize={options?.autoCapitalize || 'sentences'}
+        onFocus={() => setFocusedInput(inputKey)}
+        onBlur={() => setFocusedInput(null)}
+      />
+    </View>
+  );
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      
+      {/* Header */}
+      <LinearGradient colors={['#059669', '#10B981']} style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="medkit" size={32} color="#FFFFFF" />
+          </View>
           <Text style={styles.headerTitle}>Cadastro de Enfermeiro(a)</Text>
-          <View style={{ width: 40 }} />
+          <Text style={styles.headerSubtitle}>Preencha seus dados para acessar o painel de triagem</Text>
         </View>
+      </LinearGradient>
 
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <Card style={styles.card}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="medkit" size={40} color={COLORS.healthPurple} />
-            </View>
-            <Text style={styles.title}>Dados Profissionais</Text>
-            <Text style={styles.subtitle}>
-              Preencha seus dados para acessar o painel de triagem
-            </Text>
-          </Card>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            {renderInput('person-outline', 'Nome completo *', name, setName, 'name', { autoCapitalize: 'words' })}
+            {renderInput('mail-outline', 'E-mail *', email, setEmail, 'email', { keyboardType: 'email-address', autoCapitalize: 'none' })}
+            {renderInput('call-outline', 'Telefone', phone, setPhone, 'phone', { keyboardType: 'phone-pad' })}
 
-          <Card style={styles.formCard}>
-            <Text style={styles.label}>Nome Completo *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Seu nome completo"
-              autoCapitalize="words"
-            />
-
-            <Text style={styles.label}>E-mail *</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="seu@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <Text style={styles.label}>Telefone</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="(11) 99999-9999"
-              keyboardType="phone-pad"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.corenContainer}>
-                <Text style={styles.label}>COREN *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={coren}
-                  onChangeText={setCoren}
-                  placeholder="000000"
-                  keyboardType="numeric"
-                />
+            {/* COREN Row */}
+            <View style={styles.corenRow}>
+              <View style={styles.corenInputContainer}>
+                <View style={[styles.inputContainer, focusedInput === 'coren' && styles.inputFocused, { flex: 1 }]}>
+                  <Ionicons name="id-card-outline" size={20} color={focusedInput === 'coren' ? '#10B981' : '#9BA7AF'} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="COREN *"
+                    placeholderTextColor="#9BA7AF"
+                    value={coren}
+                    onChangeText={setCoren}
+                    keyboardType="numeric"
+                    onFocus={() => setFocusedInput('coren')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
               </View>
-              <View style={styles.stateContainer}>
-                <Text style={styles.label}>UF *</Text>
-                <TouchableOpacity
-                  style={styles.stateSelector}
-                  onPress={() => setShowStateSelector(!showStateSelector)}
-                >
-                  <Text style={styles.stateSelectorText}>{corenState}</Text>
-                  <Ionicons name="chevron-down" size={20} color={COLORS.textSecondary} />
-                </TouchableOpacity>
-                {showStateSelector && (
-                  <View style={styles.stateDropdown}>
-                    <ScrollView style={{ maxHeight: 200 }}>
-                      {STATES.map((state) => (
-                        <TouchableOpacity
-                          key={state}
-                          style={styles.stateOption}
-                          onPress={() => {
-                            setCorenState(state);
-                            setShowStateSelector(false);
-                          }}
-                        >
-                          <Text style={[
-                            styles.stateOptionText,
-                            state === corenState && styles.stateOptionSelected
-                          ]}>{state}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
+              
+              <TouchableOpacity style={styles.stateSelector} onPress={() => setShowStateSelector(!showStateSelector)}>
+                <Text style={styles.stateSelectorText}>{corenState}</Text>
+                <Ionicons name="chevron-down" size={18} color="#6B7C85" />
+              </TouchableOpacity>
+            </View>
+
+            {/* State Dropdown */}
+            {showStateSelector && (
+              <View style={styles.stateDropdown}>
+                <ScrollView style={{ maxHeight: 200 }} showsVerticalScrollIndicator={false}>
+                  {STATES.map((state) => (
+                    <TouchableOpacity
+                      key={state}
+                      style={styles.stateOption}
+                      onPress={() => { setCorenState(state); setShowStateSelector(false); }}
+                    >
+                      <Text style={[styles.stateOptionText, state === corenState && styles.stateOptionSelected]}>{state}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {renderInput('lock-closed-outline', 'Senha *', password, setPassword, 'password', { secureTextEntry: true })}
+            {renderInput('lock-closed-outline', 'Confirmar senha *', confirmPassword, setConfirmPassword, 'confirmPassword', { secureTextEntry: true })}
+
+            {/* Register Button */}
+            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
+              <LinearGradient
+                colors={loading ? ['#9BA7AF', '#6B7C85'] : ['#059669', '#10B981']}
+                style={styles.registerButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.registerButtonText}>Cadastrar</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  </>
                 )}
-              </View>
-            </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
-            <Text style={styles.label}>Senha *</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Mínimo 6 caracteres"
-              secureTextEntry
-            />
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Já tem conta? </Text>
+            <Link href="/(auth)/login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.loginLink}>Fazer login</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
 
-            <Text style={styles.label}>Confirmar Senha *</Text>
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Repita a senha"
-              secureTextEntry
-            />
-
-            <Button
-              title={isLoading ? 'Cadastrando...' : 'Cadastrar'}
-              onPress={handleRegister}
-              disabled={isLoading}
-              fullWidth
-              style={{ marginTop: SIZES.md }}
-            />
-          </Card>
-
-          <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={styles.loginLink}>
-            <Text style={styles.loginText}>Já tem conta? <Text style={styles.loginTextBold}>Fazer login</Text></Text>
-          </TouchableOpacity>
+          <View style={{ height: 40 }} />
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  backBtn: {
-    padding: SIZES.xs,
-  },
-  headerTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.md,
-  },
-  card: {
-    alignItems: 'center',
-    marginBottom: SIZES.md,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.healthPurple + '15',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SIZES.md,
-  },
-  title: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
-  },
-  subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  formCard: {
-    marginBottom: SIZES.md,
-  },
-  label: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: SIZES.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    fontSize: SIZES.fontMd,
-    marginBottom: SIZES.md,
-    backgroundColor: COLORS.cardBackground,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: SIZES.sm,
-  },
-  corenContainer: {
-    flex: 2,
-  },
-  stateContainer: {
-    flex: 1,
-    position: 'relative',
-    zIndex: 10,
-  },
-  stateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    marginBottom: SIZES.md,
-    backgroundColor: COLORS.cardBackground,
-  },
-  stateSelectorText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
-  stateDropdown: {
-    position: 'absolute',
-    top: 70,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    zIndex: 100,
-    elevation: 5,
-  },
-  stateOption: {
-    padding: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  stateOptionText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
-  stateOptionSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  loginLink: {
-    alignItems: 'center',
-    paddingVertical: SIZES.lg,
-  },
-  loginText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  loginTextBold: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  headerContent: { alignItems: 'center' },
+  iconContainer: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  formCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
+
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFB', borderRadius: 14, borderWidth: 1.5, borderColor: '#E4E9EC', marginBottom: 14, paddingHorizontal: 14, height: 52 },
+  inputFocused: { borderColor: '#10B981', backgroundColor: '#FFFFFF' },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: '#1A3A4A' },
+
+  corenRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  corenInputContainer: { flex: 1 },
+  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB', borderRadius: 14, borderWidth: 1.5, borderColor: '#E4E9EC', paddingHorizontal: 16, height: 52, gap: 6, minWidth: 80 },
+  stateSelectorText: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+
+  stateDropdown: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E4E9EC', marginBottom: 14, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
+  stateOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F7' },
+  stateOptionText: { fontSize: 15, color: '#1A3A4A', textAlign: 'center' },
+  stateOptionSelected: { color: '#10B981', fontWeight: '600' },
+
+  registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8, marginTop: 8 },
+  registerButtonText: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+
+  loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  loginText: { fontSize: 15, color: '#6B7C85' },
+  loginLink: { fontSize: 15, color: '#10B981', fontWeight: '600' },
 });

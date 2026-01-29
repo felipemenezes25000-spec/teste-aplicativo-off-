@@ -1,3 +1,8 @@
+/**
+ * 📄 Prescription View - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,26 +13,22 @@ import {
   Alert,
   ActivityIndicator,
   Share,
-  Platform,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
-import { Card } from '../../../src/components/Card';
-import { Button } from '../../../src/components/Button';
-import { requestsAPI } from '../../../src/services/api';
-import { COLORS, SIZES } from '../../../src/utils/constants';
+import { api } from '@/services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function PrescriptionViewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   
   const [prescription, setPrescription] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,40 +37,36 @@ export default function PrescriptionViewScreen() {
 
   const loadPrescription = async () => {
     try {
-      const data = await requestsAPI.getById(id!);
+      const data = await api.getRequest(id!);
       setPrescription(data);
     } catch (err) {
       setError('Não foi possível carregar a receita');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleCopyCode = async () => {
     if (prescription?.signed_prescription?.qr_code_data) {
       await Clipboard.setStringAsync(prescription.signed_prescription.qr_code_data);
-      Alert.alert('Copiado!', 'Código de verificação copiado para a área de transferência');
+      Alert.alert('Copiado!', 'Código de verificação copiado');
     }
   };
 
   const handleShare = async () => {
     try {
       const verificationUrl = prescription?.signed_prescription?.verification_url || '';
-      const message = `Receita Digital RenoveJá+\n\nPaciente: ${prescription?.patient_name}\nMédico: ${prescription?.doctor_name}\nCRM: ${prescription?.signed_prescription?.signature?.signer_crm}\n\nVerifique a autenticidade em: ${verificationUrl}`;
-      
-      await Share.share({
-        message,
-        title: 'Receita Digital',
-      });
+      const message = `Receita Digital RenoveJá+\n\nPaciente: ${prescription?.patient_name}\nMédico: ${prescription?.doctor_name}\n\nVerifique: ${verificationUrl}`;
+      await Share.share({ message, title: 'Receita Digital' });
     } catch (err) {
       console.error('Error sharing:', err);
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
         <Text style={styles.loadingText}>Carregando receita...</Text>
       </View>
     );
@@ -77,11 +74,12 @@ export default function PrescriptionViewScreen() {
 
   if (error || !prescription) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Ionicons name="document-text-outline" size={64} color={COLORS.error} />
+      <View style={styles.loadingContainer}>
+        <Ionicons name="document-text-outline" size={64} color="#EF4444" />
         <Text style={styles.errorTitle}>Receita não encontrada</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <Button title="Voltar" onPress={() => router.back()} style={{ marginTop: SIZES.lg }} />
+        <TouchableOpacity style={styles.backButtonAlt} onPress={() => router.back()}>
+          <Text style={styles.backButtonAltText}>Voltar</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -91,50 +89,45 @@ export default function PrescriptionViewScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#10B981" />
+      
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SIZES.md }]}>
+      <LinearGradient colors={['#10B981', '#34D399']} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Receita Digital</Text>
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={24} color={COLORS.textWhite} />
+          <Ionicons name="share-outline" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* Status Card */}
-        <Card style={[styles.statusCard, isSigned ? styles.statusCardSigned : styles.statusCardPending]}>
-          <View style={styles.statusRow}>
-            <Ionicons 
-              name={isSigned ? "shield-checkmark" : "time"} 
-              size={28} 
-              color={isSigned ? COLORS.healthGreen : COLORS.warning} 
-            />
-            <View style={styles.statusInfo}>
-              <Text style={styles.statusTitle}>
-                {isSigned ? 'Receita Assinada Digitalmente' : 'Aguardando Assinatura'}
-              </Text>
-              <Text style={styles.statusSubtitle}>
-                {isSigned ? 'Documento válido e verificável' : 'Pendente aprovação médica'}
-              </Text>
-            </View>
+        <View style={[styles.statusCard, isSigned ? styles.statusCardSigned : styles.statusCardPending]}>
+          <Ionicons name={isSigned ? 'shield-checkmark' : 'time'} size={28} color={isSigned ? '#10B981' : '#F59E0B'} />
+          <View style={styles.statusInfo}>
+            <Text style={styles.statusTitle}>{isSigned ? 'Receita Assinada Digitalmente' : 'Aguardando Assinatura'}</Text>
+            <Text style={styles.statusSubtitle}>{isSigned ? 'Documento válido e verificável' : 'Pendente aprovação médica'}</Text>
           </View>
-        </Card>
+        </View>
 
-        {/* Prescription Info */}
-        <Card style={styles.prescriptionCard}>
-          <View style={styles.logoSection}>
-            <View style={styles.logoPlaceholder}>
-              <Ionicons name="medical" size={32} color={COLORS.primary} />
+        {/* Prescription Card */}
+        <View style={styles.prescriptionCard}>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.logoIcon}>
+              <Ionicons name="medical" size={24} color="#FFFFFF" />
+            </LinearGradient>
+            <View>
+              <Text style={styles.brandName}>RenoveJá+</Text>
+              <Text style={styles.brandSubtitle}>Receita Médica Digital</Text>
             </View>
-            <Text style={styles.brandName}>RenoveJá+</Text>
-            <Text style={styles.brandSubtitle}>Receita Médica Digital</Text>
           </View>
 
           <View style={styles.divider} />
 
-          {/* Patient Info */}
+          {/* Patient */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>PACIENTE</Text>
             <Text style={styles.patientName}>{prescription.patient_name}</Text>
@@ -151,11 +144,13 @@ export default function PrescriptionViewScreen() {
             {prescription.medications?.map((med: any, index: number) => (
               <View key={index} style={styles.medicationItem}>
                 <View style={styles.medicationHeader}>
-                  <Text style={styles.medicationNumber}>{index + 1}.</Text>
+                  <View style={styles.medicationNumber}>
+                    <Text style={styles.medicationNumberText}>{index + 1}</Text>
+                  </View>
                   <Text style={styles.medicationName}>{med.name}</Text>
                 </View>
                 <Text style={styles.medicationDosage}>{med.dosage} - {med.quantity}</Text>
-                <Text style={styles.medicationInstructions}>{med.instructions}</Text>
+                {med.instructions && <Text style={styles.medicationInstructions}>{med.instructions}</Text>}
               </View>
             ))}
           </View>
@@ -172,13 +167,11 @@ export default function PrescriptionViewScreen() {
 
           <View style={styles.divider} />
 
-          {/* Doctor Info */}
+          {/* Doctor */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>MÉDICO RESPONSÁVEL</Text>
             <Text style={styles.doctorName}>{prescription.doctor_name || 'Aguardando atribuição'}</Text>
-            {signature?.signer_crm && (
-              <Text style={styles.crmText}>CRM: {signature.signer_crm}</Text>
-            )}
+            {signature?.signer_crm && <Text style={styles.crmText}>CRM: {signature.signer_crm}</Text>}
           </View>
 
           {/* Signature Section */}
@@ -187,7 +180,7 @@ export default function PrescriptionViewScreen() {
               <View style={styles.divider} />
               <View style={styles.signatureSection}>
                 <View style={styles.signatureHeader}>
-                  <Ionicons name="finger-print" size={24} color={COLORS.healthGreen} />
+                  <Ionicons name="finger-print" size={22} color="#10B981" />
                   <Text style={styles.signatureTitle}>Assinatura Digital</Text>
                 </View>
                 
@@ -202,22 +195,14 @@ export default function PrescriptionViewScreen() {
                       {signature?.timestamp ? format(new Date(signature.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}
                     </Text>
                   </View>
-                  <View style={styles.signatureRow}>
-                    <Text style={styles.signatureLabel}>ID:</Text>
-                    <Text style={styles.signatureValue} numberOfLines={1}>
-                      {signature?.signature_id?.slice(0, 16)}...
-                    </Text>
-                  </View>
                 </View>
 
-                {/* QR Code placeholder */}
+                {/* QR Code */}
                 <View style={styles.qrCodeSection}>
                   <View style={styles.qrCodePlaceholder}>
-                    <Ionicons name="qr-code" size={80} color={COLORS.textMuted} />
+                    <Ionicons name="qr-code" size={60} color="#9BA7AF" />
                   </View>
-                  <Text style={styles.qrCodeText}>
-                    Escaneie para verificar autenticidade
-                  </Text>
+                  <Text style={styles.qrCodeText}>Escaneie para verificar</Text>
                 </View>
 
                 {/* Verification Code */}
@@ -227,20 +212,20 @@ export default function PrescriptionViewScreen() {
                     <Text style={styles.verificationValue} numberOfLines={1}>
                       {prescription.signed_prescription?.qr_code_data || 'N/A'}
                     </Text>
-                    <Ionicons name="copy-outline" size={20} color={COLORS.primary} />
+                    <Ionicons name="copy-outline" size={18} color="#00B4CD" />
                   </View>
                 </TouchableOpacity>
               </View>
             </>
           )}
-        </Card>
+        </View>
 
-        {/* Validity Notice */}
-        <Card style={styles.noticeCard}>
-          <Ionicons name="information-circle" size={24} color={COLORS.primary} />
-          <View style={styles.noticeContent}>
-            <Text style={styles.noticeTitle}>Validade da Receita</Text>
-            <Text style={styles.noticeText}>
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={22} color="#00B4CD" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Validade da Receita</Text>
+            <Text style={styles.infoText}>
               {prescription.prescription_type === 'controlled' 
                 ? 'Receita controlada válida por 30 dias.'
                 : prescription.prescription_type === 'blue'
@@ -248,312 +233,90 @@ export default function PrescriptionViewScreen() {
                 : 'Receita simples válida por 30 dias.'}
             </Text>
           </View>
-        </Card>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button
-            title="Compartilhar Receita"
-            onPress={handleShare}
-            fullWidth
-            icon={<Ionicons name="share-social" size={20} color={COLORS.textWhite} />}
-          />
         </View>
+
+        {/* Share Button */}
+        <TouchableOpacity onPress={handleShare} activeOpacity={0.8} style={{ marginBottom: 40 }}>
+          <LinearGradient colors={['#10B981', '#34D399']} style={styles.shareFullButton}>
+            <Ionicons name="share-social" size={20} color="#FFFFFF" />
+            <Text style={styles.shareFullButtonText}>Compartilhar Receita</Text>
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: SIZES.md,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  errorTitle: {
-    marginTop: SIZES.lg,
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  errorText: {
-    marginTop: SIZES.sm,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.md,
-    backgroundColor: COLORS.healthGreen,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  shareButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-    paddingBottom: SIZES.xxl,
-  },
-  statusCard: {
-    marginBottom: SIZES.md,
-  },
-  statusCardSigned: {
-    backgroundColor: COLORS.healthGreen + '15',
-    borderWidth: 1,
-    borderColor: COLORS.healthGreen + '30',
-  },
-  statusCardPending: {
-    backgroundColor: COLORS.warning + '15',
-    borderWidth: 1,
-    borderColor: COLORS.warning + '30',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.md,
-  },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  statusSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  prescriptionCard: {
-    marginBottom: SIZES.md,
-  },
-  logoSection: {
-    alignItems: 'center',
-    paddingVertical: SIZES.md,
-  },
-  logoPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandName: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.primary,
-    marginTop: SIZES.sm,
-  },
-  brandSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.borderLight,
-    marginVertical: SIZES.md,
-  },
-  section: {
-    paddingVertical: SIZES.xs,
-  },
-  sectionLabel: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    letterSpacing: 1,
-    marginBottom: SIZES.sm,
-  },
-  patientName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  dateText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  medicationItem: {
-    backgroundColor: COLORS.backgroundDark,
-    padding: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    marginBottom: SIZES.sm,
-  },
-  medicationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.xs,
-  },
-  medicationNumber: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  medicationName: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  medicationDosage: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-    marginLeft: SIZES.lg,
-  },
-  medicationInstructions: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 4,
-    marginLeft: SIZES.lg,
-    fontStyle: 'italic',
-  },
-  notesText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  doctorName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  crmText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  signatureSection: {
-    backgroundColor: COLORS.healthGreen + '08',
-    padding: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    marginTop: SIZES.sm,
-  },
-  signatureHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.sm,
-    marginBottom: SIZES.md,
-  },
-  signatureTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.healthGreen,
-  },
-  signatureDetails: {
-    marginBottom: SIZES.md,
-  },
-  signatureRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  signatureLabel: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  signatureValue: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textPrimary,
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
-  },
-  qrCodeSection: {
-    alignItems: 'center',
-    paddingVertical: SIZES.md,
-  },
-  qrCodePlaceholder: {
-    width: 120,
-    height: 120,
-    backgroundColor: COLORS.textWhite,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-  },
-  qrCodeText: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: SIZES.sm,
-  },
-  verificationCode: {
-    backgroundColor: COLORS.textWhite,
-    padding: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-  },
-  verificationLabel: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginBottom: 4,
-  },
-  verificationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  verificationValue: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textPrimary,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    flex: 1,
-  },
-  noticeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SIZES.md,
-    backgroundColor: COLORS.primary + '08',
-    marginBottom: SIZES.lg,
-  },
-  noticeContent: {
-    flex: 1,
-  },
-  noticeTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  noticeText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  actions: {
-    marginBottom: SIZES.xl,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+  errorTitle: { marginTop: 16, fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
+  backButtonAlt: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#10B981', borderRadius: 12 },
+  backButtonAltText: { fontSize: 16, color: '#FFFFFF', fontWeight: '600' },
+
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  shareButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  statusCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, marginBottom: 16, gap: 14 },
+  statusCardSigned: { backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#A7F3D0' },
+  statusCardPending: { backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' },
+  statusInfo: { flex: 1 },
+  statusTitle: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  statusSubtitle: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+
+  prescriptionCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  logoIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  brandName: { fontSize: 18, fontWeight: '700', color: '#00B4CD' },
+  brandSubtitle: { fontSize: 12, color: '#9BA7AF' },
+
+  divider: { height: 1, backgroundColor: '#F1F5F7', marginVertical: 16 },
+
+  section: {},
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#9BA7AF', letterSpacing: 1, marginBottom: 10 },
+  patientName: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
+  dateText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+
+  medicationItem: { backgroundColor: '#F8FAFB', padding: 14, borderRadius: 12, marginBottom: 10 },
+  medicationHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  medicationNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#00B4CD', alignItems: 'center', justifyContent: 'center' },
+  medicationNumberText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  medicationName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  medicationDosage: { fontSize: 13, color: '#6B7C85', marginTop: 6, marginLeft: 34 },
+  medicationInstructions: { fontSize: 13, color: '#9BA7AF', marginTop: 4, marginLeft: 34, fontStyle: 'italic' },
+
+  notesText: { fontSize: 14, color: '#6B7C85', lineHeight: 20 },
+  doctorName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
+  crmText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+
+  signatureSection: { backgroundColor: '#D1FAE510', padding: 16, borderRadius: 14 },
+  signatureHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  signatureTitle: { fontSize: 15, fontWeight: '600', color: '#10B981' },
+  signatureDetails: { marginBottom: 16 },
+  signatureRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  signatureLabel: { fontSize: 13, color: '#9BA7AF' },
+  signatureValue: { fontSize: 13, color: '#1A3A4A', fontWeight: '500' },
+
+  qrCodeSection: { alignItems: 'center', paddingVertical: 16 },
+  qrCodePlaceholder: { width: 100, height: 100, backgroundColor: '#FFFFFF', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E4E9EC' },
+  qrCodeText: { fontSize: 12, color: '#9BA7AF', marginTop: 10 },
+
+  verificationCode: { backgroundColor: '#FFFFFF', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E4E9EC' },
+  verificationLabel: { fontSize: 11, color: '#9BA7AF', marginBottom: 4 },
+  verificationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  verificationValue: { fontSize: 12, color: '#1A3A4A', fontFamily: 'monospace', flex: 1 },
+
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#E6F7FA', borderRadius: 14, padding: 16, marginBottom: 20, gap: 12, borderWidth: 1, borderColor: '#B8E9F2' },
+  infoContent: { flex: 1 },
+  infoTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A' },
+  infoText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+
+  shareFullButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
+  shareFullButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 });

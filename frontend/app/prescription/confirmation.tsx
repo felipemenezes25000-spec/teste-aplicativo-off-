@@ -1,110 +1,80 @@
+/**
+ * ✅ Prescription Confirmation - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { COLORS, SIZES } from '../../src/utils/constants';
 
 export default function PrescriptionConfirmationScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
 
-  const handleGoHome = () => {
-    router.replace('/(tabs)');
-  };
-
-  const handleViewHistory = () => {
-    router.replace('/(tabs)/history');
-  };
+  const steps = [
+    { number: 1, title: 'Análise médica', description: 'Sua receita será avaliada por um médico especialista', icon: 'eye' },
+    { number: 2, title: 'Aprovação', description: 'Você receberá uma notificação quando for aprovada', icon: 'checkmark-circle' },
+    { number: 3, title: 'Receita digital', description: 'A receita estará disponível no seu histórico', icon: 'document-text' },
+  ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Success icon */}
-        <View style={styles.successIcon}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFB" />
+      
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Success Icon */}
+        <View style={styles.successSection}>
           <View style={styles.successIconOuter}>
-            <View style={styles.successIconInner}>
-              <Ionicons name="checkmark" size={48} color={COLORS.textWhite} />
-            </View>
+            <LinearGradient colors={['#10B981', '#34D399']} style={styles.successIconInner}>
+              <Ionicons name="checkmark" size={48} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+          <Text style={styles.title}>Solicitação enviada!</Text>
+          <Text style={styles.subtitle}>Sua solicitação de renovação de receita foi recebida com sucesso.</Text>
+        </View>
+
+        {/* Status Card */}
+        <View style={styles.statusCard}>
+          <View style={styles.statusIcon}>
+            <Ionicons name="time" size={24} color="#F59E0B" />
+          </View>
+          <View style={styles.statusInfo}>
+            <Text style={styles.statusTitle}>Em análise</Text>
+            <Text style={styles.statusDescription}>Um médico irá avaliar sua solicitação em breve</Text>
           </View>
         </View>
 
-        {/* Success message */}
-        <Text style={styles.title}>Solicitação enviada!</Text>
-        <Text style={styles.subtitle}>
-          Sua solicitação de renovação de receita foi recebida com sucesso.
-        </Text>
-
-        {/* Status card */}
-        <Card style={styles.statusCard}>
-          <View style={styles.statusRow}>
-            <View style={styles.statusIcon}>
-              <Ionicons name="time" size={20} color={COLORS.warning} />
-            </View>
-            <View style={styles.statusInfo}>
-              <Text style={styles.statusTitle}>Em análise</Text>
-              <Text style={styles.statusDescription}>
-                Um médico irá avaliar sua solicitação em breve
-              </Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Next steps */}
+        {/* Steps */}
         <Text style={styles.stepsTitle}>Próximos passos</Text>
-        <View style={styles.steps}>
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
+        <View style={styles.stepsContainer}>
+          {steps.map((step, index) => (
+            <View key={step.number}>
+              <View style={styles.step}>
+                <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{step.number}</Text>
+                </LinearGradient>
+                <View style={styles.stepContent}>
+                  <Text style={styles.stepTitle}>{step.title}</Text>
+                  <Text style={styles.stepDescription}>{step.description}</Text>
+                </View>
+              </View>
+              {index < steps.length - 1 && <View style={styles.stepLine} />}
             </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Análise médica</Text>
-              <Text style={styles.stepDescription}>
-                Sua receita será avaliada por um médico especialista
-              </Text>
-            </View>
-          </View>
-          <View style={styles.stepLine} />
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
-            </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Aprovação</Text>
-              <Text style={styles.stepDescription}>
-                Você receberá uma notificação quando for aprovada
-              </Text>
-            </View>
-          </View>
-          <View style={styles.stepLine} />
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
-            </View>
-            <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Receita digital</Text>
-              <Text style={styles.stepDescription}>
-                A receita estará disponível no seu histórico
-              </Text>
-            </View>
-          </View>
+          ))}
         </View>
 
-        {/* Info box */}
+        {/* Info Box */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color={COLORS.info} />
+          <Ionicons name="information-circle" size={22} color="#3B82F6" />
           <Text style={styles.infoText}>
             O prazo médio de análise é de até 24 horas. Você será notificado sobre qualquer atualização.
           </Text>
@@ -112,170 +82,56 @@ export default function PrescriptionConfirmationScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
-        <Button
-          title="Ver minhas solicitações"
-          onPress={handleViewHistory}
-          fullWidth
-          style={styles.primaryButton}
-        />
-        <Button
-          title="Voltar ao início"
-          onPress={handleGoHome}
-          variant="outline"
-          fullWidth
-        />
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/history')} activeOpacity={0.8}>
+          <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.primaryButton}>
+            <Ionicons name="list" size={20} color="#FFFFFF" />
+            <Text style={styles.primaryButtonText}>Ver minhas solicitações</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => router.replace('/(tabs)')}>
+          <Text style={styles.secondaryButtonText}>Voltar ao início</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-    alignItems: 'center',
-  },
-  successIcon: {
-    marginVertical: SIZES.xl,
-  },
-  successIconOuter: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.healthGreen + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successIconInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.healthGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: SIZES.font3xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-    marginBottom: SIZES.sm,
-  },
-  subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: SIZES.xl,
-  },
-  statusCard: {
-    width: '100%',
-    marginBottom: SIZES.xl,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.warning + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  statusTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.warning,
-  },
-  statusDescription: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  stepsTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    alignSelf: 'flex-start',
-    marginBottom: SIZES.md,
-  },
-  steps: {
-    width: '100%',
-    marginBottom: SIZES.lg,
-  },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNumberText: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  stepContent: {
-    flex: 1,
-    marginLeft: SIZES.md,
-    paddingBottom: SIZES.md,
-  },
-  stepTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  stepDescription: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  stepLine: {
-    width: 2,
-    height: 20,
-    backgroundColor: COLORS.border,
-    marginLeft: 13,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    width: '100%',
-    backgroundColor: COLORS.info + '10',
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    gap: SIZES.sm,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: SIZES.fontSm,
-    color: COLORS.info,
-    lineHeight: 20,
-  },
-  footer: {
-    padding: SIZES.lg,
-    backgroundColor: COLORS.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-    gap: SIZES.md,
-  },
-  primaryButton: {
-    marginBottom: 0,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24, alignItems: 'center' },
+
+  successSection: { alignItems: 'center', marginVertical: 32 },
+  successIconOuter: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#D1FAE520', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  successIconInner: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 28, fontWeight: '700', color: '#1A3A4A', marginBottom: 8 },
+  subtitle: { fontSize: 15, color: '#6B7C85', textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
+
+  statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, width: '100%', marginBottom: 32, borderWidth: 1, borderColor: '#FDE68A' },
+  statusIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  statusInfo: { flex: 1, marginLeft: 14 },
+  statusTitle: { fontSize: 17, fontWeight: '700', color: '#92400E' },
+  statusDescription: { fontSize: 13, color: '#B45309', marginTop: 2 },
+
+  stepsTitle: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', alignSelf: 'flex-start', marginBottom: 16 },
+  stepsContainer: { width: '100%', marginBottom: 24 },
+  step: { flexDirection: 'row', alignItems: 'flex-start' },
+  stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  stepNumberText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  stepContent: { flex: 1, marginLeft: 14, paddingBottom: 16 },
+  stepTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  stepDescription: { fontSize: 14, color: '#6B7C85', marginTop: 2, lineHeight: 20 },
+  stepLine: { width: 2, height: 20, backgroundColor: '#E4E9EC', marginLeft: 15 },
+
+  infoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, width: '100%', gap: 12, borderWidth: 1, borderColor: '#BFDBFE' },
+  infoText: { flex: 1, fontSize: 14, color: '#1E40AF', lineHeight: 20 },
+
+  footer: { padding: 24, paddingBottom: 40, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
+  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  secondaryButton: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: '#E4E9EC' },
+  secondaryButtonText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
 });

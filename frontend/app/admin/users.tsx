@@ -1,3 +1,8 @@
+/**
+ * 👥 Admin Users - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,21 +13,18 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { COLORS, SIZES } from '../../src/utils/constants';
-import api from '../../src/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/services/api';
 
-export default function AdminUsers() {
+export default function AdminUsersScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -44,105 +46,110 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await api.get('/admin/users', { params: { token } });
-      setUsers(response.data);
-      setFilteredUsers(response.data);
+      const data = await api.getAdminUsers();
+      setUsers(data);
+      setFilteredUsers(data);
     } catch (error) {
-      console.error('Error loading users:', error);
       Alert.alert('Erro', 'Não foi possível carregar os usuários');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      await api.put(`/admin/users/${userId}/status`, 
-        { active: !currentStatus }, 
-        { params: { token } }
-      );
+      await api.updateUserStatus(userId, !currentStatus);
       loadUsers();
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível atualizar o status');
     }
   };
 
-  const renderUser = ({ item }: { item: any }) => (
-    <Card style={styles.userCard}>
-      <View style={styles.userAvatar}>
-        <Text style={styles.avatarText}>
-          {item.name?.charAt(0)?.toUpperCase() || '?'}
-        </Text>
-      </View>
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.name}</Text>
-        <Text style={styles.userEmail}>{item.email}</Text>
-        <View style={styles.userMeta}>
-          <View style={[
-            styles.roleBadge,
-            item.role === 'doctor' && styles.roleBadgeDoctor,
-            item.role === 'admin' && styles.roleBadgeAdmin,
-          ]}>
-            <Text style={styles.roleText}>
-              {item.role === 'patient' ? 'Paciente' : item.role === 'doctor' ? 'Médico' : 'Admin'}
-            </Text>
+  const getRoleBadge = (role: string) => {
+    const config: Record<string, { label: string; color: string; bg: string }> = {
+      patient: { label: 'Paciente', color: '#00B4CD', bg: '#E6F7FA' },
+      doctor: { label: 'Médico', color: '#10B981', bg: '#D1FAE5' },
+      nurse: { label: 'Enfermeiro', color: '#8B5CF6', bg: '#EDE9FE' },
+      admin: { label: 'Admin', color: '#F59E0B', bg: '#FEF3C7' },
+    };
+    return config[role] || config.patient;
+  };
+
+  const renderUser = ({ item }: { item: any }) => {
+    const roleBadge = getRoleBadge(item.role);
+    
+    return (
+      <View style={styles.userCard}>
+        <LinearGradient
+          colors={[roleBadge.color, roleBadge.color + 'CC']}
+          style={styles.userAvatar}
+        >
+          <Text style={styles.avatarText}>
+            {item.name?.charAt(0)?.toUpperCase() || '?'}
+          </Text>
+        </LinearGradient>
+        
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{item.name}</Text>
+          <Text style={styles.userEmail}>{item.email}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: roleBadge.bg }]}>
+            <Text style={[styles.roleText, { color: roleBadge.color }]}>{roleBadge.label}</Text>
           </View>
         </View>
+        
+        <TouchableOpacity
+          style={styles.statusButton}
+          onPress={() => handleToggleStatus(item.id, item.active !== false)}
+        >
+          <Ionicons
+            name={item.active !== false ? 'checkmark-circle' : 'close-circle'}
+            size={28}
+            color={item.active !== false ? '#10B981' : '#EF4444'}
+          />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[styles.statusButton, item.active === false && styles.statusButtonInactive]}
-        onPress={() => handleToggleStatus(item.id, item.active !== false)}
-      >
-        <Ionicons
-          name={item.active !== false ? 'checkmark-circle' : 'close-circle'}
-          size={24}
-          color={item.active !== false ? COLORS.healthGreen : COLORS.error}
-        />
-      </TouchableOpacity>
-    </Card>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SIZES.md }]}>
+      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Usuários</Text>
-        <View style={{ width: 44 }} />
-      </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={COLORS.textMuted} />
+        <Ionicons name="search" size={20} color="#9BA7AF" />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nome ou email..."
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor="#9BA7AF"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery ? (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+            <Ionicons name="close-circle" size={20} color="#9BA7AF" />
           </TouchableOpacity>
         ) : null}
       </View>
 
       {/* Stats */}
       <View style={styles.statsBar}>
-        <Text style={styles.statsText}>
-          {filteredUsers.length} usuários encontrados
-        </Text>
+        <Text style={styles.statsText}>{filteredUsers.length} usuários encontrados</Text>
       </View>
 
       {/* List */}
-      {isLoading ? (
+      {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color="#00B4CD" />
         </View>
       ) : (
         <FlatList
@@ -150,9 +157,12 @@ export default function AdminUsers() {
           keyExtractor={(item) => item.id}
           renderItem={renderUser}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color={COLORS.textMuted} />
+              <View style={styles.emptyIcon}>
+                <Ionicons name="people-outline" size={40} color="#9BA7AF" />
+              </View>
               <Text style={styles.emptyText}>Nenhum usuário encontrado</Text>
             </View>
           }
@@ -163,131 +173,33 @@ export default function AdminUsers() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.md,
-    backgroundColor: COLORS.textPrimary,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.cardBackground,
-    marginHorizontal: SIZES.lg,
-    marginTop: SIZES.md,
-    paddingHorizontal: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: SIZES.md,
-    paddingHorizontal: SIZES.sm,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
-  statsBar: {
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.sm,
-  },
-  statsText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.xxl,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SIZES.sm,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  userName: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  userEmail: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  userMeta: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  roleBadge: {
-    backgroundColor: COLORS.primary + '20',
-    paddingHorizontal: SIZES.sm,
-    paddingVertical: 2,
-    borderRadius: SIZES.radiusSm,
-  },
-  roleBadgeDoctor: {
-    backgroundColor: COLORS.healthGreen + '20',
-  },
-  roleBadgeAdmin: {
-    backgroundColor: COLORS.healthPurple + '20',
-  },
-  roleText: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  statusButton: {
-    padding: SIZES.sm,
-  },
-  statusButtonInactive: {
-    opacity: 0.5,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: SIZES.xxl,
-  },
-  emptyText: {
-    marginTop: SIZES.md,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textMuted,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', marginHorizontal: 24, marginTop: 16, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1, borderColor: '#E4E9EC', height: 48 },
+  searchInput: { flex: 1, fontSize: 15, color: '#1A3A4A', marginHorizontal: 10 },
+
+  statsBar: { paddingHorizontal: 24, paddingVertical: 12 },
+  statsText: { fontSize: 13, color: '#9BA7AF' },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  listContent: { paddingHorizontal: 24, paddingBottom: 40 },
+
+  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  userAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  userInfo: { flex: 1, marginLeft: 14 },
+  userName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  userEmail: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, marginTop: 6 },
+  roleText: { fontSize: 11, fontWeight: '600' },
+  statusButton: { padding: 8 },
+
+  emptyState: { alignItems: 'center', paddingTop: 60 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#F1F5F7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyText: { fontSize: 16, color: '#6B7C85' },
 });
