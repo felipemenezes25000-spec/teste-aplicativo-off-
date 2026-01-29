@@ -13,4 +13,5 @@ COPY . .
 EXPOSE 8001
 
 # Run server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+# Production: no --reload
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001"]
