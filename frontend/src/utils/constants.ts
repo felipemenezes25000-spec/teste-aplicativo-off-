@@ -1,40 +1,41 @@
 export const COLORS = {
-  // Primary colors
-  primary: '#0EA5E9',
-  primaryDark: '#0284C7',
-  primaryLight: '#38BDF8',
+  // Primary colors - RenoveJá+ Cyan
+  primary: '#00B4CD',
+  primaryDark: '#0A9BB0',
+  primaryLight: '#4AC5E0',
   
   // Health theme colors
-  healthGreen: '#22C55E',
-  healthGreenLight: '#4ADE80',
+  healthGreen: '#10B981',
+  healthGreenLight: '#34D399',
   healthTeal: '#14B8A6',
   healthBlue: '#3B82F6',
   healthPurple: '#8B5CF6',
-  healthOrange: '#F97316',
+  healthOrange: '#F59E0B',
+  healthPink: '#EC4899',
   
   // Background colors
-  background: '#F8FAFC',
+  background: '#F8FAFB',
   backgroundDark: '#F1F5F9',
   cardBackground: '#FFFFFF',
   
   // Text colors
-  textPrimary: '#0F172A',
-  textSecondary: '#64748B',
-  textMuted: '#94A3B8',
+  textPrimary: '#1A3A4A',
+  textSecondary: '#6B7C85',
+  textMuted: '#9BA7AF',
   textWhite: '#FFFFFF',
   
   // Status colors
-  success: '#22C55E',
+  success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
   
   // Border colors
-  border: '#E2E8F0',
+  border: '#E4E9EC',
   borderLight: '#F1F5F9',
   
   // Shadow
-  shadow: 'rgba(0, 0, 0, 0.1)',
+  shadow: 'rgba(26, 58, 74, 0.1)',
 };
 
 export const FONTS = {
