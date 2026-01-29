@@ -111,15 +111,17 @@ class ConsultationRequestCreate(BaseModel):
     notes: Optional[str] = None
 
 # Preços base por especialidade (para teleconsultas)
+# Por enquanto apenas Clínico Geral ativo - estrutura pronta para futuras especialidades
 SPECIALTY_PRICES = {
-    "general": 59.90,
-    "cardiology": 99.90,
-    "dermatology": 89.90,
-    "gynecology": 89.90,
-    "orthopedics": 89.90,
-    "psychiatry": 119.90,
-    "nutrition": 69.90,
-    "endocrinology": 99.90
+    "general": 59.90,  # Única especialidade ativa por enquanto
+    # Futuras especialidades (comentadas):
+    # "cardiology": 99.90,
+    # "dermatology": 89.90,
+    # "gynecology": 89.90,
+    # "orthopedics": 89.90,
+    # "psychiatry": 119.90,
+    # "nutrition": 69.90,
+    # "endocrinology": 99.90
 }
 
 # Multiplicadores por duração

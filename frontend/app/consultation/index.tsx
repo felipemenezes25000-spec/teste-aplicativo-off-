@@ -21,15 +21,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
 
 // Especialidades médicas com preços base
+// Por enquanto apenas Clínico Geral - outras serão adicionadas futuramente
 const specialties = [
-  { id: 'general', title: 'Clínico Geral', icon: 'person', basePrice: 59.90, description: 'Atendimento geral' },
-  { id: 'cardiology', title: 'Cardiologia', icon: 'heart', basePrice: 99.90, description: 'Coração e circulação' },
-  { id: 'dermatology', title: 'Dermatologia', icon: 'body', basePrice: 89.90, description: 'Pele e cabelo' },
-  { id: 'gynecology', title: 'Ginecologia', icon: 'woman', basePrice: 89.90, description: 'Saúde da mulher' },
-  { id: 'orthopedics', title: 'Ortopedia', icon: 'fitness', basePrice: 89.90, description: 'Ossos e articulações' },
-  { id: 'psychiatry', title: 'Psiquiatria', icon: 'happy', basePrice: 119.90, description: 'Saúde mental' },
-  { id: 'nutrition', title: 'Nutrição', icon: 'nutrition', basePrice: 69.90, description: 'Alimentação saudável' },
-  { id: 'endocrinology', title: 'Endocrinologia', icon: 'pulse', basePrice: 99.90, description: 'Hormônios e metabolismo' },
+  { id: 'general', title: 'Clínico Geral', icon: 'medkit', basePrice: 59.90, description: 'Atendimento médico geral' },
 ];
 
 // Durações disponíveis com multiplicadores de preço
@@ -55,8 +49,8 @@ const timeSlots = [
 
 export default function ConsultationScreen() {
   const router = useRouter();
-  const [step, setStep] = useState(1); // 1: Especialidade, 2: Duração, 3: Agendamento, 4: Resumo
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [step, setStep] = useState(1); // 1: Duração, 2: Agendamento, 3: Resumo (especialidade já é Clínico Geral)
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('general'); // Sempre Clínico Geral por enquanto
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
   const [scheduleType, setScheduleType] = useState<'immediate' | 'scheduled'>('immediate');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -101,15 +95,11 @@ export default function ConsultationScreen() {
   };
 
   const handleNext = () => {
-    if (step === 1 && !selectedSpecialty) {
-      Alert.alert('Atenção', 'Selecione uma especialidade');
-      return;
-    }
-    if (step === 3 && scheduleType === 'scheduled' && (!selectedDate || !selectedTime)) {
+    if (step === 2 && scheduleType === 'scheduled' && (!selectedDate || !selectedTime)) {
       Alert.alert('Atenção', 'Selecione data e horário');
       return;
     }
-    if (step < 4) setStep(step + 1);
+    if (step < 3) setStep(step + 1);
   };
 
   const handleBack = () => {
@@ -162,16 +152,14 @@ export default function ConsultationScreen() {
     }
   };
 
-  // Renderizar etapa atual
+  // Renderizar etapa atual (3 etapas: Duração → Agendamento → Resumo)
   const renderStep = () => {
     switch (step) {
       case 1:
-        return renderSpecialtyStep();
-      case 2:
         return renderDurationStep();
-      case 3:
+      case 2:
         return renderScheduleStep();
-      case 4:
+      case 3:
         return renderSummaryStep();
       default:
         return null;
@@ -482,13 +470,13 @@ export default function ConsultationScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Teleconsulta</Text>
           <Text style={styles.headerSubtitle}>
-            Passo {step} de 4
+            Clínico Geral • Passo {step} de 3
           </Text>
         </View>
 
         {/* Progress bar */}
         <View style={styles.progressBar}>
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <View 
               key={s} 
               style={[styles.progressDot, s <= step && styles.progressDotActive, s === step && styles.progressDotCurrent]} 
@@ -508,7 +496,7 @@ export default function ConsultationScreen() {
 
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
-        {step < 4 ? (
+        {step < 3 ? (
           <TouchableOpacity onPress={handleNext} activeOpacity={0.8} style={{ flex: 1 }}>
             <LinearGradient
               colors={['#EC4899', '#F472B6']}
