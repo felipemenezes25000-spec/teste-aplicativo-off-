@@ -1,141 +1,146 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/**
+ * 🌙 Dark Mode Context
+ * Gerencia tema claro/escuro do app
+ */
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type ThemeMode = 'light' | 'dark' | 'system';
-
-interface ThemeColors {
-  // Primary
-  primary: string;
-  primaryDark: string;
-  primaryLight: string;
-  
-  // Background
-  background: string;
-  backgroundDark: string;
-  cardBackground: string;
-  
-  // Text
-  textPrimary: string;
-  textSecondary: string;
-  textMuted: string;
-  textWhite: string;
-  
-  // Status
-  success: string;
-  error: string;
-  warning: string;
-  info: string;
-  
-  // Health colors
-  healthGreen: string;
-  healthOrange: string;
-  healthPurple: string;
-  healthRed: string;
-  
-  // Border
-  border: string;
-  borderLight: string;
-  
-  // Shadow
-  shadow: string;
-}
-
-const lightColors: ThemeColors = {
-  primary: '#2563EB',
-  primaryDark: '#1E40AF',
-  primaryLight: '#3B82F6',
-  background: '#F8FAFC',
-  backgroundDark: '#F1F5F9',
-  cardBackground: '#FFFFFF',
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  textWhite: '#FFFFFF',
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-  info: '#3B82F6',
-  healthGreen: '#059669',
-  healthOrange: '#EA580C',
-  healthPurple: '#7C3AED',
-  healthRed: '#DC2626',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  shadow: '#000000',
+// Cores do tema
+export const lightTheme = {
+  mode: 'light' as const,
+  colors: {
+    // Backgrounds
+    background: '#F5F5F5',
+    surface: '#FFFFFF',
+    card: '#FFFFFF',
+    
+    // Primary (verde saúde)
+    primary: '#10B981',
+    primaryLight: '#D1FAE5',
+    primaryDark: '#059669',
+    
+    // Text
+    text: '#1F2937',
+    textSecondary: '#6B7280',
+    textMuted: '#9CA3AF',
+    
+    // Status
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
+    
+    // Borders
+    border: '#E5E7EB',
+    borderLight: '#F3F4F6',
+    
+    // Input
+    inputBackground: '#F9FAFB',
+    inputBorder: '#D1D5DB',
+    
+    // Special
+    overlay: 'rgba(0,0,0,0.5)',
+    skeleton: '#E5E7EB',
+    skeletonHighlight: '#F3F4F6',
+  }
 };
 
-const darkColors: ThemeColors = {
-  primary: '#3B82F6',
-  primaryDark: '#2563EB',
-  primaryLight: '#60A5FA',
-  background: '#0F172A',
-  backgroundDark: '#1E293B',
-  cardBackground: '#1E293B',
-  textPrimary: '#F8FAFC',
-  textSecondary: '#CBD5E1',
-  textMuted: '#64748B',
-  textWhite: '#FFFFFF',
-  success: '#34D399',
-  error: '#F87171',
-  warning: '#FBBF24',
-  info: '#60A5FA',
-  healthGreen: '#10B981',
-  healthOrange: '#FB923C',
-  healthPurple: '#A78BFA',
-  healthRed: '#F87171',
-  border: '#334155',
-  borderLight: '#1E293B',
-  shadow: '#000000',
+export const darkTheme = {
+  mode: 'dark' as const,
+  colors: {
+    // Backgrounds
+    background: '#0F172A',
+    surface: '#1E293B',
+    card: '#1E293B',
+    
+    // Primary (verde saúde)
+    primary: '#10B981',
+    primaryLight: '#064E3B',
+    primaryDark: '#34D399',
+    
+    // Text
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    textMuted: '#64748B',
+    
+    // Status
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
+    
+    // Borders
+    border: '#334155',
+    borderLight: '#1E293B',
+    
+    // Input
+    inputBackground: '#1E293B',
+    inputBorder: '#475569',
+    
+    // Special
+    overlay: 'rgba(0,0,0,0.7)',
+    skeleton: '#334155',
+    skeletonHighlight: '#475569',
+  }
 };
+
+export type Theme = typeof lightTheme;
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {
-  mode: ThemeMode;
+  theme: Theme;
+  themeMode: ThemeMode;
   isDark: boolean;
-  colors: ThemeColors;
-  setMode: (mode: ThemeMode) => void;
+  setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
+const THEME_STORAGE_KEY = '@renoveja_theme';
 
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const systemColorScheme = useColorScheme();
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Carregar preferência salva
   useEffect(() => {
-    loadTheme();
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then((saved) => {
+      if (saved && ['light', 'dark', 'system'].includes(saved)) {
+        setThemeModeState(saved as ThemeMode);
+      }
+      setIsLoaded(true);
+    });
   }, []);
 
-  const loadTheme = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('theme_mode');
-      if (saved) {
-        setModeState(saved as ThemeMode);
-      }
-    } catch (error) {
-      console.error('Error loading theme:', error);
-    }
+  // Salvar preferência
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
   };
 
-  const setMode = async (newMode: ThemeMode) => {
-    setModeState(newMode);
-    await AsyncStorage.setItem('theme_mode', newMode);
-  };
-
+  // Toggle simples
   const toggleTheme = () => {
     const newMode = isDark ? 'light' : 'dark';
-    setMode(newMode);
+    setThemeMode(newMode);
   };
 
-  const isDark = mode === 'system' 
-    ? systemColorScheme === 'dark' 
-    : mode === 'dark';
+  // Determinar tema atual
+  const isDark = themeMode === 'system' 
+    ? systemColorScheme === 'dark'
+    : themeMode === 'dark';
 
-  const colors = isDark ? darkColors : lightColors;
+  const theme = isDark ? darkTheme : lightTheme;
+
+  if (!isLoaded) {
+    return null; // Ou splash screen
+  }
 
   return (
-    <ThemeContext.Provider value={{ mode, isDark, colors, setMode, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, themeMode, isDark, setThemeMode, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -149,5 +154,8 @@ export function useTheme() {
   return context;
 }
 
-export { lightColors, darkColors };
-export type { ThemeColors };
+// Hook para cores direto
+export function useColors() {
+  const { theme } = useTheme();
+  return theme.colors;
+}
