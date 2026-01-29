@@ -1,20 +1,26 @@
+/**
+ * 📝 Register Screen - Modern & Minimalist Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
+  TouchableOpacity,
   StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
-
 import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../../src/components/Input';
-import { Button } from '../../src/components/Button';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -25,46 +31,115 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
+      Alert.alert('Atenção', 'As senhas não coincidem');
       return;
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      Alert.alert('Atenção', 'A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
-    setIsLoading(true);
-    setError('');
+    if (!acceptedTerms) {
+      Alert.alert('Atenção', 'Você precisa aceitar os termos de uso');
+      return;
+    }
 
-    const result = await register({ name, email, password, phone });
-    
-    setIsLoading(false);
-
-    if (result.success) {
-      router.replace('/(tabs)');
-    } else {
-      setError(result.error || 'Erro ao criar conta');
+    setLoading(true);
+    try {
+      await register(name.trim(), email.trim(), password, phone.trim());
+      Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao criar conta');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const formatPhone = (text: string) => {
+    const numbers = text.replace(/\D/g, '');
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`;
+  };
+
+  const renderInput = (
+    icon: string,
+    placeholder: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    inputKey: string,
+    options?: {
+      keyboardType?: any;
+      secureTextEntry?: boolean;
+      autoCapitalize?: any;
+    }
+  ) => (
+    <View style={[
+      styles.inputContainer,
+      focusedInput === inputKey && styles.inputFocused
+    ]}>
+      <Ionicons 
+        name={icon as any}
+        size={20} 
+        color={focusedInput === inputKey ? '#00B4CD' : '#9BA7AF'} 
+        style={styles.inputIcon}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#9BA7AF"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={options?.keyboardType || 'default'}
+        secureTextEntry={options?.secureTextEntry && !showPassword}
+        autoCapitalize={options?.autoCapitalize || 'sentences'}
+        onFocus={() => setFocusedInput(inputKey)}
+        onBlur={() => setFocusedInput(null)}
+      />
+      {options?.secureTextEntry && (
+        <TouchableOpacity 
+          onPress={() => setShowPassword(!showPassword)}
+          style={styles.eyeButton}
+        >
+          <Ionicons 
+            name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
+            size={20} 
+            color="#9BA7AF" 
+          />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F6F8" />
+      
+      <LinearGradient
+        colors={['#E8F6F8', '#D4EFF3', '#C0E8EE']}
         style={styles.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -73,181 +148,237 @@ export default function RegisterScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            <Link href="/login" asChild>
+              <TouchableOpacity style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#1A3A4A" />
+              </TouchableOpacity>
+            </Link>
+          </View>
+
+          {/* Title Section */}
+          <View style={styles.titleSection}>
             <Text style={styles.title}>Criar Conta</Text>
             <Text style={styles.subtitle}>
-              Preencha seus dados para começar a usar o RenoveJá+
+              Preencha seus dados para começar a cuidar da sua saúde
             </Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            {renderInput('person-outline', 'Nome completo *', name, setName, 'name', { autoCapitalize: 'words' })}
+            {renderInput('mail-outline', 'E-mail *', email, setEmail, 'email', { keyboardType: 'email-address', autoCapitalize: 'none' })}
+            {renderInput('call-outline', 'Telefone (WhatsApp)', phone, (t) => setPhone(formatPhone(t)), 'phone', { keyboardType: 'phone-pad' })}
+            {renderInput('lock-closed-outline', 'Senha *', password, setPassword, 'password', { secureTextEntry: true })}
+            {renderInput('lock-closed-outline', 'Confirmar senha *', confirmPassword, setConfirmPassword, 'confirmPassword', { secureTextEntry: true })}
+
+            {/* Terms */}
+            <TouchableOpacity 
+              style={styles.termsContainer}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
               </View>
-            ) : null}
+              <Text style={styles.termsText}>
+                Li e aceito os{' '}
+                <Text style={styles.termsLink}>Termos de Uso</Text>
+                {' '}e{' '}
+                <Text style={styles.termsLink}>Política de Privacidade</Text>
+              </Text>
+            </TouchableOpacity>
 
-            <Input
-              label="Nome completo *"
-              placeholder="Seu nome"
-              value={name}
-              onChangeText={setName}
-              leftIcon="person-outline"
-            />
-
-            <Input
-              label="E-mail *"
-              placeholder="seu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              leftIcon="mail-outline"
-            />
-
-            <Input
-              label="Telefone"
-              placeholder="(00) 00000-0000"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              leftIcon="call-outline"
-            />
-
-            <Input
-              label="Senha *"
-              placeholder="Mínimo 6 caracteres"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              leftIcon="lock-closed-outline"
-            />
-
-            <Input
-              label="Confirmar senha *"
-              placeholder="Digite a senha novamente"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              leftIcon="lock-closed-outline"
-            />
-
-            <Button
-              title="Criar Conta"
+            {/* Register Button */}
+            <TouchableOpacity
               onPress={handleRegister}
-              loading={isLoading}
-              fullWidth
-              style={styles.submitButton}
-            />
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={loading ? ['#9BA7AF', '#6B7C85'] : ['#4AC5E0', '#00B4CD']}
+                style={styles.registerButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.registerButtonText}>Criar Conta</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-
-          {/* Terms */}
-          <Text style={styles.terms}>
-            Ao criar uma conta, você concorda com nossos{' '}
-            <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
-            <Text style={styles.termsLink}>Política de Privacidade</Text>
-          </Text>
 
           {/* Login Link */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Já tem uma conta?{' '}
-              <Link href="/(auth)/login" asChild>
-                <Text style={styles.footerLink}>Entrar</Text>
-              </Link>
-            </Text>
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Já tem uma conta? </Text>
+            <Link href="/login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.loginLink}>Entrar</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#E8F6F8',
   },
   gradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: SIZES.lg,
-    paddingTop: SIZES.xxl,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
+
+  // Header
   header: {
-    marginBottom: SIZES.xl,
+    marginBottom: 16,
   },
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+  },
+
+  // Title
+  titleSection: {
+    marginBottom: 24,
   },
   title: {
-    fontSize: SIZES.font3xl,
+    fontSize: 28,
     fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
+    color: '#1A3A4A',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
+    fontSize: 15,
+    color: '#6B7C85',
     lineHeight: 22,
   },
-  form: {
-    marginBottom: SIZES.lg,
+
+  // Form Card
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 5,
   },
-  errorContainer: {
-    backgroundColor: COLORS.error + '15',
-    borderRadius: SIZES.radiusLg,
-    padding: SIZES.md,
-    marginBottom: SIZES.md,
-    borderWidth: 1,
-    borderColor: COLORS.error + '30',
+
+  // Input
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFB',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E4E9EC',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    height: 56,
   },
-  errorText: {
-    color: COLORS.error,
-    fontSize: SIZES.fontSm,
-    textAlign: 'center',
+  inputFocused: {
+    borderColor: '#00B4CD',
+    backgroundColor: '#FFFFFF',
   },
-  submitButton: {
-    marginTop: SIZES.md,
+  inputIcon: {
+    marginRight: 12,
   },
-  terms: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    textAlign: 'center',
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1A3A4A',
+  },
+  eyeButton: {
+    padding: 4,
+  },
+
+  // Terms
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    gap: 12,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#E4E9EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#00B4CD',
+    borderColor: '#00B4CD',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#6B7C85',
     lineHeight: 20,
-    marginBottom: SIZES.lg,
   },
   termsLink: {
-    color: COLORS.primary,
+    color: '#00B4CD',
     fontWeight: '500',
   },
-  footer: {
+
+  // Register Button
+  registerButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 56,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: '#00B4CD',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  footerText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
+  registerButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  footerLink: {
-    color: COLORS.primary,
-    fontWeight: '700',
+
+  // Login Link
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#6B7C85',
+  },
+  loginLink: {
+    fontSize: 14,
+    color: '#00B4CD',
+    fontWeight: '600',
   },
 });

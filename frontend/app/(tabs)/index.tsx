@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * 🏠 Home Screen - Patient Dashboard
+ * RenoveJá+ Telemedicina - Modern & Minimalist Design
+ */
+
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,343 +11,224 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Dimensions,
-  Animated,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { NotificationBadge } from '../../src/components/NotificationBadge';
-import { showToast } from '../../src/components/Toast';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Service Cards Data
+const services = [
+  {
+    id: 'prescription',
+    title: 'Receitas',
+    subtitle: 'Renove suas receitas',
+    icon: 'document-text',
+    gradient: ['#4AC5E0', '#00B4CD'],
+    route: '/prescription',
+  },
+  {
+    id: 'exam',
+    title: 'Exames',
+    subtitle: 'Solicite pedidos',
+    icon: 'flask',
+    gradient: ['#A78BFA', '#7C3AED'],
+    route: '/exam',
+  },
+  {
+    id: 'consultation',
+    title: 'Consultas',
+    subtitle: 'Agende online',
+    icon: 'videocam',
+    gradient: ['#F472B6', '#EC4899'],
+    route: '/consultation',
+  },
+  {
+    id: 'chat',
+    title: 'Atendimento',
+    subtitle: 'Fale conosco',
+    icon: 'chatbubbles',
+    gradient: ['#34D399', '#10B981'],
+    route: '/chat',
+  },
+];
+
+// Quick Actions
+const quickActions = [
+  { id: 'history', title: 'Histórico', icon: 'time', route: '/history' },
+  { id: 'profile', title: 'Perfil', icon: 'person', route: '/profile' },
+  { id: 'help', title: 'Ajuda', icon: 'help-circle', route: '/help' },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [notificationCount] = useState(2);
 
-  // Simple fade animation
-  const fadeAnim = useState(new Animated.Value(0))[0];
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimeout(() => {
-      setRefreshing(false);
-      showToast.success('Atualizado!', 'Dados atualizados com sucesso');
-    }, 1000);
-  };
+    // Simulate refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return { text: 'Bom dia', emoji: '☀️' };
-    if (hour < 18) return { text: 'Boa tarde', emoji: '🌤️' };
-    return { text: 'Boa noite', emoji: '🌙' };
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const getFirstName = () => {
+    return user?.name?.split(' ')[0] || 'Usuário';
   };
-
-  const handleServicePress = (path: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(path as any);
-  };
-
-  const handleLogout = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    await logout();
-    router.replace('/(auth)/login');
-  };
-
-  const greeting = getGreeting();
-
-  const mainServices = [
-    {
-      id: 'prescription',
-      title: 'Renovar Receita',
-      subtitle: 'Medicamentos de uso contínuo',
-      icon: 'document-text',
-      gradient: ['#10B981', '#059669'],
-      path: '/prescription',
-      popular: true,
-    },
-    {
-      id: 'exams',
-      title: 'Solicitar Exames',
-      subtitle: 'Lab e Imagem',
-      icon: 'flask',
-      gradient: ['#8B5CF6', '#6D28D9'],
-      path: '/exam',
-    },
-    {
-      id: 'consultation',
-      title: 'Consulta por Vídeo',
-      subtitle: 'Fale com um médico',
-      icon: 'videocam',
-      gradient: ['#3B82F6', '#1D4ED8'],
-      path: '/consultation',
-    },
-  ];
-
-  const quickStats = [
-    { label: 'Solicitações', value: '3', icon: 'document-text', color: COLORS.primary },
-    { label: 'Aprovadas', value: '2', icon: 'checkmark-circle', color: COLORS.success },
-    { label: 'Pendentes', value: '1', icon: 'time', color: COLORS.warning },
-  ];
 
   return (
     <View style={styles.container}>
-      {/* Animated Header */}
+      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      
+      {/* Header with Gradient */}
       <LinearGradient
-        colors={['#1E40AF', '#3B82F6', '#60A5FA']}
+        colors={['#00B4CD', '#4AC5E0']}
+        style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + SIZES.sm }]}
       >
-        {/* Decorative circles */}
-        <View style={styles.headerDecor1} />
-        <View style={styles.headerDecor2} />
-        <View style={styles.headerDecor3} />
-
-        {/* Top bar */}
-        <Animated.View style={[styles.topBar, { opacity: fadeAnim }]}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoIcon}>
-              <Ionicons name="medical" size={20} color={COLORS.primary} />
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting()},</Text>
+              <Text style={styles.userName}>{getFirstName()} 👋</Text>
             </View>
-            <Text style={styles.logoText}>RenoveJá</Text>
-          </View>
-          
-          <View style={styles.topBarRight}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/(tabs)/notifications');
-              }}
-            >
-              <Ionicons name="notifications" size={22} color="white" />
-              <NotificationBadge count={notificationCount} size="sm" style={styles.badge} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={22} color="white" />
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>2</Text>
+              </View>
             </TouchableOpacity>
           </View>
-        </Animated.View>
 
-        {/* Welcome Section */}
-        <Animated.View style={[styles.welcomeSection, { opacity: fadeAnim }]}>
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            onPress={() => router.push('/(tabs)/profile')}
-          >
-            <LinearGradient
-              colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-              style={styles.avatar}
-            >
-              <Text style={styles.avatarText}>
-                {user?.name ? getInitials(user.name) : '👤'}
-              </Text>
-            </LinearGradient>
-            <View style={styles.onlineIndicator} />
+          {/* Search Bar */}
+          <TouchableOpacity style={styles.searchBar} activeOpacity={0.8}>
+            <Ionicons name="search" size={20} color="#6B7C85" />
+            <Text style={styles.searchPlaceholder}>Buscar serviços...</Text>
           </TouchableOpacity>
-          
-          <View style={styles.welcomeText}>
-            <Text style={styles.greetingEmoji}>{greeting.emoji}</Text>
-            <Text style={styles.greeting}>{greeting.text},</Text>
-            <Text style={styles.userName}>
-              {user?.name?.split(' ')[0] || 'Usuário'}!
-            </Text>
-          </View>
-        </Animated.View>
+        </View>
 
-        {/* Search/CTA Banner */}
-        <Animated.View style={{ opacity: fadeAnim }}>
-          <TouchableOpacity 
-            style={styles.ctaBanner}
-            onPress={() => handleServicePress('/prescription')}
-            activeOpacity={0.9}
-          >
-            <View style={styles.ctaContent}>
-              <Text style={styles.ctaTitle}>🎉 Renove sua receita em minutos!</Text>
-              <Text style={styles.ctaSubtitle}>Clique aqui para começar</Text>
-            </View>
-            <View style={styles.ctaArrow}>
-              <Ionicons name="arrow-forward" size={20} color={COLORS.primary} />
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Curved bottom */}
-        <View style={styles.headerCurve} />
+        {/* Wave decoration */}
+        <View style={styles.wave} />
       </LinearGradient>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
+            tintColor="#00B4CD"
+            colors={['#00B4CD']}
           />
         }
       >
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          {quickStats.map((stat, index) => (
-            <TouchableOpacity 
-              key={stat.label} 
-              style={styles.statCard}
-              onPress={() => router.push('/(tabs)/history')}
-            >
-              <View style={[styles.statIcon, { backgroundColor: stat.color + '15' }]}>
-                <Ionicons name={stat.icon as any} size={18} color={stat.color} />
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Section Title */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Nossos Serviços</Text>
-          <Text style={styles.sectionSubtitle}>Selecione o que você precisa</Text>
-        </View>
-
-        {/* Main Services - Big Cards */}
-        <View style={styles.servicesGrid}>
-          {mainServices.map((service, index) => (
-            <View
-              key={service.id}
-              style={[
-                styles.serviceCardWrapper,
-                index === 0 && styles.serviceCardLarge,
-              ]}
-            >
+        {/* Services Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Serviços</Text>
+          <View style={styles.servicesGrid}>
+            {services.map((service) => (
               <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => handleServicePress(service.path)}
+                key={service.id}
+                style={styles.serviceCard}
+                onPress={() => router.push(service.route as any)}
+                activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={service.gradient as any}
+                  colors={service.gradient}
+                  style={styles.serviceIconContainer}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={[
-                    styles.serviceCard,
-                    index === 0 && styles.serviceCardLargeInner,
-                  ]}
                 >
-                  {service.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularBadgeText}>⭐ Popular</Text>
-                    </View>
-                  )}
-                  
-                  <View style={styles.serviceIconContainer}>
-                    <Ionicons name={service.icon as any} size={index === 0 ? 32 : 24} color="white" />
-                  </View>
-                  
-                  <Text style={[styles.serviceTitle, index === 0 && styles.serviceTitleLarge]}>
-                    {service.title}
-                  </Text>
-                  <Text style={styles.serviceSubtitle}>{service.subtitle}</Text>
-                  
-                  <View style={styles.serviceArrow}>
-                    <Ionicons name="arrow-forward-circle" size={24} color="rgba(255,255,255,0.8)" />
-                  </View>
+                  <Ionicons name={service.icon as any} size={28} color="#FFFFFF" />
                 </LinearGradient>
+                <Text style={styles.serviceTitle}>{service.title}</Text>
+                <Text style={styles.serviceSubtitle}>{service.subtitle}</Text>
               </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-
-        {/* Trust Features */}
-        <View style={styles.trustSection}>
-          <View style={styles.trustCard}>
-            <View style={styles.trustRow}>
-              <View style={styles.trustItem}>
-                <View style={[styles.trustIcon, { backgroundColor: COLORS.success + '15' }]}>
-                  <Ionicons name="shield-checkmark" size={24} color={COLORS.success} />
-                </View>
-                <Text style={styles.trustLabel}>100% Seguro</Text>
-              </View>
-              
-              <View style={styles.trustDivider} />
-              
-              <View style={styles.trustItem}>
-                <View style={[styles.trustIcon, { backgroundColor: COLORS.primary + '15' }]}>
-                  <Ionicons name="flash" size={24} color={COLORS.primary} />
-                </View>
-                <Text style={styles.trustLabel}>Super Rápido</Text>
-              </View>
-              
-              <View style={styles.trustDivider} />
-              
-              <View style={styles.trustItem}>
-                <View style={[styles.trustIcon, { backgroundColor: COLORS.warning + '15' }]}>
-                  <Ionicons name="ribbon" size={24} color={COLORS.warning} />
-                </View>
-                <Text style={styles.trustLabel}>Normas CFM</Text>
-              </View>
-            </View>
+            ))}
           </View>
         </View>
 
-        {/* WhatsApp Support */}
-        <TouchableOpacity 
-          style={styles.whatsappButton}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            showToast.info('Em breve', 'Suporte via WhatsApp em breve!');
-          }}
-        >
-          <LinearGradient
-            colors={['#25D366', '#128C7E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.whatsappGradient}
-          >
-            <Ionicons name="logo-whatsapp" size={24} color="white" />
-            <Text style={styles.whatsappText}>Precisa de ajuda? Fale conosco!</Text>
-            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Footer Info */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            ✅ Atendimento médico digital dentro das normas do CFM
-          </Text>
-          <Text style={styles.footerSubtext}>
-            Receitas e pedidos de exames assinados digitalmente
-          </Text>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Acesso Rápido</Text>
+          <View style={styles.quickActionsRow}>
+            {quickActions.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={styles.quickActionButton}
+                onPress={() => router.push(action.route as any)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Ionicons name={action.icon as any} size={22} color="#00B4CD" />
+                </View>
+                <Text style={styles.quickActionText}>{action.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
+
+        {/* Promo Banner */}
+        <View style={styles.section}>
+          <TouchableOpacity activeOpacity={0.9}>
+            <LinearGradient
+              colors={['#1A3A4A', '#2D5A6B']}
+              style={styles.promoBanner}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.promoContent}>
+                <View style={styles.promoTextContainer}>
+                  <Text style={styles.promoTitle}>Primeira consulta?</Text>
+                  <Text style={styles.promoSubtitle}>
+                    Ganhe 20% de desconto na sua primeira teleconsulta!
+                  </Text>
+                  <View style={styles.promoButton}>
+                    <Text style={styles.promoButtonText}>Aproveitar</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#00B4CD" />
+                  </View>
+                </View>
+                <View style={styles.promoIconContainer}>
+                  <Ionicons name="gift" size={48} color="rgba(74, 197, 224, 0.3)" />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Atividade Recente</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>Ver tudo</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.emptyActivity}>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="document-text-outline" size={40} color="#CDD5DA" />
+            </View>
+            <Text style={styles.emptyTitle}>Nenhuma atividade recente</Text>
+            <Text style={styles.emptySubtitle}>
+              Suas solicitações aparecerão aqui
+            </Text>
+          </View>
+        </View>
+
+        {/* Bottom Spacing */}
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -351,397 +237,263 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFB',
   },
-  
+
   // Header
   header: {
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.xl + 30,
-    position: 'relative',
-    overflow: 'hidden',
+    paddingTop: 50,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  headerDecor1: {
+  headerContent: {
+    paddingHorizontal: 24,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  greeting: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  userName: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationBadge: {
     position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 200,
-    height: 200,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 100,
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerDecor2: {
-    position: 'absolute',
-    top: 100,
-    left: -40,
-    width: 120,
-    height: 120,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 60,
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  headerDecor3: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-    width: 80,
-    height: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 40,
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 52,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  headerCurve: {
+  searchPlaceholder: {
+    fontSize: 15,
+    color: '#9BA7AF',
+  },
+  wave: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 30,
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    height: 20,
+    backgroundColor: '#F8FAFB',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
   },
-  
-  // Top Bar
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SIZES.md,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.sm,
-  },
-  logoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: 'white',
-  },
-  topBarRight: {
-    flexDirection: 'row',
-    gap: SIZES.sm,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-  },
-  
-  // Welcome Section
-  welcomeSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  avatarContainer: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  avatarText: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: 'white',
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  welcomeText: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  greetingEmoji: {
-    fontSize: 24,
-  },
-  greeting: {
-    fontSize: SIZES.fontMd,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  userName: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: 'white',
-  },
-  
-  // CTA Banner
-  ctaBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: SIZES.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  ctaContent: {
-    flex: 1,
-  },
-  ctaTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  ctaSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  ctaArrow: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
+
   // Content
   content: {
     flex: 1,
-    marginTop: -SIZES.md,
+    marginTop: -16,
   },
   contentContainer: {
-    padding: SIZES.lg,
-    paddingBottom: SIZES.xxl + 20,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  
-  // Stats
-  statsContainer: {
-    flexDirection: 'row',
-    gap: SIZES.sm,
-    marginBottom: SIZES.lg,
+
+  // Section
+  section: {
+    marginBottom: 24,
   },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 16,
-    padding: SIZES.md,
-    alignItems: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.xs,
-  },
-  statValue: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  statLabel: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  
-  // Section Header
   sectionHeader: {
-    marginBottom: SIZES.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: SIZES.fontXl,
+    fontSize: 18,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#1A3A4A',
+    marginBottom: 16,
   },
-  sectionSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 2,
+  seeAllText: {
+    fontSize: 14,
+    color: '#00B4CD',
+    fontWeight: '500',
+    marginBottom: 16,
   },
-  
+
   // Services Grid
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  serviceCardWrapper: {
-    width: (SCREEN_WIDTH - SIZES.lg * 2 - SIZES.md) / 2,
-  },
-  serviceCardLarge: {
-    width: '100%',
+    gap: 16,
   },
   serviceCard: {
+    width: '47%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: SIZES.md,
-    minHeight: 140,
-    justifyContent: 'space-between',
-  },
-  serviceCardLargeInner: {
-    minHeight: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SIZES.lg,
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: SIZES.sm,
-    right: SIZES.sm,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: SIZES.sm,
-    paddingVertical: 4,
-    borderRadius: SIZES.radiusFull,
-  },
-  popularBadgeText: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '600',
-    color: 'white',
-  },
-  serviceIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.sm,
-  },
-  serviceTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: 'white',
-  },
-  serviceTitleLarge: {
-    fontSize: SIZES.fontLg,
-    marginLeft: SIZES.md,
-    flex: 1,
-  },
-  serviceSubtitle: {
-    fontSize: SIZES.fontXs,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  serviceArrow: {
-    position: 'absolute',
-    bottom: SIZES.md,
-    right: SIZES.md,
-  },
-  
-  // Trust Section
-  trustSection: {
-    marginBottom: SIZES.lg,
-  },
-  trustCard: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: 20,
-    padding: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    padding: 20,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 3,
   },
-  trustRow: {
+  serviceIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A3A4A',
+    marginBottom: 4,
+  },
+  serviceSubtitle: {
+    fontSize: 13,
+    color: '#6B7C85',
+  },
+
+  // Quick Actions
+  quickActionsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  trustItem: {
+  quickActionButton: {
     alignItems: 'center',
+    gap: 8,
   },
-  trustIcon: {
+  quickActionIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
+    backgroundColor: '#E6F7FA',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SIZES.xs,
   },
-  trustLabel: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#4A5960',
   },
-  trustDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: COLORS.borderLight,
-  },
-  
-  // WhatsApp Button
-  whatsappButton: {
-    marginBottom: SIZES.lg,
-    borderRadius: 16,
+
+  // Promo Banner
+  promoBanner: {
+    borderRadius: 20,
+    padding: 20,
     overflow: 'hidden',
-    shadowColor: '#25D366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  whatsappGradient: {
+  promoContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  promoTextContainer: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  promoTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  promoSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  promoButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SIZES.md,
-    gap: SIZES.sm,
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
   },
-  whatsappText: {
-    flex: 1,
-    fontSize: SIZES.fontMd,
+  promoButtonText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: 'white',
+    color: '#00B4CD',
   },
-  
-  // Footer
-  footer: {
+  promoIconContainer: {
+    opacity: 0.8,
+  },
+
+  // Empty Activity
+  emptyActivity: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 32,
     alignItems: 'center',
-    paddingVertical: SIZES.lg,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  footerText: {
-    fontSize: SIZES.fontSm,
+  emptyIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+    color: '#1A3A4A',
+    marginBottom: 4,
   },
-  footerSubtext: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: 4,
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7C85',
   },
 });
