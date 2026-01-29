@@ -1,458 +1,304 @@
-import React, { useState } from 'react';
+/**
+ * 💳 Payment Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
   Alert,
+  ActivityIndicator,
+  Clipboard,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { requestsAPI, paymentsAPI } from '../../src/services/api';
-import { COLORS, SIZES, PRESCRIPTION_TYPES } from '../../src/utils/constants';
+import { api } from '@/services/api';
 
-export default function PrescriptionPaymentScreen() {
+export default function PaymentScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { type, image, notes } = useLocalSearchParams<{
-    type: string;
-    image: string;
-    notes: string;
-  }>();
-  
-  const [selectedMethod, setSelectedMethod] = useState<'pix' | 'credit_card'>('pix');
-  const [isLoading, setIsLoading] = useState(false);
+  const { requestId, amount = '49.90' } = useLocalSearchParams<{ requestId: string; amount: string }>();
+  const [selectedMethod, setSelectedMethod] = useState<'pix' | 'credit'>('pix');
+  const [loading, setLoading] = useState(false);
+  const [pixCode, setPixCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const prescriptionType = PRESCRIPTION_TYPES.find((t) => t.id === type);
+  const price = parseFloat(amount);
 
-  const handlePayment = async () => {
-    setIsLoading(true);
+  const generatePixCode = async () => {
+    setLoading(true);
     try {
-      // Create prescription request
-      const request = await requestsAPI.createPrescription({
-        prescription_type: type as any,
-        prescription_images: image ? [image] : undefined,
-        notes: notes || undefined,
+      const response = await api.createPayment({
+        request_id: requestId,
+        amount: price,
+        method: 'pix',
       });
-
-      // Create payment
-      const payment = await paymentsAPI.create({
-        request_id: request.id,
-        amount: prescriptionType?.price || 0,
-        method: selectedMethod,
-      });
-
-      // Simulate payment confirmation (in production, this would be handled by payment gateway)
-      await paymentsAPI.confirm(payment.id);
-
-      router.replace({
-        pathname: '/prescription/confirmation',
-        params: { requestId: request.id },
-      });
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível processar o pagamento. Tente novamente.');
+      setPixCode(response.pix_code || 'PIX123456789RENOVEJA');
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao gerar PIX');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const copyPixCode = () => {
+    if (pixCode) {
+      Clipboard.setString(pixCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const confirmPayment = async () => {
+    setLoading(true);
+    try {
+      // Simular confirmação de pagamento
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      Alert.alert('Pagamento Confirmado! 🎉', 'Sua receita será assinada em breve.', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao confirmar pagamento');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+      <LinearGradient
+        colors={['#00B4CD', '#4AC5E0']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Renovar Receita</Text>
-          <View style={styles.progress}>
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotDone]} />
-              <Text style={styles.progressTextDone}>Tipo</Text>
-            </View>
-            <View style={[styles.progressLine, styles.progressLineDone]} />
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotDone]} />
-              <Text style={styles.progressTextDone}>Upload</Text>
-            </View>
-            <View style={[styles.progressLine, styles.progressLineDone]} />
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotActive]} />
-              <Text style={styles.progressText}>Pagamento</Text>
-            </View>
+          <View style={styles.stepIndicator}>
+            <Text style={styles.stepText}>Etapa 3 de 3</Text>
           </View>
+          <Text style={styles.headerTitle}>Pagamento</Text>
+          <Text style={styles.headerSubtitle}>
+            Escolha a forma de pagamento
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Escolha a forma de pagamento</Text>
+        {/* Amount Card */}
+        <View style={styles.amountCard}>
+          <Text style={styles.amountLabel}>Valor Total</Text>
+          <Text style={styles.amountValue}>R$ {price.toFixed(2)}</Text>
+        </View>
 
-        {/* Order summary */}
-        <Card style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Resumo do pedido</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{prescriptionType?.name}</Text>
-            <Text style={styles.summaryValue}>
-              R$ {prescriptionType?.price.toFixed(2).replace('.', ',')}
-            </Text>
+        {/* Payment Methods */}
+        <Text style={styles.sectionTitle}>Forma de Pagamento</Text>
+        
+        <TouchableOpacity
+          style={[styles.methodCard, selectedMethod === 'pix' && styles.methodCardSelected]}
+          onPress={() => setSelectedMethod('pix')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.methodIcon, selectedMethod === 'pix' && styles.methodIconSelected]}>
+            <Ionicons name="qr-code" size={24} color={selectedMethod === 'pix' ? '#FFFFFF' : '#00B4CD'} />
           </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>
-              R$ {prescriptionType?.price.toFixed(2).replace('.', ',')}
-            </Text>
+          <View style={styles.methodContent}>
+            <Text style={styles.methodTitle}>PIX</Text>
+            <Text style={styles.methodSubtitle}>Aprovação instantânea</Text>
           </View>
-        </Card>
+          <View style={[styles.radioOuter, selectedMethod === 'pix' && styles.radioOuterSelected]}>
+            {selectedMethod === 'pix' && <View style={styles.radioInner} />}
+          </View>
+        </TouchableOpacity>
 
-        {/* Payment methods */}
-        <View style={styles.methods}>
-          <TouchableOpacity
-            onPress={() => setSelectedMethod('pix')}
-            activeOpacity={0.8}
-          >
-            <Card
-              style={[
-                styles.methodCard,
-                selectedMethod === 'pix' && styles.methodCardSelected,
-              ]}
-            >
-              <View style={styles.methodHeader}>
-                <View style={styles.methodIcon}>
-                  <Text style={styles.pixIcon}>PIX</Text>
+        <TouchableOpacity
+          style={[styles.methodCard, selectedMethod === 'credit' && styles.methodCardSelected]}
+          onPress={() => setSelectedMethod('credit')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.methodIcon, selectedMethod === 'credit' && styles.methodIconSelected]}>
+            <Ionicons name="card" size={24} color={selectedMethod === 'credit' ? '#FFFFFF' : '#00B4CD'} />
+          </View>
+          <View style={styles.methodContent}>
+            <Text style={styles.methodTitle}>Cartão de Crédito</Text>
+            <Text style={styles.methodSubtitle}>Parcele em até 3x</Text>
+          </View>
+          <View style={[styles.radioOuter, selectedMethod === 'credit' && styles.radioOuterSelected]}>
+            {selectedMethod === 'credit' && <View style={styles.radioInner} />}
+          </View>
+        </TouchableOpacity>
+
+        {/* PIX Section */}
+        {selectedMethod === 'pix' && (
+          <View style={styles.pixSection}>
+            {!pixCode ? (
+              <TouchableOpacity
+                style={styles.generatePixButton}
+                onPress={generatePixCode}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#00B4CD" />
+                ) : (
+                  <>
+                    <Ionicons name="qr-code" size={24} color="#00B4CD" />
+                    <Text style={styles.generatePixText}>Gerar código PIX</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.pixCodeContainer}>
+                <View style={styles.pixQrPlaceholder}>
+                  <Ionicons name="qr-code" size={80} color="#00B4CD" />
+                  <Text style={styles.pixQrText}>QR Code PIX</Text>
                 </View>
-                <View style={styles.methodInfo}>
-                  <Text style={styles.methodName}>PIX</Text>
-                  <Text style={styles.methodDescription}>Pagamento instantâneo</Text>
+
+                <Text style={styles.pixCodeLabel}>Código PIX (Copia e Cola)</Text>
+                <View style={styles.pixCodeBox}>
+                  <Text style={styles.pixCodeText} numberOfLines={1}>{pixCode}</Text>
+                  <TouchableOpacity style={styles.copyButton} onPress={copyPixCode}>
+                    <Ionicons name={copied ? 'checkmark' : 'copy'} size={20} color={copied ? '#10B981' : '#00B4CD'} />
+                  </TouchableOpacity>
                 </View>
-                <View
-                  style={[
-                    styles.radioOuter,
-                    selectedMethod === 'pix' && styles.radioOuterSelected,
-                  ]}
-                >
-                  {selectedMethod === 'pix' && <View style={styles.radioInner} />}
+
+                {copied && (
+                  <Text style={styles.copiedText}>✓ Código copiado!</Text>
+                )}
+
+                <View style={styles.pixInstructions}>
+                  <Text style={styles.instructionsTitle}>Como pagar:</Text>
+                  <Text style={styles.instructionsText}>1. Abra o app do seu banco</Text>
+                  <Text style={styles.instructionsText}>2. Escolha pagar com PIX</Text>
+                  <Text style={styles.instructionsText}>3. Cole o código ou escaneie o QR</Text>
+                  <Text style={styles.instructionsText}>4. Confirme o pagamento</Text>
                 </View>
               </View>
-              {selectedMethod === 'pix' && (
-                <View style={styles.pixDetails}>
-                  <View style={styles.pixBadge}>
-                    <Ionicons name="flash" size={14} color={COLORS.healthGreen} />
-                    <Text style={styles.pixBadgeText}>Aprovação instantânea</Text>
-                  </View>
-                </View>
+            )}
+          </View>
+        )}
+
+        {/* Credit Card Section */}
+        {selectedMethod === 'credit' && (
+          <View style={styles.creditSection}>
+            <View style={styles.comingSoonCard}>
+              <Ionicons name="construct" size={32} color="#F59E0B" />
+              <Text style={styles.comingSoonTitle}>Em breve!</Text>
+              <Text style={styles.comingSoonText}>
+                Pagamento com cartão estará disponível em breve. Por enquanto, use PIX.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Confirm Button */}
+        {pixCode && (
+          <TouchableOpacity
+            onPress={confirmPayment}
+            disabled={loading}
+            activeOpacity={0.8}
+            style={{ marginTop: 24 }}
+          >
+            <LinearGradient
+              colors={loading ? ['#CDD5DA', '#9BA7AF'] : ['#10B981', '#34D399']}
+              style={styles.confirmButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+                  <Text style={styles.confirmButtonText}>Já paguei</Text>
+                </>
               )}
-            </Card>
+            </LinearGradient>
           </TouchableOpacity>
+        )}
 
-          <TouchableOpacity
-            onPress={() => setSelectedMethod('credit_card')}
-            activeOpacity={0.8}
-          >
-            <Card
-              style={[
-                styles.methodCard,
-                selectedMethod === 'credit_card' && styles.methodCardSelected,
-              ]}
-            >
-              <View style={styles.methodHeader}>
-                <View style={[styles.methodIcon, { backgroundColor: COLORS.healthPurple + '15' }]}>
-                  <Ionicons name="card" size={24} color={COLORS.healthPurple} />
-                </View>
-                <View style={styles.methodInfo}>
-                  <Text style={styles.methodName}>Cartão de Crédito</Text>
-                  <Text style={styles.methodDescription}>Parcele em até 3x</Text>
-                </View>
-                <View
-                  style={[
-                    styles.radioOuter,
-                    selectedMethod === 'credit_card' && styles.radioOuterSelected,
-                  ]}
-                >
-                  {selectedMethod === 'credit_card' && <View style={styles.radioInner} />}
-                </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
+        {/* Security Badge */}
+        <View style={styles.securityBadge}>
+          <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+          <Text style={styles.securityText}>Pagamento 100% seguro</Text>
         </View>
 
-        {/* Security info */}
-        <View style={styles.securityInfo}>
-          <Ionicons name="shield-checkmark" size={20} color={COLORS.healthGreen} />
-          <Text style={styles.securityText}>
-            Pagamento 100% seguro. Seus dados estão protegidos.
-          </Text>
-        </View>
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
-        <View style={styles.footerTotal}>
-          <Text style={styles.footerTotalLabel}>Total:</Text>
-          <Text style={styles.footerTotalValue}>
-            R$ {prescriptionType?.price.toFixed(2).replace('.', ',')}
-          </Text>
-        </View>
-        <Button
-          title={selectedMethod === 'pix' ? 'Gerar PIX' : 'Pagar com cartão'}
-          onPress={handlePayment}
-          fullWidth
-          loading={isLoading}
-        />
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-    gap: SIZES.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  progress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    alignItems: 'center',
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.border,
-    marginBottom: 4,
-  },
-  progressDotActive: {
-    backgroundColor: COLORS.primary,
-  },
-  progressDotDone: {
-    backgroundColor: COLORS.healthGreen,
-  },
-  progressLine: {
-    width: 30,
-    height: 2,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SIZES.xs,
-  },
-  progressLineDone: {
-    backgroundColor: COLORS.healthGreen,
-  },
-  progressText: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  progressTextDone: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.healthGreen,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-  },
-  title: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.lg,
-  },
-  summaryCard: {
-    marginBottom: SIZES.lg,
-  },
-  summaryTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  summaryValue: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.borderLight,
-    marginVertical: SIZES.md,
-  },
-  totalLabel: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  totalValue: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  methods: {
-    gap: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  methodCard: {
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  methodCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '05',
-  },
-  methodHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  methodIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.healthGreen + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pixIcon: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '700',
-    color: COLORS.healthGreen,
-  },
-  methodInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  methodName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  methodDescription: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: COLORS.primary,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.primary,
-  },
-  pixDetails: {
-    marginTop: SIZES.md,
-    paddingTop: SIZES.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  pixBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.healthGreen + '15',
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radiusFull,
-    alignSelf: 'flex-start',
-    gap: SIZES.xs,
-  },
-  pixBadgeText: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.healthGreen,
-  },
-  securityInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.sm,
-    padding: SIZES.md,
-    backgroundColor: COLORS.healthGreen + '10',
-    borderRadius: SIZES.radiusMd,
-  },
-  securityText: {
-    flex: 1,
-    fontSize: SIZES.fontSm,
-    color: COLORS.healthGreen,
-  },
-  footer: {
-    padding: SIZES.lg,
-    backgroundColor: COLORS.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  footerTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SIZES.md,
-  },
-  footerTotalLabel: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  footerTotalValue: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  headerContent: {},
+  stepIndicator: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
+  stepText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  headerSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  amountCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  amountLabel: { fontSize: 14, color: '#6B7C85', marginBottom: 4 },
+  amountValue: { fontSize: 36, fontWeight: '700', color: '#00B4CD' },
+
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+
+  methodCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  methodCardSelected: { borderColor: '#00B4CD', backgroundColor: '#E6F7FA' },
+  methodIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#E6F7FA', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  methodIconSelected: { backgroundColor: '#00B4CD' },
+  methodContent: { flex: 1 },
+  methodTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 2 },
+  methodSubtitle: { fontSize: 13, color: '#6B7C85' },
+  radioOuter: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#CDD5DA', alignItems: 'center', justifyContent: 'center' },
+  radioOuterSelected: { borderColor: '#00B4CD' },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#00B4CD' },
+
+  pixSection: { marginTop: 20 },
+  generatePixButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E6F7FA', borderRadius: 16, padding: 20, gap: 10, borderWidth: 2, borderColor: '#00B4CD', borderStyle: 'dashed' },
+  generatePixText: { fontSize: 16, fontWeight: '600', color: '#00B4CD' },
+
+  pixCodeContainer: { alignItems: 'center' },
+  pixQrPlaceholder: { width: 200, height: 200, backgroundColor: '#E6F7FA', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  pixQrText: { marginTop: 8, fontSize: 12, color: '#6B7C85' },
+  pixCodeLabel: { fontSize: 14, fontWeight: '500', color: '#1A3A4A', marginBottom: 8, alignSelf: 'flex-start' },
+  pixCodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F7', borderRadius: 12, padding: 14, width: '100%' },
+  pixCodeText: { flex: 1, fontSize: 13, color: '#1A3A4A', fontFamily: 'monospace' },
+  copyButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  copiedText: { marginTop: 8, fontSize: 13, color: '#10B981', fontWeight: '500' },
+
+  pixInstructions: { marginTop: 20, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, width: '100%' },
+  instructionsTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', marginBottom: 10 },
+  instructionsText: { fontSize: 13, color: '#6B7C85', marginBottom: 4 },
+
+  creditSection: { marginTop: 20 },
+  comingSoonCard: { alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 24 },
+  comingSoonTitle: { fontSize: 18, fontWeight: '700', color: '#92400E', marginTop: 12, marginBottom: 6 },
+  comingSoonText: { fontSize: 14, color: '#92400E', textAlign: 'center', lineHeight: 20 },
+
+  confirmButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+  confirmButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+
+  securityBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, gap: 6 },
+  securityText: { fontSize: 13, color: '#10B981' },
 });

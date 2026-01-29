@@ -1,3 +1,8 @@
+/**
+ * 📸 Prescription Upload Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState } from 'react';
 import {
   View,
@@ -5,69 +10,67 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
   Image,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { Input } from '../../src/components/Input';
-import { requestsAPI } from '../../src/services/api';
-import { COLORS, SIZES, PRESCRIPTION_TYPES } from '../../src/utils/constants';
+import { api } from '@/services/api';
+
+const typeLabels: Record<string, { title: string; color: string[] }> = {
+  simple: { title: 'Receita Simples', color: ['#4AC5E0', '#00B4CD'] },
+  controlled: { title: 'Receita Controlada', color: ['#F59E0B', '#D97706'] },
+  blue: { title: 'Receita Azul', color: ['#3B82F6', '#1D4ED8'] },
+};
 
 export default function PrescriptionUploadScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { type } = useLocalSearchParams<{ type: string }>();
-  
+  const { type = 'simple' } = useLocalSearchParams<{ type: string }>();
   const [images, setImages] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const prescriptionType = PRESCRIPTION_TYPES.find((t) => t.id === type);
+  const typeConfig = typeLabels[type] || typeLabels.simple;
 
-  const pickImage = async (source: 'camera' | 'library') => {
-    try {
-      let result;
-      
-      if (source === 'camera') {
-        const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert('Permissão negada', 'Precisamos de acesso à câmera para tirar fotos.');
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          quality: 0.8,
-          base64: true,
-        });
-      } else {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert('Permissão negada', 'Precisamos de acesso à galeria para selecionar fotos.');
-          return;
-        }
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          allowsEditing: true,
-          quality: 0.8,
-          base64: true,
-        });
-      }
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria');
+      return;
+    }
 
-      if (!result.canceled && result.assets[0]) {
-        const base64 = result.assets[0].base64;
-        if (base64) {
-          setImages([...images, `data:image/jpeg;base64,${base64}`]);
-        }
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível selecionar a imagem.');
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      base64: true,
+      allowsMultipleSelection: true,
+    });
+
+    if (!result.canceled && result.assets) {
+      const newImages = result.assets.map(a => a.uri);
+      setImages([...images, ...newImages]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão necessária', 'Precisamos de acesso à câmera');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setImages([...images, result.assets[0].uri]);
     }
   };
 
@@ -76,451 +79,203 @@ export default function PrescriptionUploadScreen() {
   };
 
   const handleSubmit = async () => {
-    if (images.length === 0) {
-      Alert.alert('Atenção', 'Por favor, envie pelo menos uma foto da receita.');
-      return;
-    }
-
-    setIsLoading(true);
+    setLoading(true);
     try {
-      const response = await requestsAPI.createPrescription({
-        prescription_type: type || 'simple',
+      await api.createPrescriptionRequest({
+        prescription_type: type,
         prescription_images: images,
-        notes: notes || undefined,
+        notes,
       });
-
-      Alert.alert(
-        '✅ Solicitação Enviada!',
-        'Sua solicitação foi enviada e está aguardando análise médica. Você será notificado quando houver uma atualização.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/history'),
-          },
-        ]
-      );
+      
+      router.push({
+        pathname: '/prescription/confirmation',
+        params: { type }
+      });
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível enviar a solicitação.');
+      Alert.alert('Erro', error.message || 'Erro ao enviar solicitação');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={typeConfig.color[0]} />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+      <LinearGradient
+        colors={typeConfig.color}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Renovar Receita</Text>
-          <View style={styles.progress}>
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotDone]} />
-              <Text style={styles.progressTextDone}>Tipo</Text>
-            </View>
-            <View style={[styles.progressLine, styles.progressLineDone]} />
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotActive]} />
-              <Text style={styles.progressText}>Upload</Text>
-            </View>
-            <View style={styles.progressLine} />
-            <View style={styles.progressStep}>
-              <View style={styles.progressDot} />
-              <Text style={styles.progressTextMuted}>Enviar</Text>
-            </View>
+          <View style={styles.stepIndicator}>
+            <Text style={styles.stepText}>Etapa 2 de 3</Text>
           </View>
+          <Text style={styles.headerTitle}>{typeConfig.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            Envie uma foto da sua receita anterior
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Selected type */}
-        <Card style={styles.selectedType}>
-          <View style={styles.selectedTypeIcon}>
-            <Ionicons name="document-text" size={20} color={COLORS.healthGreen} />
-          </View>
-          <View style={styles.selectedTypeInfo}>
-            <Text style={styles.selectedTypeName}>{prescriptionType?.name}</Text>
-            <Text style={styles.selectedTypePrice}>
-              R$ {prescriptionType?.price.toFixed(2).replace('.', ',')}
-            </Text>
-          </View>
-          <Ionicons name="checkmark-circle" size={24} color={COLORS.healthGreen} />
-        </Card>
+        {/* Upload Area */}
+        <View style={styles.uploadSection}>
+          <Text style={styles.sectionTitle}>Foto da Receita Anterior</Text>
+          <Text style={styles.sectionSubtitle}>
+            Envie uma foto legível da sua receita para que o médico possa analisar
+          </Text>
 
-        <Text style={styles.title}>Envie sua receita atual</Text>
-        <Text style={styles.subtitle}>
-          Tire uma foto ou faça upload da receita que deseja renovar. O médico irá analisar antes de aprovar.
-        </Text>
+          <View style={styles.uploadButtons}>
+            <TouchableOpacity style={styles.uploadButton} onPress={takePhoto}>
+              <LinearGradient colors={typeConfig.color} style={styles.uploadButtonGradient}>
+                <Ionicons name="camera" size={28} color="#FFFFFF" />
+              </LinearGradient>
+              <Text style={styles.uploadButtonText}>Tirar Foto</Text>
+            </TouchableOpacity>
 
-        {/* Image upload */}
+            <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+              <View style={styles.uploadButtonOutline}>
+                <Ionicons name="images" size={28} color={typeConfig.color[0]} />
+              </View>
+              <Text style={styles.uploadButtonText}>Galeria</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Images Preview */}
         {images.length > 0 && (
-          <View style={styles.imagesContainer}>
-            {images.map((img, index) => (
-              <View key={index} style={styles.imagePreview}>
-                <Image source={{ uri: img }} style={styles.previewImage} />
-                <TouchableOpacity
-                  style={styles.removeImageButton}
-                  onPress={() => removeImage(index)}
-                >
-                  <Ionicons name="close" size={20} color={COLORS.textWhite} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {images.length < 3 && (
-          <View style={styles.uploadOptions}>
-            <TouchableOpacity
-              style={styles.uploadOption}
-              onPress={() => pickImage('camera')}
-            >
-              <View style={styles.uploadOptionIcon}>
-                <Ionicons name="camera" size={32} color={COLORS.primary} />
-              </View>
-              <Text style={styles.uploadOptionText}>Tirar foto</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.uploadOption}
-              onPress={() => pickImage('library')}
-            >
-              <View style={styles.uploadOptionIcon}>
-                <Ionicons name="images" size={32} color={COLORS.primary} />
-              </View>
-              <Text style={styles.uploadOptionText}>Galeria</Text>
-            </TouchableOpacity>
+          <View style={styles.previewSection}>
+            <Text style={styles.sectionTitle}>Imagens Anexadas ({images.length})</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+              {images.map((uri, index) => (
+                <View key={index} style={styles.imageWrapper}>
+                  <Image source={{ uri }} style={styles.previewImage} />
+                  <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(index)}>
+                    <Ionicons name="close" size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.addMoreButton} onPress={pickImage}>
+                <Ionicons name="add" size={32} color={typeConfig.color[0]} />
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         )}
 
         {/* Notes */}
         <View style={styles.notesSection}>
-          <Text style={styles.notesLabel}>Observações (opcional)</Text>
-          <Input
-            placeholder="Adicione informações relevantes sobre sua receita..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            style={styles.notesInput}
-          />
+          <Text style={styles.sectionTitle}>Observações (opcional)</Text>
+          <View style={styles.textAreaContainer}>
+            <TextInput
+              style={styles.textArea}
+              placeholder="Ex: Preciso da mesma dosagem, uso há 2 anos..."
+              placeholderTextColor="#9BA7AF"
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
         </View>
 
-        {/* Info Card */}
-        <Card style={styles.infoCard}>
-          <Ionicons name="information-circle" size={24} color={COLORS.primary} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Como funciona?</Text>
-            <Text style={styles.infoText}>
-              1. Você envia a foto da receita{'\n'}
-              2. Um médico analisa sua solicitação{'\n'}
-              3. Se aprovada, você recebe notificação para pagar{'\n'}
-              4. Após pagamento, recebe a receita assinada
-            </Text>
-          </View>
-        </Card>
-
         {/* Tips */}
-        <Card style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>Dicas para uma boa foto:</Text>
-          <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark" size={16} color={COLORS.healthGreen} />
-              <Text style={styles.tipText}>Certifique-se que a receita está legível</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark" size={16} color={COLORS.healthGreen} />
-              <Text style={styles.tipText}>Inclua o nome do médico e CRM</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Ionicons name="checkmark" size={16} color={COLORS.healthGreen} />
-              <Text style={styles.tipText}>Evite sombras e reflexos na foto</Text>
-            </View>
+        <View style={styles.tipsCard}>
+          <Ionicons name="bulb" size={20} color="#F59E0B" />
+          <View style={styles.tipsContent}>
+            <Text style={styles.tipsTitle}>Dicas para uma boa foto</Text>
+            <Text style={styles.tipsText}>• Boa iluminação{'\n'}• Documento completo na imagem{'\n'}• Texto legível e sem reflexos</Text>
           </View>
-        </Card>
-      </ScrollView>
+        </View>
 
-      {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
-        <Button
-          title={isLoading ? "Enviando..." : "Enviar para análise"}
+        {/* Submit Button */}
+        <TouchableOpacity
           onPress={handleSubmit}
-          fullWidth
-          loading={isLoading}
-          disabled={images.length === 0 || isLoading}
-          icon={!isLoading && <Ionicons name="paper-plane" size={20} color={COLORS.textWhite} />}
-        />
-      </View>
+          disabled={loading}
+          activeOpacity={0.8}
+          style={{ marginTop: 24 }}
+        >
+          <LinearGradient
+            colors={loading ? ['#CDD5DA', '#9BA7AF'] : typeConfig.color}
+            style={styles.submitButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>Continuar</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.skipButton} onPress={handleSubmit} disabled={loading}>
+          <Text style={styles.skipButtonText}>Continuar sem foto</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-    gap: SIZES.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  progress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    alignItems: 'center',
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.border,
-    marginBottom: 4,
-  },
-  progressDotActive: {
-    backgroundColor: COLORS.primary,
-  },
-  progressDotDone: {
-    backgroundColor: COLORS.healthGreen,
-  },
-  progressLine: {
-    width: 30,
-    height: 2,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SIZES.xs,
-  },
-  progressLineDone: {
-    backgroundColor: COLORS.healthGreen,
-  },
-  progressText: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  progressTextDone: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.healthGreen,
-    fontWeight: '600',
-  },
-  progressTextMuted: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-  },
-  selectedType: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.healthGreen + '10',
-    marginBottom: SIZES.lg,
-  },
-  selectedTypeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.healthGreen + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedTypeInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  selectedTypeName: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  selectedTypePrice: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.healthGreen,
-    fontWeight: '700',
-  },
-  title: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
-  },
-  subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: SIZES.lg,
-  },
-  uploadOptions: {
-    flexDirection: 'row',
-    gap: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  uploadOption: {
-    flex: 1,
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusXl,
-    padding: SIZES.xl,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-  },
-  uploadOptionIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary + '10',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.md,
-  },
-  uploadOptionText: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  imagePreview: {
-    position: 'relative',
-    marginBottom: SIZES.lg,
-  },
-  previewImage: {
-    width: '100%',
-    height: 250,
-    borderRadius: SIZES.radiusXl,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: SIZES.sm,
-    right: SIZES.sm,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notesSection: {
-    marginBottom: SIZES.lg,
-  },
-  notesLabel: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  notesInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  tipsCard: {
-    backgroundColor: COLORS.backgroundDark,
-  },
-  tipsTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.md,
-  },
-  tipsList: {
-    gap: SIZES.sm,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.sm,
-  },
-  tipText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-  },
-  footer: {
-    padding: SIZES.lg,
-    backgroundColor: COLORS.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  imagesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SIZES.sm,
-    marginBottom: SIZES.lg,
-  },
-  imagePreviewContainer: {
-    position: 'relative',
-    width: '47%',
-  },
-  previewImageSmall: {
-    width: '100%',
-    height: 150,
-    borderRadius: SIZES.radiusMd,
-  },
-  removeImageBtn: {
-    position: 'absolute',
-    top: SIZES.xs,
-    right: SIZES.xs,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: SIZES.md,
-    backgroundColor: COLORS.primary + '08',
-    marginBottom: SIZES.md,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
-  },
-  infoText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  headerContent: {},
+  stepIndicator: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
+  stepText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  headerSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 6 },
+  sectionSubtitle: { fontSize: 13, color: '#6B7C85', marginBottom: 16, lineHeight: 18 },
+
+  uploadSection: { marginBottom: 24 },
+  uploadButtons: { flexDirection: 'row', gap: 16 },
+  uploadButton: { flex: 1, alignItems: 'center', gap: 10 },
+  uploadButtonGradient: { width: '100%', height: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  uploadButtonOutline: { width: '100%', height: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#E4E9EC', borderStyle: 'dashed', backgroundColor: '#FFFFFF' },
+  uploadButtonText: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
+
+  previewSection: { marginBottom: 24 },
+  imagesScroll: { marginTop: 8 },
+  imageWrapper: { position: 'relative', marginRight: 12 },
+  previewImage: { width: 120, height: 120, borderRadius: 16 },
+  removeButton: { position: 'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: 14, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
+  addMoreButton: { width: 120, height: 120, borderRadius: 16, borderWidth: 2, borderColor: '#E4E9EC', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+
+  notesSection: { marginBottom: 24 },
+  textAreaContainer: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', padding: 16 },
+  textArea: { fontSize: 15, color: '#1A3A4A', minHeight: 100 },
+
+  tipsCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, gap: 12 },
+  tipsContent: { flex: 1 },
+  tipsTitle: { fontSize: 14, fontWeight: '600', color: '#92400E', marginBottom: 6 },
+  tipsText: { fontSize: 13, color: '#92400E', lineHeight: 20 },
+
+  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+  submitButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+
+  skipButton: { alignItems: 'center', paddingVertical: 16 },
+  skipButtonText: { fontSize: 14, color: '#6B7C85' },
 });

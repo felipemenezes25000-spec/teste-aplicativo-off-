@@ -1,363 +1,249 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * 📹 Consultation Request Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { specialtiesAPI, requestsAPI, paymentsAPI } from '../../src/services/api';
-import { Specialty } from '../../src/types';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { api } from '@/services/api';
 
-const SPECIALTY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'Clínico Geral': 'medkit',
-  'Cardiologia': 'heart',
-  'Dermatologia': 'sunny',
-  'Endocrinologia': 'pulse',
-  'Ginecologia': 'female',
-  'Neurologia': 'flash',
-  'Ortopedia': 'fitness',
-  'Pediatria': 'happy',
-  'Psiquiatria': 'body',
-  'Urologia': 'water',
-};
+const specialties = [
+  { id: 'general', title: 'Clínico Geral', icon: 'person', price: 89.90 },
+  { id: 'cardiology', title: 'Cardiologia', icon: 'heart', price: 149.90 },
+  { id: 'dermatology', title: 'Dermatologia', icon: 'body', price: 129.90 },
+  { id: 'gynecology', title: 'Ginecologia', icon: 'woman', price: 139.90 },
+  { id: 'orthopedics', title: 'Ortopedia', icon: 'fitness', price: 139.90 },
+  { id: 'psychiatry', title: 'Psiquiatria', icon: 'happy', price: 179.90 },
+  { id: 'nutrition', title: 'Nutrição', icon: 'nutrition', price: 99.90 },
+  { id: 'endocrinology', title: 'Endocrinologia', icon: 'pulse', price: 149.90 },
+];
+
+const durations = [
+  { id: 15, label: '15 min', description: 'Consulta rápida' },
+  { id: 30, label: '30 min', description: 'Consulta padrão' },
+  { id: 45, label: '45 min', description: 'Consulta completa' },
+];
 
 export default function ConsultationScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [specialties, setSpecialties] = useState<Specialty[]>([]);
-  const [selectedSpecialty, setSelectedSpecialty] = useState<Specialty | null>(null);
-  const [duration, setDuration] = useState(15);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number>(30);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadSpecialties();
-  }, []);
-
-  const loadSpecialties = async () => {
-    try {
-      const data = await specialtiesAPI.getAll();
-      setSpecialties(data);
-    } catch (error) {
-      console.error('Error loading specialties:', error);
-    }
-  };
-
-  const durations = [15, 30, 45, 60];
-  const basePrice = 79.90;
+  const selectedSpec = specialties.find(s => s.id === selectedSpecialty);
 
   const handleSubmit = async () => {
     if (!selectedSpecialty) {
-      Alert.alert('Atenção', 'Selecione uma especialidade.');
+      Alert.alert('Atenção', 'Selecione uma especialidade');
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
     try {
-      const request = await requestsAPI.createConsultation({
-        specialty: selectedSpecialty.name,
-        duration,
+      await api.createConsultationRequest({
+        specialty: selectedSpecialty,
+        duration: selectedDuration,
       });
-
-      const payment = await paymentsAPI.create({
-        request_id: request.id,
-        amount: basePrice,
-        method: 'pix',
-      });
-
-      await paymentsAPI.confirm(payment.id);
-
-      Alert.alert(
-        'Sucesso!',
-        'Sua consulta foi agendada com sucesso! Um médico entrará em contato em breve.',
-        [
-          {
-            text: 'Ver solicitações',
-            onPress: () => router.replace('/(tabs)/history'),
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível agendar a consulta.');
+      Alert.alert('Sucesso! 🎉', 'Sua consulta foi agendada! Você será notificado quando um médico aceitar.', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao agendar consulta');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#EC4899" />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+      <LinearGradient
+        colors={['#EC4899', '#F472B6']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Consulta Breve</Text>
-          <Text style={styles.headerSubtitle}>Atendimento por videochamada</Text>
+          <Text style={styles.headerTitle}>Teleconsulta</Text>
+          <Text style={styles.headerSubtitle}>
+            Consulte-se com um médico por vídeo
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Specialty selection */}
-        <Text style={styles.sectionTitle}>Escolha a especialidade</Text>
+        {/* Specialty Selection */}
+        <Text style={styles.sectionTitle}>Escolha a Especialidade</Text>
         <View style={styles.specialtiesGrid}>
-          {specialties.map((specialty) => (
+          {specialties.map((spec) => (
             <TouchableOpacity
-              key={specialty.id}
-              style={[
-                styles.specialtyItem,
-                selectedSpecialty?.id === specialty.id && styles.specialtyItemSelected,
-              ]}
-              onPress={() => setSelectedSpecialty(specialty)}
+              key={spec.id}
+              style={[styles.specialtyCard, selectedSpecialty === spec.id && styles.specialtyCardSelected]}
+              onPress={() => setSelectedSpecialty(spec.id)}
+              activeOpacity={0.7}
             >
-              <View
-                style={[
-                  styles.specialtyIcon,
-                  selectedSpecialty?.id === specialty.id && styles.specialtyIconSelected,
-                ]}
-              >
-                <Ionicons
-                  name={SPECIALTY_ICONS[specialty.name] || 'medkit'}
-                  size={24}
-                  color={selectedSpecialty?.id === specialty.id ? COLORS.textWhite : COLORS.primary}
-                />
+              <View style={[styles.specialtyIcon, selectedSpecialty === spec.id && styles.specialtyIconSelected]}>
+                <Ionicons name={spec.icon as any} size={24} color={selectedSpecialty === spec.id ? '#FFFFFF' : '#EC4899'} />
               </View>
-              <Text
-                style={[
-                  styles.specialtyName,
-                  selectedSpecialty?.id === specialty.id && styles.specialtyNameSelected,
-                ]}
-                numberOfLines={2}
-              >
-                {specialty.name}
+              <Text style={[styles.specialtyTitle, selectedSpecialty === spec.id && styles.specialtyTitleSelected]}>
+                {spec.title}
+              </Text>
+              <Text style={[styles.specialtyPrice, selectedSpecialty === spec.id && styles.specialtyPriceSelected]}>
+                R$ {spec.price.toFixed(2)}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Duration selection */}
-        <Text style={styles.sectionTitle}>Duração da consulta</Text>
-        <View style={styles.durations}>
-          {durations.map((d) => (
+        {/* Duration Selection */}
+        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Duração da Consulta</Text>
+        <View style={styles.durationsRow}>
+          {durations.map((dur) => (
             <TouchableOpacity
-              key={d}
-              style={[
-                styles.durationItem,
-                duration === d && styles.durationItemSelected,
-              ]}
-              onPress={() => setDuration(d)}
+              key={dur.id}
+              style={[styles.durationCard, selectedDuration === dur.id && styles.durationCardSelected]}
+              onPress={() => setSelectedDuration(dur.id)}
+              activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.durationText,
-                  duration === d && styles.durationTextSelected,
-                ]}
-              >
-                {d} min
+              <Text style={[styles.durationLabel, selectedDuration === dur.id && styles.durationLabelSelected]}>
+                {dur.label}
+              </Text>
+              <Text style={[styles.durationDescription, selectedDuration === dur.id && styles.durationDescriptionSelected]}>
+                {dur.description}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Info card */}
-        <Card style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Ionicons name="videocam" size={20} color={COLORS.primary} />
-            <Text style={styles.infoText}>Consulta por videochamada</Text>
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="videocam" size={24} color="#EC4899" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Como funciona?</Text>
+            <Text style={styles.infoText}>
+              Após o pagamento, você receberá um link para a sala de vídeo. A consulta será realizada pelo app.
+            </Text>
           </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="time" size={20} color={COLORS.primary} />
-            <Text style={styles.infoText}>Médico disponível em minutos</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="document-text" size={20} color={COLORS.primary} />
-            <Text style={styles.infoText}>Receita digital se necessário</Text>
-          </View>
-        </Card>
-      </ScrollView>
-
-      {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
-        <View style={styles.footerInfo}>
-          <Text style={styles.footerLabel}>Total</Text>
-          <Text style={styles.footerPrice}>
-            R$ {basePrice.toFixed(2).replace('.', ',')}
-          </Text>
         </View>
-        <Button
-          title="Agendar consulta"
+
+        {/* Summary Card */}
+        {selectedSpec && (
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Resumo</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Especialidade</Text>
+              <Text style={styles.summaryValue}>{selectedSpec.title}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Duração</Text>
+              <Text style={styles.summaryValue}>{selectedDuration} minutos</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryTotal}>Total</Text>
+              <Text style={styles.summaryPrice}>R$ {selectedSpec.price.toFixed(2)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Submit Button */}
+        <TouchableOpacity
           onPress={handleSubmit}
-          disabled={!selectedSpecialty}
-          loading={isLoading}
-          fullWidth
-        />
-      </View>
+          disabled={loading || !selectedSpecialty}
+          activeOpacity={0.8}
+          style={{ marginTop: 24 }}
+        >
+          <LinearGradient
+            colors={loading || !selectedSpecialty ? ['#CDD5DA', '#9BA7AF'] : ['#EC4899', '#F472B6']}
+            style={styles.submitButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>Agendar Consulta</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-    gap: SIZES.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-  },
-  sectionTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.md,
-  },
-  specialtiesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SIZES.md,
-    marginBottom: SIZES.xl,
-  },
-  specialtyItem: {
-    width: '30%',
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusLg,
-    padding: SIZES.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  specialtyItemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '08',
-  },
-  specialtyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.sm,
-  },
-  specialtyIconSelected: {
-    backgroundColor: COLORS.primary,
-  },
-  specialtyName: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  specialtyNameSelected: {
-    color: COLORS.primary,
-  },
-  durations: {
-    flexDirection: 'row',
-    gap: SIZES.md,
-    marginBottom: SIZES.xl,
-  },
-  durationItem: {
-    flex: 1,
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  durationItemSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
-  },
-  durationText: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  durationTextSelected: {
-    color: COLORS.textWhite,
-  },
-  infoCard: {
-    backgroundColor: COLORS.primary + '08',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SIZES.md,
-    marginBottom: SIZES.sm,
-  },
-  infoText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textPrimary,
-  },
-  footer: {
-    padding: SIZES.lg,
-    backgroundColor: COLORS.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  footerInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SIZES.md,
-  },
-  footerLabel: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-  },
-  footerPrice: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  headerContent: {},
+  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  headerSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+
+  specialtiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  specialtyCard: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  specialtyCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+  specialtyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  specialtyIconSelected: { backgroundColor: '#EC4899' },
+  specialtyTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', textAlign: 'center', marginBottom: 4 },
+  specialtyTitleSelected: { color: '#EC4899' },
+  specialtyPrice: { fontSize: 13, color: '#6B7C85' },
+  specialtyPriceSelected: { color: '#EC4899', fontWeight: '600' },
+
+  durationsRow: { flexDirection: 'row', gap: 12 },
+  durationCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  durationCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+  durationLabel: { fontSize: 16, fontWeight: '700', color: '#1A3A4A', marginBottom: 2 },
+  durationLabelSelected: { color: '#EC4899' },
+  durationDescription: { fontSize: 11, color: '#6B7C85' },
+  durationDescriptionSelected: { color: '#EC4899' },
+
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FDF2F8', borderRadius: 16, padding: 16, marginTop: 24, gap: 14 },
+  infoContent: { flex: 1 },
+  infoTitle: { fontSize: 15, fontWeight: '600', color: '#1A3A4A', marginBottom: 4 },
+  infoText: { fontSize: 13, color: '#6B7C85', lineHeight: 18 },
+
+  summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginTop: 20, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  summaryTitle: { fontSize: 16, fontWeight: '700', color: '#1A3A4A', marginBottom: 16 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  summaryLabel: { fontSize: 14, color: '#6B7C85' },
+  summaryValue: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
+  summaryDivider: { height: 1, backgroundColor: '#E4E9EC', marginVertical: 12 },
+  summaryTotal: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  summaryPrice: { fontSize: 20, fontWeight: '700', color: '#EC4899' },
+
+  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+  submitButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
 });

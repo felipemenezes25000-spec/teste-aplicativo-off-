@@ -1,353 +1,232 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * 👩‍⚕️ Nurse Dashboard - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  RefreshControl,
   TouchableOpacity,
-  Alert,
+  RefreshControl,
+  StatusBar,
+  Switch,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { StatusBadge } from '../../src/components/StatusBadge';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
-import api, { getToken } from '../../src/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 
-interface Request {
-  id: string;
-  patient_name: string;
-  request_type: string;
-  exam_type?: string;
-  exam_description?: string;
-  status: string;
-  created_at: string;
-}
-
-export default function NurseDashboard() {
+export default function NurseDashboardScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const [queue, setQueue] = useState<{
-    pending: Request[];
-    in_review: Request[];
-    awaiting_payment: Request[];
-  }>({ pending: [], in_review: [], awaiting_payment: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {
-    loadQueue();
-    const interval = setInterval(loadQueue, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  const [isAvailable, setIsAvailable] = useState(true);
 
   const loadQueue = async () => {
     try {
-      const token = await getToken();
-      const response = await api.get('/nursing/queue', { params: { token } });
-      setQueue(response.data);
+      const data = await api.getNursingQueue();
+      setQueue(data?.pending || []);
     } catch (error) {
-      console.error('Error loading queue:', error);
+      console.error('Erro ao carregar fila:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  useEffect(() => {
+    loadQueue();
+    const interval = setInterval(loadQueue, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadQueue();
-    setRefreshing(false);
+    loadQueue();
   };
 
-  const handleAcceptRequest = async (request: Request) => {
-    try {
-      const token = await getToken();
-      await api.post(`/nursing/accept/${request.id}`, {}, { params: { token } });
-      Alert.alert('Sucesso', 'Solicitação aceita para triagem');
-      loadQueue();
-    } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aceitar');
-    }
-  };
-
-  const handleViewRequest = (request: Request) => {
-    router.push(`/nurse/request/${request.id}`);
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Sair',
-      'Deseja realmente sair?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', onPress: logout, style: 'destructive' },
-      ]
-    );
-  };
-
-  const totalPending = queue.pending.length;
-  const totalInReview = queue.in_review.length;
-  const totalAwaitingPayment = queue.awaiting_payment.length;
+  const stats = [
+    { label: 'Aguardando', value: queue.length, icon: 'time', color: '#F59E0B', bg: '#FEF3C7' },
+    { label: 'Hoje', value: 12, icon: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
+    { label: 'Semana', value: 48, icon: 'trending-up', color: '#3B82F6', bg: '#DBEAFE' },
+  ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}> 
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Olá, {user?.name?.split(' ')[0]} 👋</Text>
-          <Text style={styles.subtitle}>Painel de Triagem</Text>
+      <LinearGradient
+        colors={['#059669', '#10B981']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>Olá, Enf.</Text>
+            <Text style={styles.nurseName}>{user?.name?.split(' ')[0]} 👩‍⚕️</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
-        </TouchableOpacity>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <Card style={styles.statCard}>
-          <Text style={styles.statNumber}>{totalPending}</Text>
-          <Text style={styles.statLabel}>Aguardando</Text>
-        </Card>
-        <Card style={[styles.statCard, { backgroundColor: COLORS.info + '15' }]}>
-          <Text style={[styles.statNumber, { color: COLORS.info }]}>{totalInReview}</Text>
-          <Text style={styles.statLabel}>Em Triagem</Text>
-        </Card>
-        <Card style={[styles.statCard, { backgroundColor: COLORS.success + '15' }]}>
-          <Text style={[styles.statNumber, { color: COLORS.success }]}>{totalAwaitingPayment}</Text>
-          <Text style={styles.statLabel}>Aprovados</Text>
-        </Card>
-      </View>
+        {/* Availability */}
+        <View style={styles.availabilityCard}>
+          <View style={styles.availabilityContent}>
+            <View style={[styles.statusDot, isAvailable && styles.statusDotActive]} />
+            <Text style={styles.availabilityText}>
+              {isAvailable ? 'Disponível para triagem' : 'Indisponível'}
+            </Text>
+          </View>
+          <Switch
+            value={isAvailable}
+            onValueChange={setIsAvailable}
+            trackColor={{ false: '#4A5960', true: '#A7F3D0' }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10B981" colors={['#10B981']} />
         }
       >
-        {/* In Review */}
-        {queue.in_review.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>🔍 Em Triagem ({queue.in_review.length})</Text>
-            {queue.in_review.map((request) => (
-              <TouchableOpacity key={request.id} onPress={() => handleViewRequest(request)}>
-                <Card style={[styles.requestCard, { borderLeftWidth: 4, borderLeftColor: COLORS.info }]}>
-                  <View style={styles.requestHeader}>
-                    <View style={[styles.requestIcon, { backgroundColor: COLORS.info + '15' }]}>
-                      <Ionicons name="flask" size={20} color={COLORS.info} />
-                    </View>
-                    <View style={styles.requestInfo}>
-                      <Text style={styles.requestTitle}>Solicitação de Exames</Text>
-                      <Text style={styles.requestPatient}>{request.patient_name}</Text>
-                      {request.exam_description && (
-                        <Text style={styles.requestDescription} numberOfLines={1}>
-                          "{request.exam_description}"
-                        </Text>
-                      )}
-                    </View>
-                    <StatusBadge status="in_nursing_review" size="sm" />
-                  </View>
-                  <Button
-                    title="Analisar"
-                    onPress={() => handleViewRequest(request)}
-                    variant="primary"
-                    fullWidth
-                    size="sm"
-                    style={{ marginTop: SIZES.md }}
-                  />
-                </Card>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          {stats.map((stat, index) => (
+            <View key={index} style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: stat.bg }]}>
+                <Ionicons name={stat.icon as any} size={20} color={stat.color} />
+              </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
 
-        {/* Awaiting Payment */}
-        {queue.awaiting_payment.length > 0 && (
-          <>
-            <Text style={[styles.sectionTitle, { color: COLORS.success }]}>
-              ✅ Aprovados - Aguardando Pagamento ({queue.awaiting_payment.length})
-            </Text>
-            {queue.awaiting_payment.map((request) => (
-              <Card key={request.id} style={[styles.requestCard, { borderLeftWidth: 4, borderLeftColor: COLORS.success }]}>
-                <View style={styles.requestHeader}>
-                  <View style={[styles.requestIcon, { backgroundColor: COLORS.success + '15' }]}>
-                    <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
-                  </View>
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestTitle}>Exames Aprovados</Text>
-                    <Text style={styles.requestPatient}>{request.patient_name}</Text>
-                    <Text style={styles.requestDate}>Aguardando paciente pagar</Text>
-                  </View>
-                </View>
-              </Card>
-            ))}
-          </>
-        )}
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={20} color="#10B981" />
+          <Text style={styles.infoText}>
+            Você recebe apenas solicitações de <Text style={styles.infoBold}>exames</Text> para triagem. Receitas vão direto para médicos.
+          </Text>
+        </View>
 
-        {/* Pending Queue */}
-        <Text style={styles.sectionTitle}>📋 Fila de Triagem</Text>
-        {queue.pending.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="checkmark-circle" size={48} color={COLORS.healthGreen} />
-            <Text style={styles.emptyTitle}>Nenhuma solicitação pendente</Text>
-            <Text style={styles.emptyText}>Você está em dia!</Text>
-          </View>
-        ) : (
-          queue.pending.map((request) => (
-            <TouchableOpacity key={request.id} onPress={() => handleAcceptRequest(request)}>
-              <Card style={styles.requestCard}>
+        {/* Queue */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔔 Fila de Triagem ({queue.length})</Text>
+          
+          {queue.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+              </View>
+              <Text style={styles.emptyTitle}>Tudo em dia! 🎉</Text>
+              <Text style={styles.emptySubtitle}>Nenhum exame aguardando triagem</Text>
+            </View>
+          ) : (
+            queue.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.requestCard}
+                onPress={() => router.push(`/nurse/request/${item.id}`)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.requestHeader}>
-                  <View style={[styles.requestIcon, { backgroundColor: COLORS.warning + '15' }]}>
-                    <Ionicons name="flask" size={20} color={COLORS.warning} />
-                  </View>
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestTitle}>Nova Solicitação de Exames</Text>
-                    <Text style={styles.requestPatient}>{request.patient_name}</Text>
-                    {request.exam_description && (
-                      <Text style={styles.requestDescription} numberOfLines={1}>
-                        "{request.exam_description}"
+                  <View style={styles.requestTypeContainer}>
+                    <LinearGradient colors={['#A78BFA', '#7C3AED']} style={styles.requestTypeIcon}>
+                      <Ionicons name="flask" size={18} color="#FFFFFF" />
+                    </LinearGradient>
+                    <View>
+                      <Text style={styles.requestPatient}>{item.patient_name || 'Paciente'}</Text>
+                      <Text style={styles.requestType}>
+                        {item.exam_type === 'laboratory' ? 'Exame Laboratorial' : 'Exame de Imagem'}
                       </Text>
-                    )}
-                    <Text style={styles.requestDate}>
-                      {format(new Date(request.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                    </Text>
+                    </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
                 </View>
-                <Button
-                  title="Aceitar Triagem"
-                  onPress={() => handleAcceptRequest(request)}
-                  fullWidth
-                  size="sm"
-                  style={{ marginTop: SIZES.md }}
-                />
-              </Card>
-            </TouchableOpacity>
-          ))
-        )}
+
+                {item.exam_description && (
+                  <Text style={styles.requestNotes} numberOfLines={2}>{item.exam_description}</Text>
+                )}
+
+                <View style={styles.requestFooter}>
+                  <Text style={styles.requestTime}>
+                    {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <TouchableOpacity style={styles.acceptButton}>
+                    <Text style={styles.acceptButtonText}>Triar</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-  },
-  greeting: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  subtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.healthPurple,
-    marginTop: 2,
-  },
-  logoutBtn: {
-    padding: SIZES.sm,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: SIZES.md,
-    marginBottom: SIZES.md,
-    gap: SIZES.sm,
-  },
-  statCard: {
-    flex: 1,
-    padding: SIZES.md,
-    alignItems: 'center',
-    backgroundColor: COLORS.warning + '15',
-  },
-  statNumber: {
-    fontSize: SIZES.fontXxl,
-    fontWeight: '700',
-    color: COLORS.warning,
-  },
-  statLabel: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.md,
-  },
-  sectionTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginTop: SIZES.md,
-    marginBottom: SIZES.sm,
-  },
-  requestCard: {
-    marginBottom: SIZES.md,
-  },
-  requestHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  requestIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SIZES.sm,
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  requestPatient: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-  },
-  requestDescription: {
-    fontSize: SIZES.fontSm,
-    fontStyle: 'italic',
-    color: COLORS.textMuted,
-  },
-  requestDate: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: SIZES.xxl,
-  },
-  emptyTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginTop: SIZES.md,
-  },
-  emptyText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    marginTop: SIZES.xs,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+
+  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  greeting: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
+  nurseName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
+  logoutButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+
+  availabilityCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 14 },
+  availabilityContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6B7C85' },
+  statusDotActive: { backgroundColor: '#A7F3D0' },
+  availabilityText: { fontSize: 14, color: '#FFFFFF', fontWeight: '500' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  statValue: { fontSize: 24, fontWeight: '700', color: '#1A3A4A' },
+  statLabel: { fontSize: 11, color: '#6B7C85', marginTop: 2 },
+
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 12, padding: 14, marginBottom: 24, gap: 10 },
+  infoText: { flex: 1, fontSize: 13, color: '#065F46', lineHeight: 18 },
+  infoBold: { fontWeight: '600' },
+
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+
+  requestCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+  requestTypeContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  requestTypeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  requestPatient: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  requestType: { fontSize: 12, color: '#6B7C85', marginTop: 2 },
+  requestNotes: { fontSize: 13, color: '#6B7C85', lineHeight: 18, marginBottom: 12, paddingLeft: 52 },
+  requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  requestTime: { fontSize: 12, color: '#9BA7AF' },
+  acceptButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, gap: 6 },
+  acceptButtonText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+
+  emptyContainer: { alignItems: 'center', paddingVertical: 48 },
+  emptyIconContainer: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#1A3A4A', marginBottom: 4 },
+  emptySubtitle: { fontSize: 14, color: '#6B7C85' },
 });

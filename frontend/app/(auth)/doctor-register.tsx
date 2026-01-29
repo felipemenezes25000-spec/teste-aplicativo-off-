@@ -1,35 +1,28 @@
+/**
+ * 👨‍⚕️ Doctor Register Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
+  TouchableOpacity,
   StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  StatusBar,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Input } from '../../src/components/Input';
-import { Button } from '../../src/components/Button';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
 
-const SPECIALTIES = [
-  'Clínico Geral',
-  'Cardiologia',
-  'Dermatologia',
-  'Endocrinologia',
-  'Ginecologia',
-  'Neurologia',
-  'Ortopedia',
-  'Pediatria',
-  'Psiquiatria',
-  'Urologia',
-];
-
-const STATES = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+const UF_LIST = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
 export default function DoctorRegisterScreen() {
   const router = useRouter();
@@ -38,56 +31,97 @@ export default function DoctorRegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [crm, setCrm] = useState('');
-  const [crmState, setCrmState] = useState('');
-  const [specialty, setSpecialty] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showSpecialtyPicker, setShowSpecialtyPicker] = useState(false);
-  const [showStatePicker, setShowStatePicker] = useState(false);
+  const [crm, setCrm] = useState('');
+  const [crmState, setCrmState] = useState('SP');
+  const [specialty, setSpecialty] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showStateModal, setShowStateModal] = useState(false);
 
   const handleRegister = async () => {
-    if (!name || !email || !crm || !crmState || !specialty || !password || !confirmPassword) {
-      setError('Por favor, preencha todos os campos obrigatórios');
+    if (!name.trim() || !email.trim() || !password.trim() || !crm.trim() || !specialty.trim()) {
+      Alert.alert('Atenção', 'Preencha todos os campos obrigatórios');
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
+    if (!acceptedTerms) {
+      Alert.alert('Atenção', 'Você precisa aceitar os termos de uso');
       return;
     }
 
-    setIsLoading(true);
-    setError('');
-
-    const result = await registerDoctor({
-      name,
-      email,
-      password,
-      phone,
-      crm,
-      crm_state: crmState,
-      specialty,
-    });
-    
-    setIsLoading(false);
-
-    if (result.success) {
-      router.replace('/doctor');
-    } else {
-      setError(result.error || 'Erro ao criar conta');
+    setLoading(true);
+    try {
+      await registerDoctor({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        phone: phone.trim(),
+        crm: crm.trim(),
+        crm_state: crmState,
+        specialty: specialty.trim(),
+      });
+      Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
+        { text: 'OK', onPress: () => router.replace('/doctor') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao criar conta');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderInput = (
+    icon: string,
+    placeholder: string,
+    value: string,
+    onChangeText: (text: string) => void,
+    inputKey: string,
+    options?: any
+  ) => (
+    <View style={[styles.inputContainer, focusedInput === inputKey && styles.inputFocused]}>
+      <Ionicons 
+        name={icon as any}
+        size={20} 
+        color={focusedInput === inputKey ? '#1A3A4A' : '#9BA7AF'} 
+        style={styles.inputIcon}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#9BA7AF"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={options?.keyboardType || 'default'}
+        secureTextEntry={options?.secureTextEntry && !showPassword}
+        autoCapitalize={options?.autoCapitalize || 'sentences'}
+        onFocus={() => setFocusedInput(inputKey)}
+        onBlur={() => setFocusedInput(null)}
+      />
+      {options?.secureTextEntry && (
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+          <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color="#9BA7AF" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      
+      <LinearGradient
+        colors={['#1A3A4A', '#2D5A6B']}
         style={styles.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.4 }}
+      />
+      
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -96,307 +130,184 @@ export default function DoctorRegisterScreen() {
         >
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
-            <View style={styles.doctorBadge}>
-              <Ionicons name="medical" size={20} color={COLORS.healthPurple} />
-              <Text style={styles.doctorBadgeText}>Cadastro Médico</Text>
+            <Link href="/login" asChild>
+              <TouchableOpacity style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </Link>
+            <View style={styles.headerBadge}>
+              <Ionicons name="medical" size={16} color="#FFFFFF" />
+              <Text style={styles.headerBadgeText}>Área Médica</Text>
             </View>
-            <Text style={styles.title}>Bem-vindo, Doutor(a)!</Text>
+          </View>
+
+          {/* Title */}
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>Cadastro Médico</Text>
             <Text style={styles.subtitle}>
-              Cadastre-se para atender pacientes na plataforma RenoveJá+
+              Preencha seus dados profissionais para se cadastrar como médico na plataforma
             </Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {error ? (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            ) : null}
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <Text style={styles.formSectionTitle}>Dados Pessoais</Text>
+            {renderInput('person-outline', 'Nome completo *', name, setName, 'name', { autoCapitalize: 'words' })}
+            {renderInput('mail-outline', 'E-mail *', email, setEmail, 'email', { keyboardType: 'email-address', autoCapitalize: 'none' })}
+            {renderInput('call-outline', 'Telefone', phone, setPhone, 'phone', { keyboardType: 'phone-pad' })}
+            {renderInput('lock-closed-outline', 'Senha *', password, setPassword, 'password', { secureTextEntry: true })}
 
-            <Input
-              label="Nome completo *"
-              placeholder="Dr(a). Seu Nome"
-              value={name}
-              onChangeText={setName}
-              leftIcon="person-outline"
-            />
-
-            <Input
-              label="E-mail *"
-              placeholder="seu@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              leftIcon="mail-outline"
-            />
-
-            <Input
-              label="Telefone"
-              placeholder="(00) 00000-0000"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              leftIcon="call-outline"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.flex2}>
-                <Input
-                  label="CRM *"
-                  placeholder="000000"
+            <Text style={[styles.formSectionTitle, { marginTop: 24 }]}>Dados Profissionais</Text>
+            
+            {/* CRM Row */}
+            <View style={styles.crmRow}>
+              <View style={[styles.inputContainer, styles.crmInput, focusedInput === 'crm' && styles.inputFocused]}>
+                <Ionicons name="id-card-outline" size={20} color={focusedInput === 'crm' ? '#1A3A4A' : '#9BA7AF'} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="CRM *"
+                  placeholderTextColor="#9BA7AF"
                   value={crm}
                   onChangeText={setCrm}
                   keyboardType="number-pad"
-                  leftIcon="document-text-outline"
+                  onFocus={() => setFocusedInput('crm')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </View>
-              <View style={styles.flex1}>
-                <Text style={styles.inputLabel}>UF *</Text>
-                <TouchableOpacity
-                  style={styles.picker}
-                  onPress={() => setShowStatePicker(!showStatePicker)}
-                >
-                  <Text style={crmState ? styles.pickerText : styles.pickerPlaceholder}>
-                    {crmState || 'UF'}
-                  </Text>
-                  <Ionicons name="chevron-down" size={20} color={COLORS.textMuted} />
-                </TouchableOpacity>
-                {showStatePicker && (
-                  <View style={styles.pickerDropdown}>
-                    <ScrollView style={styles.pickerScroll} nestedScrollEnabled>
-                      {STATES.map((state) => (
-                        <TouchableOpacity
-                          key={state}
-                          style={styles.pickerItem}
-                          onPress={() => {
-                            setCrmState(state);
-                            setShowStatePicker(false);
-                          }}
-                        >
-                          <Text style={styles.pickerItemText}>{state}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View>
-              <Text style={styles.inputLabel}>Especialidade *</Text>
-              <TouchableOpacity
-                style={styles.picker}
-                onPress={() => setShowSpecialtyPicker(!showSpecialtyPicker)}
+              <TouchableOpacity 
+                style={styles.stateSelector}
+                onPress={() => setShowStateModal(true)}
               >
-                <Ionicons name="medkit-outline" size={20} color={COLORS.textMuted} style={styles.pickerIcon} />
-                <Text style={specialty ? styles.pickerText : styles.pickerPlaceholder}>
-                  {specialty || 'Selecione sua especialidade'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={COLORS.textMuted} />
+                <Text style={styles.stateSelectorText}>{crmState}</Text>
+                <Ionicons name="chevron-down" size={16} color="#1A3A4A" />
               </TouchableOpacity>
-              {showSpecialtyPicker && (
-                <View style={styles.pickerDropdown}>
-                  <ScrollView style={styles.pickerScroll} nestedScrollEnabled>
-                    {SPECIALTIES.map((spec) => (
-                      <TouchableOpacity
-                        key={spec}
-                        style={styles.pickerItem}
-                        onPress={() => {
-                          setSpecialty(spec);
-                          setShowSpecialtyPicker(false);
-                        }}
-                      >
-                        <Text style={styles.pickerItemText}>{spec}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
             </View>
 
-            <Input
-              label="Senha *"
-              placeholder="Mínimo 6 caracteres"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              leftIcon="lock-closed-outline"
-              containerStyle={{ marginTop: SIZES.md }}
-            />
+            {renderInput('medkit-outline', 'Especialidade *', specialty, setSpecialty, 'specialty', { autoCapitalize: 'words' })}
 
-            <Input
-              label="Confirmar senha *"
-              placeholder="Digite a senha novamente"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              leftIcon="lock-closed-outline"
-            />
+            {/* Terms */}
+            <TouchableOpacity 
+              style={styles.termsContainer}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+            >
+              <View style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}>
+                {acceptedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.termsText}>
+                Li e aceito os <Text style={styles.termsLink}>Termos de Uso</Text> e{' '}
+                <Text style={styles.termsLink}>Código de Ética Médica</Text>
+              </Text>
+            </TouchableOpacity>
 
-            <Button
-              title="Criar Conta Médica"
-              onPress={handleRegister}
-              loading={isLoading}
-              fullWidth
-              style={styles.submitButton}
-            />
+            {/* Register Button */}
+            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
+              <LinearGradient
+                colors={loading ? ['#9BA7AF', '#6B7C85'] : ['#1A3A4A', '#2D5A6B']}
+                style={styles.registerButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Text style={styles.registerButtonText}>Cadastrar</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
+
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Já tem uma conta? </Text>
+            <Link href="/login" asChild>
+              <TouchableOpacity>
+                <Text style={styles.loginLink}>Entrar</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+
+      {/* State Modal */}
+      {showStateModal && (
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowStateModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Selecione o Estado</Text>
+            <ScrollView style={styles.modalScroll}>
+              {UF_LIST.map(uf => (
+                <TouchableOpacity
+                  key={uf}
+                  style={[styles.modalItem, crmState === uf && styles.modalItemSelected]}
+                  onPress={() => { setCrmState(uf); setShowStateModal(false); }}
+                >
+                  <Text style={[styles.modalItemText, crmState === uf && styles.modalItemTextSelected]}>{uf}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: SIZES.lg,
-    paddingTop: SIZES.xxl,
-  },
-  header: {
-    marginBottom: SIZES.xl,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  doctorBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.healthPurple + '15',
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radiusFull,
-    alignSelf: 'flex-start',
-    marginBottom: SIZES.md,
-  },
-  doctorBadgeText: {
-    marginLeft: SIZES.sm,
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.healthPurple,
-  },
-  title: {
-    fontSize: SIZES.font3xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  form: {
-    marginBottom: SIZES.lg,
-  },
-  errorContainer: {
-    backgroundColor: COLORS.error + '15',
-    borderRadius: SIZES.radiusLg,
-    padding: SIZES.md,
-    marginBottom: SIZES.md,
-    borderWidth: 1,
-    borderColor: COLORS.error + '30',
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: SIZES.fontSm,
-    textAlign: 'center',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: SIZES.md,
-  },
-  flex1: {
-    flex: 1,
-  },
-  flex2: {
-    flex: 2,
-  },
-  inputLabel: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
-    marginLeft: SIZES.xs,
-  },
-  picker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusLg,
-    height: 56,
-    paddingHorizontal: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-    marginBottom: SIZES.md,
-  },
-  pickerIcon: {
-    marginRight: SIZES.sm,
-  },
-  pickerText: {
-    flex: 1,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
-  pickerPlaceholder: {
-    flex: 1,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textMuted,
-  },
-  pickerDropdown: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusMd,
-    marginTop: -SIZES.md,
-    marginBottom: SIZES.md,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    zIndex: 100,
-  },
-  pickerScroll: {
-    maxHeight: 200,
-  },
-  pickerItem: {
-    paddingVertical: SIZES.sm,
-    paddingHorizontal: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  pickerItemText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-  },
-  submitButton: {
-    marginTop: SIZES.md,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  gradient: { ...StyleSheet.absoluteFillObject },
+  keyboardView: { flex: 1 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
+
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  backButton: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  headerBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6 },
+  headerBadgeText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+
+  titleSection: { marginBottom: 24 },
+  title: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 },
+  subtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 22 },
+
+  formCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
+  formSectionTitle: { fontSize: 14, fontWeight: '600', color: '#6B7C85', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFB', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', marginBottom: 16, paddingHorizontal: 16, height: 56 },
+  inputFocused: { borderColor: '#1A3A4A', backgroundColor: '#FFFFFF' },
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: '#1A3A4A' },
+  eyeButton: { padding: 4 },
+
+  crmRow: { flexDirection: 'row', gap: 12 },
+  crmInput: { flex: 1 },
+  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', paddingHorizontal: 16, height: 56, gap: 4, marginBottom: 16 },
+  stateSelectorText: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+
+  termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24, gap: 12 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#E4E9EC', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  checkboxChecked: { backgroundColor: '#1A3A4A', borderColor: '#1A3A4A' },
+  termsText: { flex: 1, fontSize: 14, color: '#6B7C85', lineHeight: 20 },
+  termsLink: { color: '#1A3A4A', fontWeight: '500' },
+
+  registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+  registerButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+
+  loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  loginText: { fontSize: 14, color: '#6B7C85' },
+  loginLink: { fontSize: 14, color: '#1A3A4A', fontWeight: '600' },
+
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, width: '80%', maxHeight: '60%' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', marginBottom: 16, textAlign: 'center' },
+  modalScroll: { maxHeight: 300 },
+  modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
+  modalItemSelected: { backgroundColor: '#E6F7FA' },
+  modalItemText: { fontSize: 16, color: '#1A3A4A', textAlign: 'center' },
+  modalItemTextSelected: { fontWeight: '600', color: '#00B4CD' },
 });
