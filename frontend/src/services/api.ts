@@ -307,6 +307,26 @@ export const api = {
     return response.data;
   },
 
+  // ============== REVIEWS ==============
+  submitReview: async (requestId: string, data: { rating: number; tags?: string[]; comment?: string | null }) => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.post(`/reviews/${requestId}`, data, { params });
+    return response.data;
+  },
+
+  getDoctorReviews: async (doctorId: string) => {
+    const response = await axiosInstance.get(`/reviews/doctor/${doctorId}`);
+    return response.data;
+  },
+
+  // ============== ADMIN REPORTS ==============
+  getAdminReports: async (period: string = 'month') => {
+    const params: any = await getAuthParams();
+    params.period = period;
+    const response = await axiosInstance.get('/admin/reports', { params });
+    return response.data;
+  },
+
   // ============== SPECIALTIES ==============
   getSpecialties: async () => {
     const response = await axiosInstance.get('/specialties');

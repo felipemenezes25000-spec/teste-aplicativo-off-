@@ -1494,6 +1494,68 @@ async def get_specialties():
         {"id": "10", "name": "Urologia", "icon": "droplet", "price_per_minute": 6.50},
     ]
 
+# ============== REVIEWS ROUTES ==============
+
+class ReviewCreate(BaseModel):
+    rating: int
+    tags: Optional[List[str]] = None
+    comment: Optional[str] = None
+
+@api_router.post("/reviews/{request_id}")
+async def submit_review(request_id: str, token: str, data: ReviewCreate):
+    """Submit a review for a completed request"""
+    user = await get_current_user(token)
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    if request.get("patient_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Apenas o paciente pode avaliar")
+    
+    # Update request with review
+    review_data = {
+        "rating": data.rating,
+        "tags": data.tags or [],
+        "comment": data.comment,
+        "reviewed_at": datetime.utcnow().isoformat()
+    }
+    
+    await update_one("requests", {"id": request_id}, {"review": review_data})
+    
+    # Update doctor's average rating if applicable
+    if request.get("doctor_id"):
+        doctor_requests = await find_many("requests", filters={"doctor_id": request["doctor_id"]}, limit=100)
+        ratings = [r.get("review", {}).get("rating") for r in doctor_requests if r.get("review", {}).get("rating")]
+        if ratings:
+            avg_rating = sum(ratings) / len(ratings)
+            await update_one("doctor_profiles", {"user_id": request["doctor_id"]}, {
+                "rating": round(avg_rating, 2),
+                "updated_at": datetime.utcnow().isoformat()
+            })
+    
+    return {"message": "Avaliação enviada com sucesso", "review": review_data}
+
+@api_router.get("/reviews/doctor/{doctor_id}")
+async def get_doctor_reviews(doctor_id: str, limit: int = 20):
+    """Get reviews for a specific doctor"""
+    requests = await find_many("requests", filters={"doctor_id": doctor_id}, order="created_at.desc", limit=limit)
+    
+    reviews = []
+    for r in requests:
+        if r.get("review"):
+            reviews.append({
+                "id": r["id"],
+                "patient_name": r.get("patient_name", "Paciente"),
+                "rating": r["review"].get("rating"),
+                "tags": r["review"].get("tags", []),
+                "comment": r["review"].get("comment"),
+                "date": r["review"].get("reviewed_at"),
+                "request_type": r.get("request_type")
+            })
+    
+    return reviews
+
 # ============== ADMIN ROUTES ==============
 
 @api_router.get("/admin/stats")
@@ -1502,14 +1564,88 @@ async def get_admin_stats(token: str = None):
     total_patients = await count_docs("users", {"role": "patient"})
     total_doctors = await count_docs("users", {"role": "doctor"})
     
+    # Count requests by status
+    pending = await count_docs("requests", {"status": "submitted"})
+    analyzing = await count_docs("requests", {"status": {"in": ["analyzing", "in_review"]}})
+    
+    # Get completed today
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    all_completed = await find_many("requests", filters={"status": "completed"}, limit=500)
+    completed_today = sum(1 for r in all_completed if r.get("completed_at", "").startswith(today))
+    
+    # Calculate revenue
+    all_payments = await find_many("payments", filters={"status": "completed"}, limit=500)
+    total_revenue = sum(float(p.get("amount", 0)) for p in all_payments)
+    
     return {
         "total_users": total_users,
         "total_patients": total_patients,
         "total_doctors": total_doctors,
-        "pending_requests": 0,
-        "analyzing_requests": 0,
-        "completed_today": 0,
-        "total_revenue": 0.0
+        "pending_requests": pending,
+        "analyzing_requests": analyzing,
+        "completed_today": completed_today,
+        "total_revenue": total_revenue
+    }
+
+@api_router.get("/admin/reports")
+async def get_admin_reports(token: str, period: str = "month"):
+    """Get detailed reports (admin only)"""
+    user = await get_current_user(token)
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Get all data
+    all_requests = await find_many("requests", limit=1000)
+    all_payments = await find_many("payments", filters={"status": "completed"}, limit=500)
+    all_doctors = await find_many("doctor_profiles", limit=100)
+    
+    # Calculate totals
+    total_revenue = sum(float(p.get("amount", 0)) for p in all_payments)
+    completed_requests = [r for r in all_requests if r.get("status") == "completed"]
+    
+    # Requests by type
+    prescription_count = sum(1 for r in all_requests if r.get("request_type") == "prescription")
+    consultation_count = sum(1 for r in all_requests if r.get("request_type") == "consultation")
+    exam_count = sum(1 for r in all_requests if r.get("request_type") == "exam")
+    total_count = len(all_requests) or 1
+    
+    # Top doctors
+    doctor_stats = {}
+    for r in completed_requests:
+        doc_id = r.get("doctor_id")
+        if doc_id:
+            if doc_id not in doctor_stats:
+                doctor_stats[doc_id] = {"name": r.get("doctor_name", "N/A"), "count": 0, "ratings": []}
+            doctor_stats[doc_id]["count"] += 1
+            if r.get("review", {}).get("rating"):
+                doctor_stats[doc_id]["ratings"].append(r["review"]["rating"])
+    
+    top_doctors = []
+    for doc_id, stats in sorted(doctor_stats.items(), key=lambda x: x[1]["count"], reverse=True)[:5]:
+        avg_rating = sum(stats["ratings"]) / len(stats["ratings"]) if stats["ratings"] else 0
+        top_doctors.append({
+            "name": stats["name"],
+            "consultations": stats["count"],
+            "rating": round(avg_rating, 1)
+        })
+    
+    # Average rating
+    all_ratings = [r.get("review", {}).get("rating") for r in all_requests if r.get("review", {}).get("rating")]
+    avg_rating = round(sum(all_ratings) / len(all_ratings), 1) if all_ratings else 0
+    
+    return {
+        "totalRevenue": total_revenue,
+        "monthlyRevenue": total_revenue * 0.3,  # Simplified
+        "totalRequests": len(all_requests),
+        "completedRequests": len(completed_requests),
+        "pendingRequests": len(all_requests) - len(completed_requests),
+        "averageRating": avg_rating,
+        "topDoctors": top_doctors,
+        "requestsByType": [
+            {"type": "Receitas", "count": prescription_count, "percentage": round(prescription_count / total_count * 100)},
+            {"type": "Consultas", "count": consultation_count, "percentage": round(consultation_count / total_count * 100)},
+            {"type": "Exames", "count": exam_count, "percentage": round(exam_count / total_count * 100)},
+        ]
     }
 
 @api_router.get("/admin/users")
