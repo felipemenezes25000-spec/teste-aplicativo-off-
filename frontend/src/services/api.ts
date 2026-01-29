@@ -359,6 +359,39 @@ export const api = {
     const response = await axiosInstance.post(url, null, { params });
     return response.data;
   },
+
+  // ============== AI MEDICAL DOCUMENT ANALYSIS ==============
+  aiAnalyzeDocument: async (data: { request_id?: string; image_data: string; document_type?: string }) => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.post('/ai/analyze-document', data, { params });
+    return response.data;
+  },
+
+  aiAnalyzePrescription: async (data: { request_id?: string; image_data: string }) => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.post('/ai/analyze-prescription', { ...data, document_type: 'prescription' }, { params });
+    return response.data;
+  },
+
+  aiAnalyzeExam: async (data: { request_id?: string; image_data: string }) => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.post('/ai/analyze-exam', { ...data, document_type: 'exam' }, { params });
+    return response.data;
+  },
+
+  aiPrefillPrescription: async (requestId: string, imageData: string) => {
+    const params: any = await getAuthParams();
+    params.request_id = requestId;
+    const response = await axiosInstance.post('/ai/prefill-prescription', { image_data: imageData }, { params });
+    return response.data;
+  },
+
+  aiPrefillExam: async (requestId: string, imageData: string) => {
+    const params: any = await getAuthParams();
+    params.request_id = requestId;
+    const response = await axiosInstance.post('/ai/prefill-exam', { image_data: imageData }, { params });
+    return response.data;
+  },
 };
 
 // ============== LEGACY EXPORTS (for backwards compatibility) ==============

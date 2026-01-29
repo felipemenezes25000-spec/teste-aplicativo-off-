@@ -28,6 +28,9 @@ from notifications_helper import (
     TEMPLATES, create_notification
 )
 
+# Import AI Medical Analyzer
+from ai_medical_analyzer import analyze_medical_document, MedicalDocumentAnalyzer
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -1712,6 +1715,224 @@ async def get_specialties():
         {"id": "9", "name": "Psiquiatria", "icon": "brain", "price_per_minute": 7.50},
         {"id": "10", "name": "Urologia", "icon": "droplet", "price_per_minute": 6.50},
     ]
+
+# ============== AI MEDICAL DOCUMENT ANALYSIS ==============
+
+class DocumentAnalysisRequest(BaseModel):
+    image_data: str  # Base64 encoded image
+    document_type: Optional[str] = "auto"  # "prescription", "exam", or "auto"
+    request_id: Optional[str] = None  # ID da solicitação associada
+
+@api_router.post("/ai/analyze-document")
+async def ai_analyze_document(token: str, data: DocumentAnalysisRequest):
+    """
+    🤖 Analisa um documento médico usando IA (Claude Vision)
+    
+    Tipos suportados:
+    - prescription: Receita médica
+    - exam: Solicitação de exames
+    - auto: Detecta automaticamente
+    
+    Retorna dados estruturados extraídos do documento.
+    """
+    user = await get_current_user(token)
+    
+    # Verificar se é médico ou enfermeiro
+    if user.get("role") not in ["doctor", "nurse", "admin"]:
+        raise HTTPException(status_code=403, detail="Apenas profissionais de saúde podem analisar documentos")
+    
+    try:
+        # Obter API key do ambiente
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="API de IA não configurada")
+        
+        # Analisar documento
+        result = await analyze_medical_document(
+            image_data=data.image_data,
+            document_type=data.document_type,
+            api_key=api_key
+        )
+        
+        # Se houver request_id, salvar análise
+        if data.request_id:
+            await update_one("requests", {"id": data.request_id}, {
+                "ai_analysis": result,
+                "ai_analyzed_at": datetime.utcnow().isoformat(),
+                "ai_analyzed_by": user["id"]
+            })
+        
+        return {
+            "success": True,
+            "analysis": result,
+            "message": "Documento analisado com sucesso"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
+
+@api_router.post("/ai/analyze-prescription")
+async def ai_analyze_prescription(token: str, data: DocumentAnalysisRequest):
+    """
+    🤖 Analisa especificamente uma receita médica
+    
+    Extrai:
+    - Medicamentos, dosagens, posologia
+    - Informações do paciente
+    - Informações do prescritor
+    - Tipo de receita (simples/controlada/azul)
+    """
+    data.document_type = "prescription"
+    return await ai_analyze_document(token, data)
+
+@api_router.post("/ai/analyze-exam")
+async def ai_analyze_exam(token: str, data: DocumentAnalysisRequest):
+    """
+    🤖 Analisa especificamente uma solicitação de exames
+    
+    Extrai:
+    - Lista de exames solicitados
+    - Indicação clínica
+    - Informações do paciente
+    - Informações do solicitante
+    """
+    data.document_type = "exam"
+    return await ai_analyze_document(token, data)
+
+@api_router.post("/ai/prefill-prescription")
+async def ai_prefill_prescription(token: str, request_id: str, data: DocumentAnalysisRequest):
+    """
+    🤖 Analisa receita e pré-preenche os campos da solicitação
+    
+    Fluxo:
+    1. Analisa a imagem da receita
+    2. Extrai medicamentos e informações
+    3. Atualiza a solicitação com os dados extraídos
+    4. Retorna dados para validação pelo médico
+    """
+    user = await get_current_user(token)
+    
+    if user.get("role") not in ["doctor", "nurse", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+    
+    # Verificar se a solicitação existe
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    try:
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        result = await analyze_medical_document(
+            image_data=data.image_data,
+            document_type="prescription",
+            api_key=api_key
+        )
+        
+        if result.get("error"):
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        # Extrair medicamentos para pré-preenchimento
+        medications = result.get("medications", [])
+        prescription_type = result.get("prescription_type", "simples")
+        observations = result.get("general_observations", "")
+        
+        # Mapear tipo de receita
+        type_map = {
+            "simples": "simple",
+            "controlada": "controlled",
+            "azul": "blue",
+            "antimicrobiano": "antimicrobial"
+        }
+        
+        # Atualizar solicitação com dados extraídos
+        update_data = {
+            "ai_analysis": result,
+            "ai_analyzed_at": datetime.utcnow().isoformat(),
+            "ai_prefilled": True,
+            "medications": medications,
+            "prescription_type": type_map.get(prescription_type.lower(), "simple"),
+            "ai_observations": observations,
+            "ai_confidence": result.get("confidence_overall", "unknown")
+        }
+        
+        await update_one("requests", {"id": request_id}, update_data)
+        
+        return {
+            "success": True,
+            "request_id": request_id,
+            "prefilled_data": {
+                "medications": medications,
+                "prescription_type": type_map.get(prescription_type.lower(), "simple"),
+                "observations": observations,
+                "confidence": result.get("confidence_overall", "unknown")
+            },
+            "full_analysis": result,
+            "message": "Receita analisada e dados pré-preenchidos. Valide antes de assinar."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
+
+@api_router.post("/ai/prefill-exam")
+async def ai_prefill_exam(token: str, request_id: str, data: DocumentAnalysisRequest):
+    """
+    🤖 Analisa solicitação de exames e pré-preenche os campos
+    """
+    user = await get_current_user(token)
+    
+    if user.get("role") not in ["doctor", "nurse", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
+    
+    request = await find_one("requests", {"id": request_id})
+    if not request:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada")
+    
+    try:
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        result = await analyze_medical_document(
+            image_data=data.image_data,
+            document_type="exam",
+            api_key=api_key
+        )
+        
+        if result.get("error"):
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        # Extrair exames
+        exams = [e.get("name") for e in result.get("exams", [])]
+        clinical_indication = result.get("clinical_indication", "")
+        
+        # Atualizar solicitação
+        update_data = {
+            "ai_analysis": result,
+            "ai_analyzed_at": datetime.utcnow().isoformat(),
+            "ai_prefilled": True,
+            "exams": exams,
+            "exam_description": clinical_indication,
+            "ai_confidence": result.get("confidence_overall", "unknown")
+        }
+        
+        await update_one("requests", {"id": request_id}, update_data)
+        
+        return {
+            "success": True,
+            "request_id": request_id,
+            "prefilled_data": {
+                "exams": exams,
+                "clinical_indication": clinical_indication,
+                "exam_groups": result.get("exam_groups", []),
+                "confidence": result.get("confidence_overall", "unknown")
+            },
+            "full_analysis": result,
+            "message": "Exames analisados e dados pré-preenchidos. Valide antes de aprovar."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
 # ============== REVIEWS ROUTES ==============
 
