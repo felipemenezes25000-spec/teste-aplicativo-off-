@@ -1,208 +1,184 @@
-# 🏥 RenoveJá - Plataforma de Telemedicina
+# 🏥 RenoveJá+
 
-Sistema completo de telemedicina com renovação de receitas, solicitação de exames e consultas por vídeo.
+**Plataforma de Telemedicina** - Renovação de receitas, pedidos de exames e teleconsultas.
 
-## 📋 Funcionalidades
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Backend](https://img.shields.io/badge/backend-FastAPI-green)
+![Frontend](https://img.shields.io/badge/frontend-Expo%20React%20Native-blue)
+![Database](https://img.shields.io/badge/database-Supabase-purple)
 
-- **Pacientes:** Solicitar renovação de receitas, exames e consultas
-- **Médicos:** Analisar e aprovar solicitações, assinar documentos
-- **Enfermeiros:** Triagem de solicitações de exames
-- **Admin:** Gerenciar usuários, médicos e solicitações
+---
 
-## 🚀 Como Rodar o Projeto
+## 📱 Sobre o Projeto
 
-### Opção 1: Docker (Recomendado) 🐳
+O RenoveJá+ é um aplicativo que conecta pacientes a médicos para:
 
-```bash
-# Clone o repositório
-git clone <seu-repo>
-cd <pasta-do-projeto>
+- 💊 **Renovação de Receitas** - Simples, controladas e azuis
+- 🔬 **Pedidos de Exames** - Laboratório e imagem
+- 📹 **Teleconsultas** - Consultas por vídeo
 
-# Rode tudo com um comando
-docker-compose up -d
+### Fluxo do Paciente
+1. Solicita receita/exame/consulta
+2. Médico analisa e aprova
+3. Paciente paga via PIX
+4. Recebe receita digital assinada
 
-# Acesse:
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8001
-# MongoDB: localhost:27017
-```
-
-### Opção 2: Manual
-
-#### Pré-requisitos
-- Node.js 18+ 
-- Python 3.10+
-- MongoDB (local ou Atlas)
-- Yarn ou npm
-
-#### 1. Backend (FastAPI)
-
-```bash
-cd backend
-
-# Criar ambiente virtual
-python -m venv venv
-
-# Ativar ambiente virtual
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Instalar dependências
-pip install -r requirements.txt
-
-# Copiar e configurar variáveis de ambiente
-cp .env.example .env
-# Edite o .env com suas credenciais
-
-# Rodar o servidor
-uvicorn server:app --reload --port 8001
-```
-
-#### 2. Frontend (Expo)
-
-```bash
-cd frontend
-
-# Instalar dependências
-yarn install
-# ou: npm install
-
-# Copiar e configurar variáveis de ambiente
-cp .env.example .env
-# Edite o .env com a URL do backend
-
-# Rodar o projeto
-yarn start
-# ou: npx expo start
-```
-
-#### 3. MongoDB
-
-**Opção A - Local:**
-```bash
-# Instalar MongoDB Community
-# https://www.mongodb.com/try/download/community
-
-# Iniciar MongoDB
-mongod
-```
-
-**Opção B - Docker:**
-```bash
-docker run -d -p 27017:27017 --name mongodb mongo:latest
-```
-
-**Opção C - MongoDB Atlas (Cloud):**
-1. Crie conta em https://www.mongodb.com/atlas
-2. Crie um cluster gratuito
-3. Pegue a connection string e coloque no .env
-
-## 📱 Testando no Celular
-
-1. Instale o app **Expo Go** no celular
-2. Rode `yarn start` no frontend
-3. Escaneie o QR Code com o Expo Go
-
-## 🔐 Variáveis de Ambiente
-
-### Backend (.env)
-```env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=renoveja
-MERCADOPAGO_ACCESS_TOKEN=seu_token_aqui
-MERCADOPAGO_PUBLIC_KEY=sua_chave_publica
-```
-
-### Frontend (.env)
-```env
-EXPO_PUBLIC_BACKEND_URL=http://localhost:8001
-```
-
-## 👥 Usuários de Teste
-
-Após rodar o projeto, você pode criar usuários:
-
-1. **Paciente:** Cadastre-se pela tela inicial
-2. **Médico:** Clique em "É médico? Cadastre-se aqui"
-3. **Enfermeiro:** Clique em "É enfermeiro(a)? Cadastre-se aqui"
-4. **Admin:** Crie manualmente no banco:
-
-```javascript
-// No MongoDB Compass ou mongosh:
-db.users.insertOne({
-  id: "admin-1",
-  name: "Admin",
-  email: "admin@renoveja.com",
-  password_hash: "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.VTtYWWQIqS5qeO", // senha: admin123
-  role: "admin",
-  created_at: new Date()
-})
-```
+---
 
 ## 🏗️ Estrutura do Projeto
 
 ```
-/app
-├── backend/
-│   ├── server.py          # API FastAPI
-│   ├── integrations.py    # Serviços externos
-│   ├── requirements.txt   # Dependências Python
-│   └── .env.example       # Exemplo de configuração
+projeto-renoveja/
+├── backend/                 # API FastAPI
+│   ├── server.py           # Servidor principal
+│   ├── database.py         # Conexão Supabase
+│   ├── queue_manager.py    # Gerenciamento de filas
+│   └── requirements.txt    # Dependências Python
 │
-├── frontend/
-│   ├── app/               # Telas (Expo Router)
-│   │   ├── (auth)/        # Login, Registro
-│   │   ├── (tabs)/        # Home, Histórico, Perfil
-│   │   ├── admin/         # Painel Admin
-│   │   ├── doctor/        # Painel Médico
-│   │   ├── nurse/         # Painel Enfermagem
-│   │   └── ...            # Outras telas
+├── frontend/               # App React Native (Expo)
+│   ├── app/               # Rotas (Expo Router)
+│   │   ├── (auth)/        # Login, registro
+│   │   ├── (tabs)/        # Tabs do paciente
+│   │   ├── doctor/        # Dashboard médico
+│   │   ├── nurse/         # Dashboard enfermagem
+│   │   ├── admin/         # Dashboard admin
+│   │   └── prescription/  # Fluxo de receitas
 │   ├── src/
 │   │   ├── components/    # Componentes reutilizáveis
-│   │   ├── contexts/      # Contextos React
-│   │   ├── services/      # APIs e serviços
-│   │   └── utils/         # Utilitários
-│   ├── package.json       # Dependências Node
-│   └── .env.example       # Exemplo de configuração
+│   │   ├── contexts/      # AuthContext, ThemeContext
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # API client
+│   │   └── types/         # TypeScript types
+│   └── package.json
 │
-├── docker-compose.yml     # Orquestração Docker
-└── README.md              # Este arquivo
+├── supabase/              # Schema do banco
+│   └── schema.sql
+│
+└── docs/                  # Documentação
+    ├── ARQUITETURA.md     # Fluxos e diagramas
+    └── ROADMAP_MELHORIAS.md
 ```
 
-## 🔧 Troubleshooting
+---
 
-### Erro: "Cannot connect to MongoDB"
-- Verifique se o MongoDB está rodando
-- Verifique a MONGO_URL no .env
+## 🚀 Como Rodar
 
-### Erro: "Network request failed" no app
-- Verifique se o backend está rodando na porta 8001
-- Verifique a EXPO_PUBLIC_BACKEND_URL no frontend/.env
-- Se estiver no celular, use o IP da máquina ao invés de localhost
+### Pré-requisitos
+- Node.js 18+
+- Python 3.11+
+- Conta no [Supabase](https://supabase.com)
 
-### Erro: "Module not found"
+### Backend
+
 ```bash
-# Frontend
-cd frontend && rm -rf node_modules && yarn install
+cd backend
 
-# Backend
-cd backend && pip install -r requirements.txt
+# Criar .env
+cp .env.example .env
+# Editar com suas credenciais Supabase
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Rodar servidor
+uvicorn server:app --reload --port 8001
 ```
 
-### Tela branca no app
+### Frontend
+
 ```bash
 cd frontend
-rm -rf node_modules .expo .metro-cache
+
+# Instalar dependências
 yarn install
-yarn start --clear
+
+# Criar .env
+cp .env.example .env
+# Editar com URL da API
+
+# Rodar app
+yarn start
 ```
+
+---
+
+## 🔗 URLs
+
+| Ambiente | URL |
+|----------|-----|
+| **API (Produção)** | https://teste-aplicativo-off-production.up.railway.app |
+| **Docs da API** | https://teste-aplicativo-off-production.up.railway.app/docs |
+| **Supabase** | https://supabase.com/dashboard/project/gklkznyyouwqsohszula |
+
+---
+
+## 👥 Tipos de Usuário
+
+| Tipo | Descrição | Dashboard |
+|------|-----------|-----------|
+| **patient** | Paciente | `/(tabs)` |
+| **doctor** | Médico | `/doctor` |
+| **nurse** | Enfermeiro | `/nurse` |
+| **admin** | Administrador | `/admin` |
+
+---
+
+## 📋 Status das Solicitações
+
+```
+submitted → in_review → approved_pending_payment → paid → signed → delivered
+                ↓
+            rejected
+```
+
+---
+
+## ✨ Features
+
+### Implementadas ✅
+- [x] Autenticação (email/senha)
+- [x] Registro de pacientes, médicos e enfermeiros
+- [x] Solicitação de receitas
+- [x] Fila de atendimento médico
+- [x] Triagem de enfermagem (exames)
+- [x] Aprovação/rejeição com motivo
+- [x] Pagamento simulado (PIX)
+- [x] Assinatura digital
+- [x] Chat médico-paciente
+- [x] Notificações no app
+- [x] Dark mode
+- [x] Skeleton loading
+
+### Em Desenvolvimento 🚧
+- [ ] Push notifications
+- [ ] Pagamento real (MercadoPago)
+- [ ] Teleconsulta por vídeo
+- [ ] Lembretes de medicamento
+- [ ] Biometria (Face ID / Touch ID)
+
+---
+
+## 🛠️ Tecnologias
+
+### Backend
+- **FastAPI** - Framework web
+- **Supabase** - Banco de dados PostgreSQL
+- **httpx** - Cliente HTTP async
+
+### Frontend
+- **Expo** - Framework React Native
+- **Expo Router** - Navegação
+- **React Native Reanimated** - Animações
+- **Zustand** - Estado global
+
+---
 
 ## 📄 Licença
 
-MIT
+Projeto privado - Todos os direitos reservados.
 
-## 🤝 Suporte
+---
 
-Dúvidas? Abra uma issue no repositório.
+## 👨‍💻 Desenvolvido por
+
+Felipe Menezes
