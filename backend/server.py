@@ -964,6 +964,78 @@ async def nursing_reject_request(request_id: str, token: str, data: NursingRejec
     
     return {"success": True, "message": "Solicitação recusada"}
 
+# ============== MERCADOPAGO CONFIG ==============
+
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")
+MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY", "")
+
+async def create_mercadopago_pix(amount: float, description: str, payer_email: str, external_reference: str):
+    """Create a PIX payment using MercadoPago API"""
+    if not MERCADOPAGO_ACCESS_TOKEN:
+        return None
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.mercadopago.com/v1/payments",
+                headers={
+                    "Authorization": f"Bearer {MERCADOPAGO_ACCESS_TOKEN}",
+                    "Content-Type": "application/json",
+                    "X-Idempotency-Key": str(uuid.uuid4())
+                },
+                json={
+                    "transaction_amount": float(amount),
+                    "description": description,
+                    "payment_method_id": "pix",
+                    "payer": {
+                        "email": payer_email
+                    },
+                    "external_reference": external_reference
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code in [200, 201]:
+                data = response.json()
+                return {
+                    "mp_payment_id": str(data.get("id")),
+                    "status": data.get("status"),
+                    "pix_code": data.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code"),
+                    "pix_qr_base64": data.get("point_of_interaction", {}).get("transaction_data", {}).get("qr_code_base64"),
+                    "ticket_url": data.get("point_of_interaction", {}).get("transaction_data", {}).get("ticket_url")
+                }
+            else:
+                print(f"MercadoPago error: {response.status_code} - {response.text}")
+                return None
+    except Exception as e:
+        print(f"MercadoPago exception: {e}")
+        return None
+
+async def check_mercadopago_payment(mp_payment_id: str):
+    """Check payment status on MercadoPago"""
+    if not MERCADOPAGO_ACCESS_TOKEN or not mp_payment_id:
+        return None
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://api.mercadopago.com/v1/payments/{mp_payment_id}",
+                headers={"Authorization": f"Bearer {MERCADOPAGO_ACCESS_TOKEN}"},
+                timeout=15.0
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "status": data.get("status"),
+                    "status_detail": data.get("status_detail"),
+                    "date_approved": data.get("date_approved")
+                }
+            return None
+    except Exception as e:
+        print(f"MercadoPago check error: {e}")
+        return None
+
 # ============== PAYMENT ROUTES ==============
 
 @api_router.post("/payments")
@@ -975,6 +1047,18 @@ async def create_payment(token: str, data: PaymentCreate):
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
     
     payment_id = str(uuid.uuid4())
+    is_real_payment = bool(MERCADOPAGO_ACCESS_TOKEN)
+    
+    # Try to create real MercadoPago payment
+    mp_data = None
+    if is_real_payment and data.method == "pix":
+        mp_data = await create_mercadopago_pix(
+            amount=data.amount,
+            description=f"RenoveJá+ - {request.get('request_type', 'Serviço')}",
+            payer_email=user.get("email", "cliente@renoveja.com"),
+            external_reference=payment_id
+        )
+    
     payment_data = {
         "id": payment_id,
         "request_id": data.request_id,
@@ -982,8 +1066,12 @@ async def create_payment(token: str, data: PaymentCreate):
         "amount": data.amount,
         "method": data.method,
         "status": "pending",
-        "pix_code": generate_pix_code() if data.method == "pix" else None,
-        "is_real_payment": False
+        "pix_code": mp_data.get("pix_code") if mp_data else generate_pix_code(),
+        "pix_qr_base64": mp_data.get("pix_qr_base64") if mp_data else None,
+        "qr_code_base64": mp_data.get("pix_qr_base64") if mp_data else None,
+        "external_id": mp_data.get("mp_payment_id") if mp_data else None,
+        "ticket_url": mp_data.get("ticket_url") if mp_data else None,
+        "is_real_payment": is_real_payment and mp_data is not None
     }
     
     await insert_one("payments", payment_data)
@@ -998,6 +1086,21 @@ async def get_payment(payment_id: str, token: str):
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     
+    # Check real payment status if applicable
+    if payment.get("is_real_payment") and payment.get("external_id") and payment.get("status") == "pending":
+        mp_status = await check_mercadopago_payment(payment["external_id"])
+        if mp_status and mp_status.get("status") == "approved":
+            # Update payment and request status
+            await update_one("payments", {"id": payment_id}, {
+                "status": "completed",
+                "paid_at": mp_status.get("date_approved") or datetime.utcnow().isoformat()
+            })
+            await update_one("requests", {"id": payment["request_id"]}, {
+                "status": "paid",
+                "paid_at": datetime.utcnow().isoformat()
+            })
+            payment["status"] = "completed"
+    
     return payment
 
 @api_router.get("/payments/{payment_id}/status")
@@ -1008,15 +1111,33 @@ async def check_payment_status(payment_id: str, token: str):
     if not payment:
         raise HTTPException(status_code=404, detail="Pagamento não encontrado")
     
+    # Check real payment status
+    mp_status = None
+    if payment.get("is_real_payment") and payment.get("external_id"):
+        mp_status = await check_mercadopago_payment(payment["external_id"])
+        
+        if mp_status and mp_status.get("status") == "approved" and payment.get("status") != "completed":
+            await update_one("payments", {"id": payment_id}, {
+                "status": "completed",
+                "paid_at": mp_status.get("date_approved") or datetime.utcnow().isoformat()
+            })
+            await update_one("requests", {"id": payment["request_id"]}, {
+                "status": "paid",
+                "paid_at": datetime.utcnow().isoformat()
+            })
+            payment["status"] = "completed"
+    
     return {
         "payment_id": payment_id,
         "status": payment.get("status"),
         "amount": payment.get("amount"),
-        "is_real_payment": payment.get("is_real_payment", False)
+        "is_real_payment": payment.get("is_real_payment", False),
+        "mp_status": mp_status
     }
 
 @api_router.post("/payments/{payment_id}/confirm")
 async def confirm_payment(payment_id: str, token: str):
+    """Manual confirmation (for simulated payments or admin override)"""
     user = await get_current_user(token)
     
     payment = await find_one("payments", {"id": payment_id})
@@ -1045,6 +1166,72 @@ async def confirm_payment(payment_id: str, token: str):
         })
     
     return {"message": "Pagamento confirmado com sucesso", "status": "paid"}
+
+class WebhookData(BaseModel):
+    action: Optional[str] = None
+    api_version: Optional[str] = None
+    data: Optional[dict] = None
+    date_created: Optional[str] = None
+    id: Optional[str] = None
+    live_mode: Optional[bool] = None
+    type: Optional[str] = None
+    user_id: Optional[str] = None
+
+@api_router.post("/payments/webhook/mercadopago")
+async def mercadopago_webhook(data: WebhookData):
+    """Webhook to receive MercadoPago payment notifications"""
+    try:
+        # MercadoPago sends payment.created, payment.updated events
+        if data.type == "payment" and data.data:
+            mp_payment_id = data.data.get("id")
+            if mp_payment_id:
+                # Check payment status
+                mp_status = await check_mercadopago_payment(str(mp_payment_id))
+                
+                if mp_status and mp_status.get("status") == "approved":
+                    # Find payment by external_id
+                    payments = await find_many("payments", filters={"external_id": str(mp_payment_id)}, limit=1)
+                    
+                    if payments:
+                        payment = payments[0]
+                        if payment.get("status") != "completed":
+                            # Update payment
+                            await update_one("payments", {"id": payment["id"]}, {
+                                "status": "completed",
+                                "paid_at": mp_status.get("date_approved") or datetime.utcnow().isoformat()
+                            })
+                            
+                            # Update request
+                            await update_one("requests", {"id": payment["request_id"]}, {
+                                "status": "paid",
+                                "paid_at": datetime.utcnow().isoformat()
+                            })
+                            
+                            # Notify doctor
+                            request = await find_one("requests", {"id": payment["request_id"]})
+                            if request and request.get("doctor_id"):
+                                await insert_one("notifications", {
+                                    "id": str(uuid.uuid4()),
+                                    "user_id": request["doctor_id"],
+                                    "title": "💰 Pagamento Recebido!",
+                                    "message": f"Pagamento PIX confirmado para {request.get('patient_name', 'paciente')}.",
+                                    "notification_type": "success"
+                                })
+                            
+                            # Notify patient
+                            if request and request.get("patient_id"):
+                                await insert_one("notifications", {
+                                    "id": str(uuid.uuid4()),
+                                    "user_id": request["patient_id"],
+                                    "title": "✅ Pagamento Confirmado!",
+                                    "message": "Seu pagamento foi confirmado. Aguarde a assinatura da receita.",
+                                    "notification_type": "success"
+                                })
+        
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"status": "error", "message": str(e)}
 
 # ============== CHAT ROUTES ==============
 
