@@ -3,7 +3,7 @@
  * RenoveJá+ Telemedicina
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,38 +14,116 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '864017403483-gvdaea3fm56go70jf0mqtk1ppajjppf1.apps.googleusercontent.com';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_CLIENT_ID,
+    androidClientId: GOOGLE_CLIENT_ID,
+    iosClientId: GOOGLE_CLIENT_ID,
+    selectAccount: true,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      handleGoogleResponse(response.authentication?.accessToken);
+    } else if (response?.type === 'error') {
+      setError('Erro ao conectar com Google');
+      setGoogleLoading(false);
+    }
+  }, [response]);
+
+  const handleGoogleResponse = async (accessToken: string | undefined) => {
+    if (!accessToken) {
+      setError('Erro ao obter token do Google');
+      setGoogleLoading(false);
+      return;
+    }
+
+    try {
+      const result = await loginWithGoogle(accessToken);
+      if (result.success) {
+        navigateByRole();
+      } else {
+        setError(result.error || 'Erro ao fazer login com Google');
+      }
+    } catch (err) {
+      setError('Erro ao processar login com Google');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const navigateByRole = async () => {
+    const storedUser = await AsyncStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      const routes: Record<string, string> = {
+        admin: '/admin',
+        doctor: '/doctor',
+        nurse: '/nurse',
+      };
+      router.replace((routes[userData.role] || '/(tabs)') as any);
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Atenção', 'Preencha todos os campos');
+      setError('Preencha todos os campos');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
 
     setLoading(true);
+    setError('');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const result = await login(email.trim(), password);
+    setLoading(false);
+
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      navigateByRole();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setError(result.error || 'Erro ao fazer login');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setGoogleLoading(true);
     try {
-      await login(email.trim(), password);
-      // Navigation handled by AuthContext
-    } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao fazer login');
-    } finally {
-      setLoading(false);
+      await promptAsync();
+    } catch (err) {
+      setError('Erro ao iniciar login com Google');
+      setGoogleLoading(false);
     }
   };
 
@@ -53,7 +131,6 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#E8F6F8" />
       
-      {/* Background Gradient */}
       <LinearGradient
         colors={['#E8F6F8', '#D4EFF3', '#C0E8EE']}
         style={styles.gradient}
@@ -70,32 +147,47 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Logo Section */}
+          {/* Logo & Title */}
           <View style={styles.logoSection}>
-            <View style={styles.logoContainer}>
-              <LinearGradient
-                colors={['#4AC5E0', '#00B4CD']}
-                style={styles.logoGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name="medical" size={40} color="#FFFFFF" />
-              </LinearGradient>
+            <LinearGradient
+              colors={['#00B4CD', '#4AC5E0']}
+              style={styles.logoContainer}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="medical" size={40} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={styles.brandName}>RenoveJá+</Text>
+            <Text style={styles.brandTagline}>Sua saúde, simplificada</Text>
+          </View>
+
+          {/* Trust Badges */}
+          <View style={styles.badges}>
+            <View style={styles.badge}>
+              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Text style={styles.badgeText}>100% Seguro</Text>
             </View>
-            <Text style={styles.appName}>RenoveJá+</Text>
-            <Text style={styles.tagline}>Sua saúde em primeiro lugar</Text>
+            <View style={styles.badge}>
+              <Ionicons name="time" size={14} color="#00B4CD" />
+              <Text style={styles.badgeText}>Rápido</Text>
+            </View>
+            <View style={styles.badge}>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.badgeText}>CFM</Text>
+            </View>
           </View>
 
           {/* Form Card */}
           <View style={styles.formCard}>
-            <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
-            <Text style={styles.subtitle}>Entre com sua conta para continuar</Text>
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={18} color="#EF4444" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
             {/* Email Input */}
-            <View style={[
-              styles.inputContainer,
-              focusedInput === 'email' && styles.inputFocused
-            ]}>
+            <View style={[styles.inputContainer, focusedInput === 'email' && styles.inputFocused]}>
               <Ionicons 
                 name="mail-outline" 
                 size={20} 
@@ -104,32 +196,28 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Seu e-mail"
+                placeholder="E-mail"
                 placeholderTextColor="#9BA7AF"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoCorrect={false}
                 onFocus={() => setFocusedInput('email')}
                 onBlur={() => setFocusedInput(null)}
               />
             </View>
 
             {/* Password Input */}
-            <View style={[
-              styles.inputContainer,
-              focusedInput === 'password' && styles.inputFocused
-            ]}>
+            <View style={[styles.inputContainer, focusedInput === 'password' && styles.inputFocused]}>
               <Ionicons 
                 name="lock-closed-outline" 
                 size={20} 
-                color={focusedInput === 'password' ? '#00B4CD' : '#9BA7AF'}
+                color={focusedInput === 'password' ? '#00B4CD' : '#9BA7AF'} 
                 style={styles.inputIcon}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Sua senha"
+                placeholder="Senha"
                 placeholderTextColor="#9BA7AF"
                 value={password}
                 onChangeText={setPassword}
@@ -137,10 +225,7 @@ export default function LoginScreen() {
                 onFocus={() => setFocusedInput('password')}
                 onBlur={() => setFocusedInput(null)}
               />
-              <TouchableOpacity 
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
                 <Ionicons 
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'} 
                   size={20} 
@@ -151,15 +236,11 @@ export default function LoginScreen() {
 
             {/* Forgot Password */}
             <TouchableOpacity style={styles.forgotButton}>
-              <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+              <Text style={styles.forgotText}>Esqueceu a senha?</Text>
             </TouchableOpacity>
 
             {/* Login Button */}
-            <TouchableOpacity
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
               <LinearGradient
                 colors={loading ? ['#9BA7AF', '#6B7C85'] : ['#4AC5E0', '#00B4CD']}
                 style={styles.loginButton}
@@ -178,44 +259,54 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>ou continue com</Text>
-              <View style={styles.divider} />
+              <View style={styles.dividerLine} />
             </View>
 
-            {/* Social Login */}
-            <View style={styles.socialContainer}>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-google" size={24} color="#DB4437" />
+            {/* Social Buttons */}
+            <View style={styles.socialButtons}>
+              <TouchableOpacity 
+                style={styles.socialButton}
+                onPress={handleGoogleLogin}
+                disabled={!request || googleLoading}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <Ionicons name="logo-google" size={24} color="#DB4437" />
+                )}
               </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-apple" size={24} color="#000000" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.socialButton}>
-                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              <TouchableOpacity style={[styles.socialButton, styles.socialButtonDark]}>
+                <Ionicons name="logo-apple" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Register Link */}
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Não tem uma conta? </Text>
-            <Link href="/register" asChild>
+          {/* Register Links */}
+          <View style={styles.registerSection}>
+            <Text style={styles.registerText}>Não tem uma conta?</Text>
+            <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
-                <Text style={styles.registerLink}>Cadastre-se</Text>
+                <Text style={styles.registerLink}>Criar conta</Text>
               </TouchableOpacity>
             </Link>
           </View>
 
-          {/* Professional Register */}
-          <View style={styles.professionalContainer}>
-            <Link href="/doctor-register" asChild>
-              <TouchableOpacity style={styles.professionalButton}>
-                <Ionicons name="medkit-outline" size={18} color="#00B4CD" />
-                <Text style={styles.professionalText}>Sou profissional de saúde</Text>
-              </TouchableOpacity>
-            </Link>
+          <View style={styles.proLinks}>
+            <Text style={styles.proText}>
+              É médico?{' '}
+              <Link href="/(auth)/doctor-register" asChild>
+                <Text style={styles.proLink}>Cadastre-se aqui</Text>
+              </Link>
+            </Text>
+            <Text style={styles.proText}>
+              É enfermeiro(a)?{' '}
+              <Link href="/(auth)/register-nurse" asChild>
+                <Text style={styles.proLink}>Cadastre-se aqui</Text>
+              </Link>
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -240,37 +331,52 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  
+
   // Logo Section
   logoSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoContainer: {
-    marginBottom: 16,
-  },
-  logoGradient: {
     width: 80,
     height: 80,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 16,
     shadowColor: '#00B4CD',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
   },
-  appName: {
+  brandName: {
     fontSize: 32,
     fontWeight: '700',
     color: '#1A3A4A',
-    letterSpacing: -0.5,
   },
-  tagline: {
-    fontSize: 16,
+  brandTagline: {
+    fontSize: 15,
     color: '#6B7C85',
     marginTop: 4,
+  },
+
+  // Badges
+  badges: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 32,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgeText: {
+    fontSize: 12,
+    color: '#6B7C85',
+    fontWeight: '500',
   },
 
   // Form Card
@@ -284,16 +390,21 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 5,
   },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A3A4A',
-    marginBottom: 4,
+
+  // Error
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
   },
-  subtitle: {
+  errorText: {
+    flex: 1,
     fontSize: 14,
-    color: '#6B7C85',
-    marginBottom: 24,
+    color: '#EF4444',
   },
 
   // Input
@@ -327,11 +438,11 @@ const styles = StyleSheet.create({
   // Forgot Password
   forgotButton: {
     alignSelf: 'flex-end',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   forgotText: {
     fontSize: 14,
-    color: '#00B4CD',
+    color: '#6B7C85',
     fontWeight: '500',
   },
 
@@ -356,31 +467,31 @@ const styles = StyleSheet.create({
   },
 
   // Divider
-  dividerContainer: {
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 24,
   },
-  divider: {
+  dividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: '#E4E9EC',
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
+    paddingHorizontal: 16,
+    fontSize: 13,
     color: '#9BA7AF',
   },
 
-  // Social
-  socialContainer: {
+  // Social Buttons
+  socialButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
   },
   socialButton: {
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     borderRadius: 16,
     backgroundColor: '#F8FAFB',
     alignItems: 'center',
@@ -388,39 +499,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E4E9EC',
   },
+  socialButtonDark: {
+    backgroundColor: '#1A3A4A',
+    borderColor: '#1A3A4A',
+  },
 
-  // Register
-  registerContainer: {
+  // Register Section
+  registerSection: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 24,
+    gap: 4,
   },
   registerText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7C85',
   },
   registerLink: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#00B4CD',
     fontWeight: '600',
   },
 
-  // Professional
-  professionalContainer: {
+  // Pro Links
+  proLinks: {
     alignItems: 'center',
     marginTop: 16,
-  },
-  professionalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 180, 205, 0.1)',
     gap: 8,
   },
-  professionalText: {
+  proText: {
     fontSize: 14,
+    color: '#9BA7AF',
+  },
+  proLink: {
     color: '#00B4CD',
     fontWeight: '500',
   },

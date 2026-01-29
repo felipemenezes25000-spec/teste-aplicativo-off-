@@ -1,3 +1,8 @@
+/**
+ * 👨‍⚕️ Doctor Request Detail - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -10,27 +15,31 @@ import {
   Image,
   Modal,
   TextInput,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../../src/components/Card';
-import { Button } from '../../../src/components/Button';
-import { StatusBadge } from '../../../src/components/StatusBadge';
-import { useAuth } from '../../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../../src/utils/constants';
-import api from '../../../src/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 
-export default function DoctorRequestDetail() {
+const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Aguardando análise' },
+  in_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Em análise' },
+  approved_pending_payment: { color: '#10B981', bg: '#D1FAE5', label: 'Aprovada - Aguard. pagamento' },
+  paid: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Pago - Aguard. assinatura' },
+  signed: { color: '#10B981', bg: '#D1FAE5', label: 'Assinada' },
+  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusada' },
+};
+
+export default function DoctorRequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [request, setRequest] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -39,36 +48,30 @@ export default function DoctorRequestDetail() {
 
   useEffect(() => {
     loadRequest();
-    // Auto-refresh every 10 seconds to get status updates (e.g., when patient pays)
     const interval = setInterval(loadRequest, 10000);
     return () => clearInterval(interval);
   }, [id]);
 
   const loadRequest = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await api.get(`/requests/${id}`, { params: { token } });
-      setRequest(response.data);
-      if (response.data.price) {
-        setPriceInput(response.data.price.toString());
-      }
+      const data = await api.getRequest(id!);
+      setRequest(data);
+      if (data.price) setPriceInput(data.price.toString());
     } catch (error) {
-      console.error('Error loading request:', error);
       Alert.alert('Erro', 'Não foi possível carregar a solicitação');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleAccept = async () => {
     setActionLoading('accept');
     try {
-      const token = await AsyncStorage.getItem('token');
-      await api.post(`/requests/${id}/accept`, null, { params: { token } });
+      await api.acceptRequest(id!);
       Alert.alert('Sucesso', 'Solicitação aceita para análise!');
       loadRequest();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aceitar.');
+      Alert.alert('Erro', error.message || 'Não foi possível aceitar.');
     } finally {
       setActionLoading(null);
     }
@@ -81,29 +84,24 @@ export default function DoctorRequestDetail() {
       return;
     }
 
-    Alert.alert(
-      'Aprovar Solicitação',
-      `Confirma a aprovação com valor de R$ ${price.toFixed(2)}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Aprovar',
-          onPress: async () => {
-            setActionLoading('approve');
-            try {
-              const token = await AsyncStorage.getItem('token');
-              await api.post(`/requests/${id}/approve`, { price }, { params: { token } });
-              Alert.alert('Sucesso', 'Solicitação aprovada! O paciente será notificado para pagar.');
-              loadRequest();
-            } catch (error: any) {
-              Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aprovar.');
-            } finally {
-              setActionLoading(null);
-            }
-          },
+    Alert.alert('Aprovar Solicitação', `Confirma a aprovação com valor de R$ ${price.toFixed(2)}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Aprovar',
+        onPress: async () => {
+          setActionLoading('approve');
+          try {
+            await api.approveRequest(id!, price);
+            Alert.alert('Sucesso', 'Solicitação aprovada! Paciente notificado para pagar.');
+            loadRequest();
+          } catch (error: any) {
+            Alert.alert('Erro', error.message || 'Não foi possível aprovar.');
+          } finally {
+            setActionLoading(null);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleReject = async () => {
@@ -111,16 +109,14 @@ export default function DoctorRequestDetail() {
       Alert.alert('Atenção', 'Por favor, informe o motivo da recusa.');
       return;
     }
-
     setActionLoading('reject');
     try {
-      const token = await AsyncStorage.getItem('token');
-      await api.post(`/requests/${id}/reject`, { reason: rejectReason }, { params: { token } });
+      await api.rejectRequest(id!, rejectReason);
       setShowRejectModal(false);
-      Alert.alert('Solicitação Recusada', 'O paciente será notificado.');
+      Alert.alert('Solicitação Recusada', 'O paciente foi notificado.');
       router.back();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível recusar.');
+      Alert.alert('Erro', error.message || 'Não foi possível recusar.');
     } finally {
       setActionLoading(null);
     }
@@ -129,72 +125,34 @@ export default function DoctorRequestDetail() {
   const handleSign = async () => {
     setActionLoading('sign');
     try {
-      const token = await AsyncStorage.getItem('token');
-      await api.post(`/requests/${id}/sign`, null, { params: { token } });
-      Alert.alert('Sucesso', 'Receita assinada digitalmente! O paciente pode baixar agora.');
+      await api.signRequest(id!);
+      Alert.alert('Sucesso', 'Receita assinada digitalmente! Paciente pode baixar agora.');
       loadRequest();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível assinar.');
+      Alert.alert('Erro', error.message || 'Não foi possível assinar.');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const openChat = () => {
-    router.push(`/doctor/chat/${id}?patient=${encodeURIComponent(request?.patient_name || '')}`);
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: any = {
-      submitted: COLORS.warning,
-      in_review: COLORS.primary,
-      approved_pending_payment: COLORS.healthGreen,
-      paid: COLORS.healthGreen,
-      signed: COLORS.healthPurple,
-      delivered: COLORS.healthGreen,
-      rejected: COLORS.error,
-      pending: COLORS.warning,
-      analyzing: COLORS.primary,
-    };
-    return colors[status] || COLORS.textMuted;
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: any = {
-      submitted: 'Aguardando análise',
-      in_review: 'Em análise',
-      approved_pending_payment: 'Aprovada - Aguardando pagamento',
-      paid: 'Pago - Aguardando assinatura',
-      signed: 'Assinada',
-      delivered: 'Entregue',
-      rejected: 'Recusada',
-      pending: 'Pendente',
-      analyzing: 'Em análise',
-    };
-    return labels[status] || status;
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00B4CD" />
       </View>
     );
   }
 
   if (!request) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={48} color={COLORS.error} />
-          <Text style={styles.errorText}>Solicitação não encontrada</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle" size={48} color="#EF4444" />
+        <Text style={styles.errorText}>Solicitação não encontrada</Text>
       </View>
     );
   }
 
+  const status = statusConfig[request.status] || statusConfig.submitted;
   const isMyRequest = request.doctor_id === user?.id;
   const canAccept = ['submitted', 'pending'].includes(request.status) && !request.doctor_id;
   const canApproveReject = ['in_review', 'analyzing'].includes(request.status) && isMyRequest;
@@ -202,131 +160,96 @@ export default function DoctorRequestDetail() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SIZES.md }]}>
+      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textWhite} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalhes da Solicitação</Text>
-        <TouchableOpacity style={styles.chatButton} onPress={openChat}>
-          <Ionicons name="chatbubbles" size={24} color={COLORS.textWhite} />
+        <TouchableOpacity style={styles.chatButton} onPress={() => router.push(`/doctor/chat/${id}?patient=${encodeURIComponent(request?.patient_name || '')}`)}>
+          <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Status Card */}
-        <Card style={[styles.statusCard, { borderLeftColor: getStatusColor(request.status) }]}>
-          <View style={styles.statusRow}>
-            <View>
-              <Text style={styles.statusLabel}>Status</Text>
-              <Text style={[styles.statusValue, { color: getStatusColor(request.status) }]}>
-                {getStatusLabel(request.status)}
-              </Text>
-            </View>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]} />
-          </View>
-        </Card>
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+          <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
 
-        {/* Patient Info */}
-        <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Paciente</Text>
+        {/* Patient Card */}
+        <View style={styles.card}>
           <View style={styles.patientRow}>
-            <View style={styles.patientAvatar}>
+            <LinearGradient colors={['#4AC5E0', '#00B4CD']} style={styles.patientAvatar}>
               <Text style={styles.patientInitials}>
                 {request.patient_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
               </Text>
-            </View>
+            </LinearGradient>
             <View style={styles.patientInfo}>
               <Text style={styles.patientName}>{request.patient_name}</Text>
               <Text style={styles.requestDate}>
-                Solicitado em {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
               </Text>
             </View>
+            <Text style={styles.priceTag}>R$ {(request.price || 0).toFixed(2)}</Text>
           </View>
-        </Card>
+        </View>
 
         {/* Request Type */}
-        <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>Tipo de Solicitação</Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Tipo de Solicitação</Text>
           <View style={styles.typeRow}>
-            <Ionicons 
-              name={request.request_type === 'prescription' ? 'document-text' : request.request_type === 'exam' ? 'flask' : 'videocam'} 
-              size={24} 
-              color={COLORS.primary} 
-            />
+            <View style={styles.typeIcon}>
+              <Ionicons name={request.request_type === 'prescription' ? 'document-text' : request.request_type === 'exam' ? 'flask' : 'videocam'} size={24} color="#00B4CD" />
+            </View>
             <View style={styles.typeInfo}>
               <Text style={styles.typeName}>
-                {request.request_type === 'prescription' ? 'Renovação de Receita' : 
-                 request.request_type === 'exam' ? 'Pedido de Exame' : 'Consulta'}
+                {request.request_type === 'prescription' ? 'Renovação de Receita' : request.request_type === 'exam' ? 'Pedido de Exame' : 'Consulta'}
               </Text>
               {request.prescription_type && (
                 <Text style={styles.typeSubtitle}>
-                  {request.prescription_type === 'simple' ? 'Receita Simples' : 
-                   request.prescription_type === 'controlled' ? 'Receita Controlada' : 'Receita Azul'}
+                  {request.prescription_type === 'simple' ? 'Receita Simples' : request.prescription_type === 'controlled' ? 'Receita Controlada' : 'Receita Azul'}
                 </Text>
               )}
             </View>
-            <Text style={styles.price}>R$ {(request.price || 0).toFixed(2)}</Text>
           </View>
-        </Card>
+        </View>
 
         {/* Prescription Images */}
         {((request.prescription_images && request.prescription_images.length > 0) || request.image_url) && (
-          <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>📷 Fotos da Receita Anterior</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📷 Fotos da Receita Anterior</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
-              {request.prescription_images && request.prescription_images.map((img: string, index: number) => (
-                <TouchableOpacity key={index} onPress={() => setSelectedImage(img)}>
+              {request.prescription_images?.map((img: string, i: number) => (
+                <TouchableOpacity key={i} onPress={() => setSelectedImage(img)}>
                   <Image source={{ uri: img }} style={styles.thumbnailImage} />
                 </TouchableOpacity>
               ))}
-              {/* Fallback para image_url se não tiver prescription_images */}
-              {(!request.prescription_images || request.prescription_images.length === 0) && request.image_url && (
+              {(!request.prescription_images?.length && request.image_url) && (
                 <TouchableOpacity onPress={() => setSelectedImage(request.image_url)}>
                   <Image source={{ uri: request.image_url }} style={styles.thumbnailImage} />
                 </TouchableOpacity>
               )}
             </ScrollView>
-            <Text style={styles.imageHint}>Toque na imagem para ampliar</Text>
-          </Card>
-        )}
-
-        {/* Medications */}
-        {request.medications && request.medications.length > 0 && (
-          <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>Medicamentos</Text>
-            {request.medications.map((med: any, index: number) => (
-              <View key={index} style={styles.medicationItem}>
-                <Text style={styles.medicationName}>{med.name}</Text>
-                <Text style={styles.medicationDosage}>{med.dosage} - {med.quantity}</Text>
-                {med.instructions && (
-                  <Text style={styles.medicationInstructions}>{med.instructions}</Text>
-                )}
-              </View>
-            ))}
-          </Card>
+            <Text style={styles.imageHint}>Toque para ampliar</Text>
+          </View>
         )}
 
         {/* Notes */}
         {request.notes && (
-          <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>Observações do Paciente</Text>
-            <Text style={styles.notes}>{request.notes}</Text>
-          </Card>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Observações do Paciente</Text>
+            <Text style={styles.notesText}>{request.notes}</Text>
+          </View>
         )}
 
-        {/* Rejection Reason */}
-        {request.rejection_reason && (
-          <Card style={[styles.card, styles.rejectionCard]}>
-            <Text style={styles.sectionTitle}>Motivo da Recusa</Text>
-            <Text style={styles.rejectionReason}>{request.rejection_reason}</Text>
-          </Card>
-        )}
-
-        {/* Price Input for Approval */}
+        {/* Price Input */}
         {canApproveReject && (
-          <Card style={styles.card}>
-            <Text style={styles.sectionTitle}>Valor da Consulta</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Valor da Consulta</Text>
             <View style={styles.priceInputRow}>
               <Text style={styles.pricePrefix}>R$</Text>
               <TextInput
@@ -335,75 +258,76 @@ export default function DoctorRequestDetail() {
                 onChangeText={setPriceInput}
                 keyboardType="decimal-pad"
                 placeholder="0,00"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor="#9BA7AF"
               />
             </View>
-          </Card>
+          </View>
         )}
 
         {/* Actions */}
-        <View style={styles.actions}>
+        <View style={styles.actionsSection}>
           {canAccept && (
-            <Button
-              title="Aceitar para Análise"
-              onPress={handleAccept}
-              loading={actionLoading === 'accept'}
-              fullWidth
-              icon={<Ionicons name="checkmark-circle" size={20} color={COLORS.textWhite} />}
-            />
+            <TouchableOpacity onPress={handleAccept} disabled={actionLoading === 'accept'} activeOpacity={0.8}>
+              <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.primaryButton}>
+                {actionLoading === 'accept' ? <ActivityIndicator color="#FFFFFF" /> : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>Aceitar para Análise</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           )}
 
           {canApproveReject && (
             <>
-              <Button
-                title="Aprovar Solicitação"
-                onPress={handleApprove}
-                loading={actionLoading === 'approve'}
-                variant="success"
-                fullWidth
-                icon={<Ionicons name="checkmark" size={20} color={COLORS.textWhite} />}
-              />
-              <Button
-                title="Recusar Solicitação"
-                onPress={() => setShowRejectModal(true)}
-                variant="outline"
-                fullWidth
-                style={{ marginTop: SIZES.sm }}
-              />
+              <TouchableOpacity onPress={handleApprove} disabled={actionLoading === 'approve'} activeOpacity={0.8}>
+                <LinearGradient colors={['#10B981', '#34D399']} style={styles.primaryButton}>
+                  {actionLoading === 'approve' ? <ActivityIndicator color="#FFFFFF" /> : (
+                    <>
+                      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                      <Text style={styles.primaryButtonText}>Aprovar Solicitação</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.outlineButton} onPress={() => setShowRejectModal(true)}>
+                <Ionicons name="close" size={18} color="#EF4444" />
+                <Text style={[styles.outlineButtonText, { color: '#EF4444' }]}>Recusar Solicitação</Text>
+              </TouchableOpacity>
             </>
           )}
 
           {canSign && (
-            <Button
-              title="Assinar Receita Digitalmente"
-              onPress={handleSign}
-              loading={actionLoading === 'sign'}
-              fullWidth
-              icon={<Ionicons name="finger-print" size={20} color={COLORS.textWhite} />}
-            />
+            <TouchableOpacity onPress={handleSign} disabled={actionLoading === 'sign'} activeOpacity={0.8}>
+              <LinearGradient colors={['#8B5CF6', '#A78BFA']} style={styles.primaryButton}>
+                {actionLoading === 'sign' ? <ActivityIndicator color="#FFFFFF" /> : (
+                  <>
+                    <Ionicons name="finger-print" size={20} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>Assinar Receita Digitalmente</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           )}
 
-          <Button
-            title="Abrir Chat"
-            onPress={openChat}
-            variant="secondary"
-            fullWidth
-            style={{ marginTop: SIZES.sm }}
-            icon={<Ionicons name="chatbubbles" size={20} color={COLORS.primary} />}
-          />
+          <TouchableOpacity style={styles.outlineButton} onPress={() => router.push(`/doctor/chat/${id}?patient=${encodeURIComponent(request?.patient_name || '')}`)}>
+            <Ionicons name="chatbubbles" size={18} color="#00B4CD" />
+            <Text style={styles.outlineButtonText}>Abrir Chat</Text>
+          </TouchableOpacity>
         </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Image Modal */}
       <Modal visible={!!selectedImage} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSelectedImage(null)}>
+          {selectedImage && <Image source={{ uri: selectedImage }} style={styles.modalImage} resizeMode="contain" />}
           <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
-            <Ionicons name="close" size={32} color={COLORS.textWhite} />
+            <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
-          {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.modalImage} resizeMode="contain" />
-          )}
-        </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Reject Modal */}
@@ -411,31 +335,22 @@ export default function DoctorRequestDetail() {
         <View style={styles.rejectModalOverlay}>
           <View style={styles.rejectModalContent}>
             <Text style={styles.rejectModalTitle}>Motivo da Recusa</Text>
-            <Text style={styles.rejectModalSubtitle}>
-              Informe ao paciente o motivo da recusa desta solicitação
-            </Text>
             <TextInput
               style={styles.rejectInput}
               value={rejectReason}
               onChangeText={setRejectReason}
-              placeholder="Ex: Receita ilegível, necessita consulta presencial..."
-              placeholderTextColor={COLORS.textMuted}
+              placeholder="Descreva o motivo..."
+              placeholderTextColor="#9BA7AF"
               multiline
               numberOfLines={4}
             />
             <View style={styles.rejectModalActions}>
-              <Button
-                title="Cancelar"
-                onPress={() => setShowRejectModal(false)}
-                variant="outline"
-                style={{ flex: 1 }}
-              />
-              <Button
-                title="Recusar"
-                onPress={handleReject}
-                loading={actionLoading === 'reject'}
-                style={{ flex: 1, marginLeft: SIZES.sm, backgroundColor: COLORS.error }}
-              />
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonOutline]} onPress={() => setShowRejectModal(false)}>
+                <Text style={styles.modalButtonOutlineText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonDanger]} onPress={handleReject} disabled={actionLoading === 'reject'}>
+                {actionLoading === 'reject' ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.modalButtonText}>Recusar</Text>}
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -445,271 +360,67 @@ export default function DoctorRequestDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.md,
-    backgroundColor: COLORS.healthPurple,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  chatButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    marginTop: SIZES.md,
-    fontSize: SIZES.fontLg,
-    color: COLORS.textSecondary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.lg,
-    paddingBottom: SIZES.xxl,
-  },
-  statusCard: {
-    borderLeftWidth: 4,
-    marginBottom: SIZES.md,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusLabel: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  statusValue: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  card: {
-    marginBottom: SIZES.md,
-  },
-  sectionTitle: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    marginBottom: SIZES.md,
-  },
-  patientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  patientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  patientInitials: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  patientInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  patientName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  requestDate: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  typeInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  typeName: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  typeSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  price: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.healthGreen,
-  },
-  imagesScroll: {
-    marginTop: SIZES.sm,
-  },
-  thumbnailImage: {
-    width: 120,
-    height: 160,
-    borderRadius: SIZES.radiusMd,
-    marginRight: SIZES.sm,
-    backgroundColor: COLORS.backgroundDark,
-  },
-  imageHint: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: SIZES.sm,
-    textAlign: 'center',
-  },
-  medicationItem: {
-    backgroundColor: COLORS.backgroundDark,
-    padding: SIZES.md,
-    borderRadius: SIZES.radiusMd,
-    marginBottom: SIZES.sm,
-  },
-  medicationName: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  medicationDosage: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  medicationInstructions: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: SIZES.xs,
-    fontStyle: 'italic',
-  },
-  notes: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  rejectionCard: {
-    backgroundColor: COLORS.error + '10',
-    borderWidth: 1,
-    borderColor: COLORS.error + '30',
-  },
-  rejectionReason: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.error,
-  },
-  priceInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.backgroundDark,
-    borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SIZES.md,
-  },
-  pricePrefix: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  priceInput: {
-    flex: 1,
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    paddingVertical: SIZES.md,
-    marginLeft: SIZES.sm,
-  },
-  actions: {
-    marginTop: SIZES.lg,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalClose: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    zIndex: 10,
-  },
-  modalImage: {
-    width: '90%',
-    height: '70%',
-  },
-  rejectModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  rejectModalContent: {
-    backgroundColor: COLORS.cardBackground,
-    borderTopLeftRadius: SIZES.radiusXl,
-    borderTopRightRadius: SIZES.radiusXl,
-    padding: SIZES.xl,
-  },
-  rejectModalTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  rejectModalSubtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    marginTop: SIZES.xs,
-    marginBottom: SIZES.lg,
-  },
-  rejectInput: {
-    backgroundColor: COLORS.backgroundDark,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    fontSize: SIZES.fontMd,
-    color: COLORS.textPrimary,
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  rejectModalActions: {
-    flexDirection: 'row',
-    marginTop: SIZES.lg,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
+  errorText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+  chatButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  statusBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginBottom: 16, gap: 8 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { fontSize: 14, fontWeight: '600' },
+
+  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: 12, fontWeight: '600', color: '#9BA7AF', textTransform: 'uppercase', marginBottom: 12 },
+
+  patientRow: { flexDirection: 'row', alignItems: 'center' },
+  patientAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  patientInitials: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  patientInfo: { flex: 1, marginLeft: 14 },
+  patientName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
+  requestDate: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  priceTag: { fontSize: 17, fontWeight: '700', color: '#10B981' },
+
+  typeRow: { flexDirection: 'row', alignItems: 'center' },
+  typeIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#E6F7FA', alignItems: 'center', justifyContent: 'center' },
+  typeInfo: { flex: 1, marginLeft: 12 },
+  typeName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  typeSubtitle: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+
+  imagesScroll: { marginVertical: 8 },
+  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: '#F1F5F7' },
+  imageHint: { fontSize: 11, color: '#9BA7AF', textAlign: 'center' },
+
+  notesText: { fontSize: 15, color: '#1A3A4A', lineHeight: 22 },
+
+  priceInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFB', borderRadius: 12, paddingHorizontal: 14 },
+  pricePrefix: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
+  priceInput: { flex: 1, fontSize: 20, fontWeight: '700', color: '#1A3A4A', paddingVertical: 14, marginLeft: 8 },
+
+  actionsSection: { marginTop: 8, gap: 10 },
+  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: '#00B4CD' },
+  outlineButtonText: { fontSize: 15, fontWeight: '500', color: '#00B4CD' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalImage: { width: '90%', height: '70%' },
+  modalClose: { position: 'absolute', top: 50, right: 20 },
+
+  rejectModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  rejectModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  rejectModalTitle: { fontSize: 20, fontWeight: '700', color: '#1A3A4A', marginBottom: 16 },
+  rejectInput: { backgroundColor: '#F8FAFB', borderRadius: 12, padding: 14, fontSize: 15, color: '#1A3A4A', height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E4E9EC' },
+  rejectModalActions: { flexDirection: 'row', marginTop: 20, gap: 12 },
+  modalButton: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalButtonOutline: { borderWidth: 1.5, borderColor: '#E4E9EC' },
+  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
+  modalButtonDanger: { backgroundColor: '#EF4444' },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

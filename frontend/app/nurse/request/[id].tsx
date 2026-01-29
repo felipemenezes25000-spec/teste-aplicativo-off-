@@ -1,3 +1,8 @@
+/**
+ * 👩‍⚕️ Nurse Request Detail - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -9,28 +14,32 @@ import {
   Alert,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card } from '../../../src/components/Card';
-import { Button } from '../../../src/components/Button';
-import { StatusBadge } from '../../../src/components/StatusBadge';
-import { useAuth } from '../../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../../src/utils/constants';
-import api, { getToken } from '../../../src/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 
-export default function NurseRequestDetail() {
+const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Aguardando triagem' },
+  in_nursing_review: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Em triagem' },
+  approved_by_nursing_pending_payment: { color: '#10B981', bg: '#D1FAE5', label: 'Aprovado - Aguard. pgto' },
+  in_medical_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Com o médico' },
+  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusado' },
+};
+
+export default function NurseRequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [request, setRequest] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
   // Modal states
@@ -51,13 +60,25 @@ export default function NurseRequestDetail() {
 
   const loadRequest = async () => {
     try {
-      const token = await getToken();
-      const response = await api.get(`/requests/${id}`, { params: { token } });
-      setRequest(response.data);
+      const data = await api.getRequest(id!);
+      setRequest(data);
     } catch (error) {
       console.error('Error loading request:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const handleAccept = async () => {
+    setActionLoading('accept');
+    try {
+      await api.nursingAccept(id!);
+      Alert.alert('Sucesso', 'Solicitação aceita para triagem!');
+      loadRequest();
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Não foi possível aceitar');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -66,18 +87,20 @@ export default function NurseRequestDetail() {
       Alert.alert('Erro', 'Informe o valor do exame');
       return;
     }
+    setActionLoading('approve');
     try {
-      const token = await getToken();
-      await api.post(`/nursing/approve/${id}`, {
+      await api.nursingApprove(id!, {
         price: parseFloat(price),
         exam_type: examType || 'Exames laboratoriais',
         exams: exams ? exams.split(',').map(e => e.trim()) : [],
-      }, { params: { token } });
-      Alert.alert('Sucesso', 'Solicitação aprovada! O paciente foi notificado.');
+      });
+      Alert.alert('Sucesso', 'Solicitação aprovada! Paciente notificado.');
       setShowApproveModal(false);
       router.back();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível aprovar');
+      Alert.alert('Erro', error.message || 'Não foi possível aprovar');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -86,417 +109,312 @@ export default function NurseRequestDetail() {
       Alert.alert('Erro', 'Informe o motivo da recusa');
       return;
     }
+    setActionLoading('reject');
     try {
-      const token = await getToken();
-      await api.post(`/nursing/reject/${id}`, {
-        reason: rejectReason,
-      }, { params: { token } });
-      Alert.alert('Solicitação Recusada', 'O paciente foi notificado.');
+      await api.nursingReject(id!, rejectReason);
+      Alert.alert('Sucesso', 'Solicitação recusada. Paciente notificado.');
       setShowRejectModal(false);
       router.back();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível recusar');
+      Alert.alert('Erro', error.message || 'Não foi possível recusar');
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const handleForwardToDoctor = async () => {
+  const handleForward = async () => {
+    setActionLoading('forward');
     try {
-      const token = await getToken();
-      await api.post(`/nursing/forward-to-doctor/${id}`, {
-        reason: forwardReason || 'Requer validação médica',
-      }, { params: { token } });
-      Alert.alert('Sucesso', 'Solicitação encaminhada para médico.');
+      await api.nursingForwardToDoctor(id!, forwardReason || 'Requer validação médica');
+      Alert.alert('Sucesso', 'Solicitação encaminhada ao médico.');
       setShowForwardModal(false);
       router.back();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail || 'Não foi possível encaminhar');
+      Alert.alert('Erro', error.message || 'Não foi possível encaminhar');
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  if (isLoading || !request) {
+  if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <Text>Carregando...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10B981" />
       </View>
     );
   }
 
+  if (!request) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle" size={48} color="#EF4444" />
+        <Text style={styles.errorText}>Solicitação não encontrada</Text>
+      </View>
+    );
+  }
+
+  const status = statusConfig[request.status] || statusConfig.submitted;
   const isMyRequest = request.nurse_id === user?.id;
+  const canAccept = request.status === 'submitted' && !request.nurse_id;
   const canAction = request.status === 'in_nursing_review' && isMyRequest;
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalhes da Solicitação</Text>
-          <View style={{ width: 40 }} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      
+      {/* Header */}
+      <LinearGradient colors={['#059669', '#10B981']} style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Detalhes da Solicitação</Text>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+          <View style={[styles.statusDot, { backgroundColor: status.color }]} />
+          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
         </View>
 
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Status Card */}
-          <Card style={styles.card}>
-            <View style={styles.statusHeader}>
-              <View>
-                <Text style={styles.requestType}>Solicitação de Exames</Text>
-                <Text style={styles.patientName}>{request.patient_name}</Text>
-              </View>
-              <StatusBadge status={request.status} />
+        {/* Patient Card */}
+        <View style={styles.card}>
+          <View style={styles.patientRow}>
+            <LinearGradient colors={['#A78BFA', '#7C3AED']} style={styles.patientAvatar}>
+              <Ionicons name="flask" size={22} color="#FFFFFF" />
+            </LinearGradient>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>{request.patient_name}</Text>
+              <Text style={styles.requestDate}>
+                {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </Text>
             </View>
-            <Text style={styles.dateText}>
-              Enviado em {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </View>
+        </View>
+
+        {/* Exam Type */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Tipo de Exame</Text>
+          <View style={styles.examTypeChip}>
+            <Text style={styles.examTypeText}>
+              {request.exam_type === 'laboratory' ? '🧪 Laboratorial' : '📷 Imagem'}
             </Text>
-          </Card>
+          </View>
+        </View>
 
-          {/* Patient Description */}
-          {request.exam_description && (
-            <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>📝 Descrição do Paciente</Text>
-              <Text style={styles.descriptionText}>"{request.exam_description}"</Text>
-            </Card>
-          )}
+        {/* Description */}
+        {request.exam_description && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📝 Descrição do Paciente</Text>
+            <Text style={styles.descriptionText}>"{request.exam_description}"</Text>
+          </View>
+        )}
 
-          {/* Attached Images */}
-          {((request.exam_images && request.exam_images.length > 0) || request.image_url) && (
-            <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>📷 Imagens Anexadas</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
-                {request.exam_images && request.exam_images.map((img: string, index: number) => (
-                  <TouchableOpacity key={index} onPress={() => setSelectedImage(img)}>
-                    <Image source={{ uri: img }} style={styles.thumbnailImage} />
-                  </TouchableOpacity>
-                ))}
-                {(!request.exam_images || request.exam_images.length === 0) && request.image_url && (
-                  <TouchableOpacity onPress={() => setSelectedImage(request.image_url)}>
-                    <Image source={{ uri: request.image_url }} style={styles.thumbnailImage} />
-                  </TouchableOpacity>
+        {/* Images */}
+        {((request.exam_images && request.exam_images.length > 0) || request.image_url) && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📷 Imagens Anexadas</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+              {request.exam_images?.map((img: string, i: number) => (
+                <TouchableOpacity key={i} onPress={() => setSelectedImage(img)}>
+                  <Image source={{ uri: img }} style={styles.thumbnailImage} />
+                </TouchableOpacity>
+              ))}
+              {(!request.exam_images?.length && request.image_url) && (
+                <TouchableOpacity onPress={() => setSelectedImage(request.image_url)}>
+                  <Image source={{ uri: request.image_url }} style={styles.thumbnailImage} />
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+            <Text style={styles.imageHint}>Toque para ampliar</Text>
+          </View>
+        )}
+
+        {/* Notes */}
+        {request.notes && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📋 Observações</Text>
+            <Text style={styles.notesText}>{request.notes}</Text>
+          </View>
+        )}
+
+        {/* Actions */}
+        {canAccept && (
+          <View style={styles.actionsSection}>
+            <TouchableOpacity onPress={handleAccept} disabled={actionLoading === 'accept'} activeOpacity={0.8}>
+              <LinearGradient colors={['#10B981', '#34D399']} style={styles.primaryButton}>
+                {actionLoading === 'accept' ? <ActivityIndicator color="#FFFFFF" /> : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                    <Text style={styles.primaryButtonText}>Aceitar para Triagem</Text>
+                  </>
                 )}
-              </ScrollView>
-              <Text style={styles.imageHint}>Toque na imagem para ampliar</Text>
-            </Card>
-          )}
-
-          {/* Notes */}
-          {request.notes && (
-            <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>📋 Observações</Text>
-              <Text style={styles.notesText}>{request.notes}</Text>
-            </Card>
-          )}
-
-          {/* Actions */}
-          {canAction && (
-            <Card style={styles.card}>
-              <Text style={styles.sectionTitle}>⚡ Ações</Text>
-              <Button
-                title="✅ Aprovar (Dentro do Protocolo)"
-                onPress={() => setShowApproveModal(true)}
-                variant="success"
-                fullWidth
-                style={{ marginBottom: SIZES.sm }}
-              />
-              <Button
-                title="🔄 Encaminhar ao Médico"
-                onPress={() => setShowForwardModal(true)}
-                variant="outline"
-                fullWidth
-                style={{ marginBottom: SIZES.sm }}
-              />
-              <Button
-                title="❌ Recusar Solicitação"
-                onPress={() => setShowRejectModal(true)}
-                variant="danger"
-                fullWidth
-              />
-            </Card>
-          )}
-        </ScrollView>
-
-        {/* Image Preview Modal */}
-        <Modal visible={!!selectedImage} transparent animationType="fade">
-          <TouchableOpacity 
-            style={styles.imageModal} 
-            activeOpacity={1} 
-            onPress={() => setSelectedImage(null)}
-          >
-            {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={styles.fullImage} resizeMode="contain" />
-            )}
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedImage(null)}>
-              <Ionicons name="close" size={30} color="white" />
+              </LinearGradient>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {canAction && (
+          <View style={styles.actionsSection}>
+            <TouchableOpacity onPress={() => setShowApproveModal(true)} activeOpacity={0.8}>
+              <LinearGradient colors={['#10B981', '#34D399']} style={styles.primaryButton}>
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                <Text style={styles.primaryButtonText}>✅ Aprovar (Dentro do Protocolo)</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.outlineButton} onPress={() => setShowForwardModal(true)}>
+              <Ionicons name="arrow-forward-circle" size={18} color="#3B82F6" />
+              <Text style={[styles.outlineButtonText, { color: '#3B82F6' }]}>🔄 Encaminhar ao Médico</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.outlineButton, { borderColor: '#EF4444' }]} onPress={() => setShowRejectModal(true)}>
+              <Ionicons name="close-circle" size={18} color="#EF4444" />
+              <Text style={[styles.outlineButtonText, { color: '#EF4444' }]}>❌ Recusar Solicitação</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* Image Modal */}
+      <Modal visible={!!selectedImage} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSelectedImage(null)}>
+          {selectedImage && <Image source={{ uri: selectedImage }} style={styles.modalImage} resizeMode="contain" />}
+          <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedImage(null)}>
+            <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
-        </Modal>
+        </TouchableOpacity>
+      </Modal>
 
-        {/* Approve Modal */}
-        <Modal visible={showApproveModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Aprovar Solicitação</Text>
-              
-              <Text style={styles.inputLabel}>Valor do Exame (R$) *</Text>
-              <TextInput
-                style={styles.input}
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="decimal-pad"
-                placeholder="Ex: 89.90"
-              />
-              
-              <Text style={styles.inputLabel}>Tipo de Exame</Text>
-              <TextInput
-                style={styles.input}
-                value={examType}
-                onChangeText={setExamType}
-                placeholder="Ex: Laboratorial, Imagem"
-              />
-              
-              <Text style={styles.inputLabel}>Exames (separados por vírgula)</Text>
-              <TextInput
-                style={[styles.input, { height: 80 }]}
-                value={exams}
-                onChangeText={setExams}
-                placeholder="Ex: Hemograma, Glicemia, TSH"
-                multiline
-              />
-              
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancelar"
-                  onPress={() => setShowApproveModal(false)}
-                  variant="outline"
-                  style={{ flex: 1, marginRight: SIZES.sm }}
-                />
-                <Button
-                  title="Aprovar"
-                  onPress={handleApprove}
-                  variant="success"
-                  style={{ flex: 1 }}
-                />
-              </View>
+      {/* Approve Modal */}
+      <Modal visible={showApproveModal} transparent animationType="slide">
+        <View style={styles.bottomModalOverlay}>
+          <View style={styles.bottomModalContent}>
+            <Text style={styles.bottomModalTitle}>Aprovar Solicitação</Text>
+            
+            <Text style={styles.inputLabel}>Valor do Exame (R$) *</Text>
+            <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Ex: 89.90" placeholderTextColor="#9BA7AF" />
+            
+            <Text style={styles.inputLabel}>Tipo de Exame</Text>
+            <TextInput style={styles.input} value={examType} onChangeText={setExamType} placeholder="Ex: Laboratorial, Imagem" placeholderTextColor="#9BA7AF" />
+            
+            <Text style={styles.inputLabel}>Exames (separados por vírgula)</Text>
+            <TextInput style={[styles.input, { height: 80 }]} value={exams} onChangeText={setExams} placeholder="Ex: Hemograma, Glicemia" placeholderTextColor="#9BA7AF" multiline />
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonOutline]} onPress={() => setShowApproveModal(false)}>
+                <Text style={styles.modalButtonOutlineText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonSuccess]} onPress={handleApprove} disabled={actionLoading === 'approve'}>
+                {actionLoading === 'approve' ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.modalButtonText}>Aprovar</Text>}
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Reject Modal */}
-        <Modal visible={showRejectModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Recusar Solicitação</Text>
-              
-              <Text style={styles.inputLabel}>Motivo da Recusa *</Text>
-              <TextInput
-                style={[styles.input, { height: 100 }]}
-                value={rejectReason}
-                onChangeText={setRejectReason}
-                placeholder="Descreva o motivo da recusa..."
-                multiline
-              />
-              
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancelar"
-                  onPress={() => setShowRejectModal(false)}
-                  variant="outline"
-                  style={{ flex: 1, marginRight: SIZES.sm }}
-                />
-                <Button
-                  title="Recusar"
-                  onPress={handleReject}
-                  variant="danger"
-                  style={{ flex: 1 }}
-                />
-              </View>
+      {/* Reject Modal */}
+      <Modal visible={showRejectModal} transparent animationType="slide">
+        <View style={styles.bottomModalOverlay}>
+          <View style={styles.bottomModalContent}>
+            <Text style={styles.bottomModalTitle}>Recusar Solicitação</Text>
+            <Text style={styles.inputLabel}>Motivo da Recusa *</Text>
+            <TextInput style={[styles.input, { height: 100 }]} value={rejectReason} onChangeText={setRejectReason} placeholder="Descreva o motivo..." placeholderTextColor="#9BA7AF" multiline />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonOutline]} onPress={() => setShowRejectModal(false)}>
+                <Text style={styles.modalButtonOutlineText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonDanger]} onPress={handleReject} disabled={actionLoading === 'reject'}>
+                {actionLoading === 'reject' ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.modalButtonText}>Recusar</Text>}
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Forward Modal */}
-        <Modal visible={showForwardModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Encaminhar ao Médico</Text>
-              
-              <Text style={styles.inputLabel}>Motivo do Encaminhamento (opcional)</Text>
-              <TextInput
-                style={[styles.input, { height: 100 }]}
-                value={forwardReason}
-                onChangeText={setForwardReason}
-                placeholder="Ex: Exame fora do protocolo, requer avaliação médica..."
-                multiline
-              />
-              
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancelar"
-                  onPress={() => setShowForwardModal(false)}
-                  variant="outline"
-                  style={{ flex: 1, marginRight: SIZES.sm }}
-                />
-                <Button
-                  title="Encaminhar"
-                  onPress={handleForwardToDoctor}
-                  variant="primary"
-                  style={{ flex: 1 }}
-                />
-              </View>
+      {/* Forward Modal */}
+      <Modal visible={showForwardModal} transparent animationType="slide">
+        <View style={styles.bottomModalOverlay}>
+          <View style={styles.bottomModalContent}>
+            <Text style={styles.bottomModalTitle}>Encaminhar ao Médico</Text>
+            <Text style={styles.inputLabel}>Motivo do Encaminhamento (opcional)</Text>
+            <TextInput style={[styles.input, { height: 100 }]} value={forwardReason} onChangeText={setForwardReason} placeholder="Ex: Exame fora do protocolo..." placeholderTextColor="#9BA7AF" multiline />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonOutline]} onPress={() => setShowForwardModal(false)}>
+                <Text style={styles.modalButtonOutlineText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.modalButtonPrimary]} onPress={handleForward} disabled={actionLoading === 'forward'}>
+                {actionLoading === 'forward' ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.modalButtonText}>Encaminhar</Text>}
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
-  },
-  backBtn: {
-    padding: SIZES.xs,
-  },
-  headerTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: SIZES.md,
-  },
-  card: {
-    marginBottom: SIZES.md,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SIZES.sm,
-  },
-  requestType: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  patientName: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  dateText: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-  },
-  sectionTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  descriptionText: {
-    fontSize: SIZES.fontMd,
-    fontStyle: 'italic',
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  notesText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-  },
-  imagesScroll: {
-    marginTop: SIZES.sm,
-  },
-  thumbnailImage: {
-    width: 120,
-    height: 160,
-    borderRadius: SIZES.radiusMd,
-    marginRight: SIZES.sm,
-    backgroundColor: COLORS.backgroundDark,
-  },
-  imageHint: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: SIZES.sm,
-    textAlign: 'center',
-  },
-  imageModal: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullImage: {
-    width: '90%',
-    height: '80%',
-  },
-  closeBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.cardBackground,
-    borderTopLeftRadius: SIZES.radiusXl,
-    borderTopRightRadius: SIZES.radiusXl,
-    padding: SIZES.lg,
-    paddingBottom: 40,
-  },
-  modalTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.lg,
-    textAlign: 'center',
-  },
-  inputLabel: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginBottom: SIZES.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    fontSize: SIZES.fontMd,
-    marginBottom: SIZES.md,
-    backgroundColor: COLORS.background,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    marginTop: SIZES.md,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
+  errorText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+
+  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+
+  content: { flex: 1 },
+  contentContainer: { padding: 24 },
+
+  statusBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, marginBottom: 16, gap: 8 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { fontSize: 14, fontWeight: '600' },
+
+  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: 12, fontWeight: '600', color: '#9BA7AF', textTransform: 'uppercase', marginBottom: 12 },
+
+  patientRow: { flexDirection: 'row', alignItems: 'center' },
+  patientAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  patientInfo: { flex: 1, marginLeft: 14 },
+  patientName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
+  requestDate: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+
+  examTypeChip: { backgroundColor: '#EDE9FE', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, alignSelf: 'flex-start' },
+  examTypeText: { fontSize: 14, fontWeight: '500', color: '#7C3AED' },
+
+  descriptionText: { fontSize: 15, fontStyle: 'italic', color: '#1A3A4A', lineHeight: 22 },
+  notesText: { fontSize: 15, color: '#1A3A4A', lineHeight: 22 },
+
+  imagesScroll: { marginVertical: 8 },
+  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: '#F1F5F7' },
+  imageHint: { fontSize: 11, color: '#9BA7AF', textAlign: 'center' },
+
+  actionsSection: { marginTop: 8, gap: 10 },
+  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: '#10B981' },
+  outlineButtonText: { fontSize: 15, fontWeight: '500', color: '#10B981' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  modalImage: { width: '90%', height: '70%' },
+  modalClose: { position: 'absolute', top: 50, right: 20 },
+
+  bottomModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  bottomModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  bottomModalTitle: { fontSize: 20, fontWeight: '700', color: '#1A3A4A', marginBottom: 20, textAlign: 'center' },
+
+  inputLabel: { fontSize: 13, fontWeight: '600', color: '#6B7C85', marginBottom: 6 },
+  input: { backgroundColor: '#F8FAFB', borderRadius: 12, padding: 14, fontSize: 15, color: '#1A3A4A', marginBottom: 16, borderWidth: 1, borderColor: '#E4E9EC' },
+
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalButton: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalButtonOutline: { borderWidth: 1.5, borderColor: '#E4E9EC' },
+  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
+  modalButtonSuccess: { backgroundColor: '#10B981' },
+  modalButtonDanger: { backgroundColor: '#EF4444' },
+  modalButtonPrimary: { backgroundColor: '#3B82F6' },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

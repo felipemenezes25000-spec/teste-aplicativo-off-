@@ -1,3 +1,8 @@
+/**
+ * 🔧 Admin Dashboard - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,26 +11,45 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  StatusBar,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
-import api from '../../src/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
 
-export default function AdminDashboard() {
+interface AdminStats {
+  total_users: number;
+  total_patients: number;
+  total_doctors: number;
+  total_nurses: number;
+  pending_requests: number;
+  completed_today: number;
+  total_revenue: number;
+  integrations: {
+    mercadopago: boolean;
+    video: boolean;
+    notifications: boolean;
+  };
+}
+
+const menuItems = [
+  { id: 'users', icon: 'people', title: 'Usuários', color: '#00B4CD', route: '/admin/users' },
+  { id: 'doctors', icon: 'medkit', title: 'Médicos', color: '#10B981', route: '/admin/doctors' },
+  { id: 'requests', icon: 'document-text', title: 'Solicitações', color: '#8B5CF6', route: '/admin/requests' },
+  { id: 'reports', icon: 'stats-chart', title: 'Relatórios', color: '#F59E0B', route: '/admin/stats' },
+];
+
+export default function AdminDashboardScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const [stats, setStats] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin
     if (user?.role !== 'admin') {
       Alert.alert('Acesso Negado', 'Você não tem permissão para acessar esta área.');
       router.replace('/(tabs)');
@@ -36,12 +60,12 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const response = await api.get('/admin/stats');
-      setStats(response.data);
+      const data = await api.getAdminStats();
+      setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -51,129 +75,139 @@ export default function AdminDashboard() {
     loadStats();
   };
 
-  const menuItems = [
-    {
-      icon: 'people',
-      title: 'Usuários',
-      subtitle: `${stats?.total_patients || 0} pacientes cadastrados`,
-      color: COLORS.primary,
-      route: '/admin/users',
-    },
-    {
-      icon: 'medkit',
-      title: 'Médicos',
-      subtitle: `${stats?.total_doctors || 0} médicos cadastrados`,
-      color: COLORS.healthGreen,
-      route: '/admin/doctors',
-    },
-    {
-      icon: 'document-text',
-      title: 'Solicitações',
-      subtitle: `${stats?.pending_requests || 0} pendentes`,
-      color: COLORS.healthPurple,
-      route: '/admin/requests',
-    },
-    {
-      icon: 'stats-chart',
-      title: 'Relatórios',
-      subtitle: 'Estatísticas e métricas',
-      color: COLORS.healthOrange,
-      route: '/admin/stats',
-    },
+  const statsCards = [
+    { label: 'Usuários', value: stats?.total_users || 0, icon: 'people', color: '#00B4CD', bg: '#E6F7FA' },
+    { label: 'Receita', value: `R$ ${(stats?.total_revenue || 0).toFixed(0)}`, icon: 'cash', color: '#10B981', bg: '#D1FAE5' },
+    { label: 'Pendentes', value: stats?.pending_requests || 0, icon: 'time', color: '#F59E0B', bg: '#FEF3C7' },
+    { label: 'Hoje', value: stats?.completed_today || 0, icon: 'checkmark-circle', color: '#8B5CF6', bg: '#EDE9FE' },
   ];
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SIZES.md }]}>
-        <View>
-          <Text style={styles.headerTitle}>Painel Admin</Text>
-          <Text style={styles.headerSubtitle}>RenoveJá+</Text>
+      <LinearGradient
+        colors={['#1A3A4A', '#2D5A6B']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>Painel</Text>
+            <Text style={styles.title}>Administrador 🔧</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
+            <Ionicons name="log-out-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Ionicons name="log-out-outline" size={24} color={COLORS.textWhite} />
-        </TouchableOpacity>
-      </View>
+
+        {/* Quick Stats Preview */}
+        <View style={styles.headerStats}>
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatValue}>{stats?.total_patients || 0}</Text>
+            <Text style={styles.headerStatLabel}>Pacientes</Text>
+          </View>
+          <View style={styles.headerStatDivider} />
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatValue}>{stats?.total_doctors || 0}</Text>
+            <Text style={styles.headerStatLabel}>Médicos</Text>
+          </View>
+          <View style={styles.headerStatDivider} />
+          <View style={styles.headerStatItem}>
+            <Text style={styles.headerStatValue}>{stats?.total_nurses || 0}</Text>
+            <Text style={styles.headerStatLabel}>Enfermeiros</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00B4CD"
+            colors={['#00B4CD']}
+          />
+        }
       >
-        {/* Quick Stats */}
-        <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
-            <Text style={styles.statValue}>{stats?.total_users || 0}</Text>
-            <Text style={styles.statLabel}>Total Usuários</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={[styles.statValue, { color: COLORS.healthGreen }]}>
-              R$ {(stats?.total_revenue || 0).toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>Receita Total</Text>
-          </Card>
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          {statsCards.map((stat, index) => (
+            <View key={index} style={styles.statCard}>
+              <View style={[styles.statIcon, { backgroundColor: stat.bg }]}>
+                <Ionicons name={stat.icon as any} size={22} color={stat.color} />
+              </View>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
         </View>
 
-        <View style={styles.statsRow}>
-          <Card style={styles.statCard}>
-            <Text style={[styles.statValue, { color: COLORS.warning }]}>
-              {stats?.pending_requests || 0}
-            </Text>
-            <Text style={styles.statLabel}>Pendentes</Text>
-          </Card>
-          <Card style={styles.statCard}>
-            <Text style={[styles.statValue, { color: COLORS.primary }]}>
-              {stats?.completed_today || 0}
-            </Text>
-            <Text style={styles.statLabel}>Hoje</Text>
-          </Card>
-        </View>
-
-        {/* Menu Items */}
+        {/* Menu */}
         <Text style={styles.sectionTitle}>Gerenciamento</Text>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => router.push(item.route as any)}
-          >
-            <Card style={styles.menuCard}>
+        <View style={styles.menuGrid}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuCard}
+              onPress={() => router.push(item.route as any)}
+              activeOpacity={0.7}
+            >
               <View style={[styles.menuIcon, { backgroundColor: item.color + '15' }]}>
-                <Ionicons name={item.icon as any} size={24} color={item.color} />
+                <Ionicons name={item.icon as any} size={28} color={item.color} />
               </View>
-              <View style={styles.menuInfo}>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
-            </Card>
-          </TouchableOpacity>
-        ))}
+              <Text style={styles.menuTitle}>{item.title}</Text>
+              <Ionicons name="chevron-forward" size={18} color="#9BA7AF" />
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {/* System Info */}
-        <Card style={styles.systemCard}>
-          <Text style={styles.systemTitle}>Integrações</Text>
-          <View style={styles.integrationRow}>
-            <Text style={styles.integrationName}>MercadoPago</Text>
-            <View style={[styles.statusBadge, stats?.integrations?.mercadopago ? styles.statusActive : styles.statusInactive]}>
-              <Text style={styles.statusText}>
-                {stats?.integrations?.mercadopago ? 'Ativo' : 'Inativo'}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.integrationRow}>
-            <Text style={styles.integrationName}>Jitsi Video</Text>
-            <View style={[styles.statusBadge, styles.statusActive]}>
-              <Text style={styles.statusText}>Ativo</Text>
-            </View>
-          </View>
-          <View style={styles.integrationRow}>
-            <Text style={styles.integrationName}>Push Notifications</Text>
-            <View style={[styles.statusBadge, styles.statusActive]}>
-              <Text style={styles.statusText}>Ativo</Text>
-            </View>
-          </View>
-        </Card>
+        {/* Integrations */}
+        <Text style={styles.sectionTitle}>Integrações</Text>
+        <View style={styles.integrationsCard}>
+          <IntegrationRow 
+            name="MercadoPago" 
+            icon="card" 
+            active={stats?.integrations?.mercadopago || false} 
+          />
+          <View style={styles.integrationDivider} />
+          <IntegrationRow 
+            name="Jitsi Video" 
+            icon="videocam" 
+            active={true} 
+          />
+          <View style={styles.integrationDivider} />
+          <IntegrationRow 
+            name="Push Notifications" 
+            icon="notifications" 
+            active={true} 
+          />
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
+    </View>
+  );
+}
+
+function IntegrationRow({ name, icon, active }: { name: string; icon: string; active: boolean }) {
+  return (
+    <View style={styles.integrationRow}>
+      <View style={styles.integrationLeft}>
+        <Ionicons name={icon as any} size={20} color="#6B7C85" />
+        <Text style={styles.integrationName}>{name}</Text>
+      </View>
+      <View style={[styles.statusBadge, active ? styles.statusActive : styles.statusInactive]}>
+        <View style={[styles.statusDot, active && styles.statusDotActive]} />
+        <Text style={[styles.statusText, active && styles.statusTextActive]}>
+          {active ? 'Ativo' : 'Inativo'}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -181,129 +215,210 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFB',
   },
+
+  // Header
   header: {
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.md,
-    backgroundColor: COLORS.textPrimary,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
-  headerTitle: {
-    fontSize: SIZES.font2xl,
+  greeting: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  title: {
+    fontSize: 24,
     fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  headerSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textWhite,
-    opacity: 0.7,
+    color: '#FFFFFF',
+    marginTop: 2,
   },
   logoutButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerStats: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  headerStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerStatValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  headerStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 2,
+  },
+  headerStatDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 16,
+  },
+
+  // Content
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: SIZES.lg,
-    paddingBottom: SIZES.xxl,
+    padding: 24,
   },
-  statsRow: {
+
+  // Stats Grid
+  statsGrid: {
     flexDirection: 'row',
-    gap: SIZES.md,
-    marginBottom: SIZES.md,
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 24,
   },
   statCard: {
-    flex: 1,
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    paddingVertical: SIZES.lg,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   statValue: {
-    fontSize: SIZES.font2xl,
+    fontSize: 22,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#1A3A4A',
   },
   statLabel: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 4,
+    fontSize: 12,
+    color: '#6B7C85',
+    marginTop: 2,
   },
+
+  // Section
   sectionTitle: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginTop: SIZES.lg,
-    marginBottom: SIZES.md,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A3A4A',
+    marginBottom: 12,
+  },
+
+  // Menu Grid
+  menuGrid: {
+    gap: 10,
+    marginBottom: 24,
   },
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SIZES.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   menuIcon: {
     width: 48,
     height: 48,
-    borderRadius: SIZES.radiusMd,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  menuInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
+    marginRight: 14,
   },
   menuTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A3A4A',
   },
-  menuSubtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  systemCard: {
-    marginTop: SIZES.lg,
-  },
-  systemTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.md,
+
+  // Integrations
+  integrationsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   integrationRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: SIZES.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  integrationLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   integrationName: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
+    fontSize: 15,
+    color: '#1A3A4A',
+  },
+  integrationDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F7',
   },
   statusBadge: {
-    paddingHorizontal: SIZES.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 4,
-    borderRadius: SIZES.radiusFull,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    gap: 6,
   },
   statusActive: {
-    backgroundColor: COLORS.healthGreen + '20',
+    backgroundColor: '#D1FAE5',
   },
   statusInactive: {
-    backgroundColor: COLORS.textMuted + '20',
+    backgroundColor: '#F1F5F7',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9BA7AF',
+  },
+  statusDotActive: {
+    backgroundColor: '#10B981',
   },
   statusText: {
-    fontSize: SIZES.fontXs,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7C85',
+  },
+  statusTextActive: {
+    color: '#10B981',
   },
 });
