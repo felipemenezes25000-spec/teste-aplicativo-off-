@@ -20,6 +20,13 @@ import httpx
 # Import Supabase database module
 from database import db, find_one, find_many, insert_one, update_one, delete_one, count_docs
 
+# Import notifications helper
+from notifications_helper import (
+    notify_user, notify_users, notify_role,
+    notify_available_doctors, notify_available_nurses, notify_admins,
+    TEMPLATES, create_notification
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -206,13 +213,21 @@ async def register(data: UserCreate):
         "password_hash": hash_password(data.password),
         "phone": data.phone,
         "cpf": data.cpf,
-        "role": data.role
+        "role": data.role,
+        "active": True,
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await insert_one("users", user_data)
     
     token = generate_token()
     await insert_one("active_tokens", {"token": token, "user_id": user_id})
+    
+    # Notificar admins sobre novo usuário
+    await notify_admins(
+        insert_one, find_many, "admin_new_user",
+        {"role": "paciente", "name": data.name, "email": data.email}
+    )
     
     return Token(
         access_token=token,
@@ -514,14 +529,20 @@ async def create_prescription_request(token: str, data: PrescriptionRequestCreat
     
     await insert_one("requests", request_data)
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": user["id"],
-        "title": "✅ Solicitação Criada",
-        "message": "Sua solicitação de renovação de receita foi enviada e está aguardando análise médica.",
-        "notification_type": "success"
-    })
+    # Notificar paciente
+    await notify_user(insert_one, user["id"], "prescription_created_patient", request_id=request_id)
+    
+    # Notificar médicos disponíveis
+    await notify_available_doctors(
+        insert_one, find_many, "prescription_created_doctors",
+        {"patient_name": user["name"]}, request_id=request_id
+    )
+    
+    # Notificar admins
+    await notify_admins(
+        insert_one, find_many, "admin_new_request",
+        {"request_type": "receita", "patient_name": user["name"]}, request_id=request_id
+    )
     
     return request_data
 
@@ -548,14 +569,20 @@ async def create_exam_request(token: str, data: ExamRequestCreate):
     
     await insert_one("requests", request_data)
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": user["id"],
-        "title": "✅ Solicitação Enviada",
-        "message": "Sua solicitação de exames foi enviada e será analisada pela equipe de enfermagem.",
-        "notification_type": "success"
-    })
+    # Notificar paciente
+    await notify_user(insert_one, user["id"], "exam_created_patient", request_id=request_id)
+    
+    # Notificar enfermeiros disponíveis
+    await notify_available_nurses(
+        insert_one, find_many, "exam_created_nurses",
+        {"patient_name": user["name"]}, request_id=request_id
+    )
+    
+    # Notificar admins
+    await notify_admins(
+        insert_one, find_many, "admin_new_request",
+        {"request_type": "exame", "patient_name": user["name"]}, request_id=request_id
+    )
     
     return request_data
 
@@ -580,6 +607,25 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
     }
     
     await insert_one("requests", request_data)
+    
+    # Notificar paciente
+    await notify_user(
+        insert_one, user["id"], "consultation_created_patient",
+        {"specialty": data.specialty}, request_id=request_id
+    )
+    
+    # Notificar médicos da especialidade
+    await notify_available_doctors(
+        insert_one, find_many, "consultation_created_doctors",
+        {"patient_name": user["name"], "specialty": data.specialty},
+        specialty=data.specialty, request_id=request_id
+    )
+    
+    # Notificar admins
+    await notify_admins(
+        insert_one, find_many, "admin_new_request",
+        {"request_type": "consulta", "patient_name": user["name"]}, request_id=request_id
+    )
     
     return request_data
 
@@ -635,7 +681,7 @@ async def doctor_accept_request(request_id: str, token: str):
     if not request:
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
     
-    if request.get("status") not in ["submitted", "pending"]:
+    if request.get("status") not in ["submitted", "pending", "forwarded_to_doctor"]:
         raise HTTPException(status_code=400, detail="Solicitação não está disponível para análise")
     
     await update_one("requests", {"id": request_id}, {
@@ -645,14 +691,11 @@ async def doctor_accept_request(request_id: str, token: str):
         "assigned_at": datetime.utcnow().isoformat()
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "Solicitação em análise",
-        "message": f"Dr(a). {user['name']} está analisando sua solicitação.",
-        "notification_type": "info"
-    })
+    # Notificar paciente
+    await notify_user(
+        insert_one, request["patient_id"], "prescription_accepted",
+        {"doctor_name": user["name"]}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação aceita para análise", "status": "in_review"}
 
@@ -672,26 +715,25 @@ async def doctor_approve_request(request_id: str, token: str, data: DoctorApprov
     if request.get("status") not in ["in_review", "analyzing"]:
         raise HTTPException(status_code=400, detail="Solicitação não está em análise")
     
+    price = (data.price if data and data.price else request.get("price", 49.90))
+    
     update_data = {
         "status": "approved_pending_payment",
-        "approved_at": datetime.utcnow().isoformat()
+        "approved_at": datetime.utcnow().isoformat(),
+        "approved_by": "doctor",
+        "price": price
     }
     
-    if data and data.price:
-        update_data["price"] = data.price
     if data and data.notes:
         update_data["notes"] = data.notes
     
     await update_one("requests", {"id": request_id}, update_data)
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "✅ Solicitação Aprovada!",
-        "message": f"Sua solicitação foi aprovada por Dr(a). {user['name']}. Realize o pagamento para receber sua receita assinada.",
-        "notification_type": "success"
-    })
+    # Notificar paciente - aprovado, aguardando pagamento
+    await notify_user(
+        insert_one, request["patient_id"], "prescription_approved",
+        {"doctor_name": user["name"], "price": price}, request_id=request_id
+    )
     
     return {
         "success": True,
@@ -717,14 +759,11 @@ async def doctor_reject_request(request_id: str, token: str, data: DoctorRejecti
         "rejection_reason": data.reason
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "❌ Solicitação Recusada",
-        "message": f"Sua solicitação foi recusada. Motivo: {data.reason}",
-        "notification_type": "error"
-    })
+    # Notificar paciente
+    await notify_user(
+        insert_one, request["patient_id"], "prescription_rejected",
+        {"doctor_name": user["name"], "reason": data.reason}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação rejeitada", "status": "rejected"}
 
@@ -755,17 +794,21 @@ async def sign_prescription(request_id: str, token: str):
     await update_one("requests", {"id": request_id}, {
         "status": "signed",
         "signed_at": datetime.utcnow().isoformat(),
-        "signature_data": signature_data
+        "signature_data": signature_data,
+        "completed_at": datetime.utcnow().isoformat()
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "📝 Receita Assinada!",
-        "message": "Sua receita foi assinada digitalmente e está pronta para download.",
-        "notification_type": "success"
-    })
+    # Notificar paciente - receita pronta!
+    await notify_user(
+        insert_one, request["patient_id"], "prescription_signed",
+        {"doctor_name": user["name"]}, request_id=request_id
+    )
+    
+    # Notificar paciente para avaliar
+    await notify_user(
+        insert_one, request["patient_id"], "review_reminder",
+        {"doctor_name": user["name"]}, request_id=request_id
+    )
     
     return {"success": True, "message": "Receita assinada com sucesso", "status": "signed", "signature": signature_data}
 
@@ -867,14 +910,11 @@ async def nursing_accept_request(request_id: str, token: str):
         "nurse_name": user["name"]
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "🩺 Triagem Iniciada",
-        "message": "Sua solicitação de exames está sendo analisada pela equipe de enfermagem.",
-        "notification_type": "info"
-    })
+    # Notificar paciente
+    await notify_user(
+        insert_one, request["patient_id"], "exam_accepted",
+        {"nurse_name": user["name"]}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação aceita para triagem"}
 
@@ -898,14 +938,11 @@ async def nursing_approve_request(request_id: str, token: str, data: NursingAppr
         "approved_at": datetime.utcnow().isoformat()
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "✅ Exames Aprovados!",
-        "message": f"Sua solicitação de exames foi aprovada. Realize o pagamento de R$ {data.price:.2f} para receber o pedido.",
-        "notification_type": "success"
-    })
+    # Notificar paciente - exames aprovados
+    await notify_user(
+        insert_one, request["patient_id"], "exam_approved",
+        {"nurse_name": user["name"], "price": data.price}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação aprovada pela enfermagem"}
 
@@ -921,18 +958,21 @@ async def nursing_forward_to_doctor(request_id: str, token: str, data: NursingFo
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
     
     await update_one("requests", {"id": request_id}, {
-        "status": "in_medical_review",
+        "status": "forwarded_to_doctor",
         "notes": f"Encaminhado pela enfermagem: {data.reason or 'Requer validação médica'}"
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "🔄 Encaminhado ao Médico",
-        "message": "Sua solicitação foi encaminhada para validação médica.",
-        "notification_type": "info"
-    })
+    # Notificar paciente
+    await notify_user(
+        insert_one, request["patient_id"], "exam_forwarded_patient",
+        request_id=request_id
+    )
+    
+    # Notificar médicos disponíveis
+    await notify_available_doctors(
+        insert_one, find_many, "exam_forwarded_doctors",
+        {"patient_name": request.get("patient_name", "Paciente")}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação encaminhada para médico"}
 
@@ -953,14 +993,11 @@ async def nursing_reject_request(request_id: str, token: str, data: NursingRejec
         "approved_by": "nurse"
     })
     
-    notification_id = str(uuid.uuid4())
-    await insert_one("notifications", {
-        "id": notification_id,
-        "user_id": request["patient_id"],
-        "title": "❌ Solicitação Recusada",
-        "message": f"Sua solicitação de exames foi recusada. Motivo: {data.reason}",
-        "notification_type": "error"
-    })
+    # Notificar paciente
+    await notify_user(
+        insert_one, request["patient_id"], "exam_rejected",
+        {"reason": data.reason}, request_id=request_id
+    )
     
     return {"success": True, "message": "Solicitação recusada"}
 
@@ -1155,15 +1192,33 @@ async def confirm_payment(payment_id: str, token: str):
     })
     
     request = await find_one("requests", {"id": payment["request_id"]})
+    
+    # Notificar paciente - pagamento confirmado
+    if request:
+        await notify_user(
+            insert_one, request["patient_id"], "payment_confirmed",
+            {"amount": payment.get("amount", 0)}, request_id=payment["request_id"]
+        )
+    
+    # Notificar médico ou enfermeiro para assinar
     if request and request.get("doctor_id"):
-        notification_id = str(uuid.uuid4())
-        await insert_one("notifications", {
-            "id": notification_id,
-            "user_id": request["doctor_id"],
-            "title": "💰 Pagamento Recebido!",
-            "message": f"O paciente {request.get('patient_name', 'N/A')} realizou o pagamento. A receita precisa ser assinada.",
-            "notification_type": "success"
-        })
+        await notify_user(
+            insert_one, request["doctor_id"], "prescription_paid_doctor",
+            {"patient_name": request.get("patient_name", "Paciente")}, request_id=payment["request_id"]
+        )
+    elif request and request.get("nurse_id"):
+        await notify_user(
+            insert_one, request["nurse_id"], "exam_paid",
+            {"patient_name": request.get("patient_name", "Paciente")}, request_id=payment["request_id"]
+        )
+    
+    # Notificar admin
+    if request:
+        await notify_admins(
+            insert_one, find_many, "admin_payment_received",
+            {"amount": payment.get("amount", 0), "patient_name": request.get("patient_name", "Paciente")},
+            request_id=payment["request_id"]
+        )
     
     return {"message": "Pagamento confirmado com sucesso", "status": "paid"}
 
@@ -1402,6 +1457,12 @@ async def start_consultation(request_id: str, token: str):
         "updated_at": datetime.utcnow().isoformat()
     })
     
+    # Notificar paciente - consulta iniciando
+    await notify_user(
+        insert_one, request["patient_id"], "consultation_starting",
+        {"doctor_name": user["name"]}, request_id=request_id
+    )
+    
     return {"message": "Consulta iniciada", "started_at": datetime.utcnow().isoformat()}
 
 @api_router.post("/consultation/end/{request_id}")
@@ -1441,6 +1502,18 @@ async def end_consultation(request_id: str, token: str, notes: str = None):
     if doctor_profile:
         total = doctor_profile.get("total_consultations", 0) + 1
         await update_one("doctor_profiles", {"user_id": user["id"]}, {"total_consultations": total})
+    
+    # Notificar paciente - consulta finalizada, pedir avaliação
+    await notify_user(
+        insert_one, request["patient_id"], "consultation_ended",
+        request_id=request_id
+    )
+    
+    # Lembrete para avaliar
+    await notify_user(
+        insert_one, request["patient_id"], "review_reminder",
+        {"doctor_name": user["name"]}, request_id=request_id
+    )
     
     return {"message": "Consulta encerrada", "duration_minutes": duration_minutes}
 
