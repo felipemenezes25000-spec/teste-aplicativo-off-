@@ -1,181 +1,246 @@
-import React from 'react';
+/**
+ * 👤 Profile Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Alert,
+  StatusBar,
+  Switch,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { COLORS, SIZES } from '../../src/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface MenuItemProps {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
+  showArrow?: boolean;
+  rightElement?: React.ReactNode;
+  danger?: boolean;
+}
+
+const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightElement, danger }: MenuItemProps) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+    <View style={[styles.menuIconContainer, danger && styles.menuIconDanger]}>
+      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : '#00B4CD'} />
+    </View>
+    <View style={styles.menuContent}>
+      <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
+      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+    </View>
+    {rightElement}
+    {showArrow && !rightElement && (
+      <Ionicons name="chevron-forward" size={20} color="#CDD5DA" />
+    )}
+  </TouchableOpacity>
+);
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
-      'Sair',
-      'Tem certeza que deseja sair da sua conta?',
+      'Sair da conta',
+      'Tem certeza que deseja sair?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/(auth)/login');
-          },
-        },
+        { text: 'Sair', style: 'destructive', onPress: () => logout() },
       ]
     );
   };
 
-  const menuItems = [
-    {
-      id: 'personal',
-      title: 'Dados pessoais',
-      subtitle: 'Nome, e-mail, telefone',
-      icon: 'person-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'address',
-      title: 'Endereço',
-      subtitle: 'Atualizar endereço de entrega',
-      icon: 'location-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'payments',
-      title: 'Pagamentos',
-      subtitle: 'Histórico e métodos de pagamento',
-      icon: 'card-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'security',
-      title: 'Segurança',
-      subtitle: 'Senha e autenticação',
-      icon: 'shield-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'notifications',
-      title: 'Notificações',
-      subtitle: 'Configurações de alertas',
-      icon: 'notifications-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'help',
-      title: 'Ajuda',
-      subtitle: 'FAQ e suporte',
-      icon: 'help-circle-outline',
-      onPress: () => {},
-    },
-    {
-      id: 'terms',
-      title: 'Termos de uso',
-      subtitle: 'Políticas e termos',
-      icon: 'document-text-outline',
-      onPress: () => {},
-    },
-  ];
+  const getInitials = () => {
+    if (!user?.name) return '?';
+    const names = user.name.split(' ');
+    return names.length > 1 
+      ? `${names[0][0]}${names[1][0]}`.toUpperCase()
+      : names[0][0].toUpperCase();
+  };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      
+      {/* Header */}
+      <LinearGradient
+        colors={['#00B4CD', '#4AC5E0']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Meu Perfil</Text>
+          <TouchableOpacity style={styles.editButton}>
+            <Ionicons name="create-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            {user?.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
+            ) : (
+              <LinearGradient
+                colors={['#1A3A4A', '#2D5A6B']}
+                style={styles.avatarPlaceholder}
+              >
+                <Text style={styles.avatarInitials}>{getInitials()}</Text>
+              </LinearGradient>
+            )}
+            <TouchableOpacity style={styles.cameraButton}>
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          
+          <View style={styles.badgeContainer}>
+            <View style={styles.badge}>
+              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Text style={styles.badgeText}>Conta verificada</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Perfil</Text>
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Conta</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="person-outline"
+              title="Dados pessoais"
+              subtitle="Nome, CPF, data de nascimento"
+              onPress={() => {}}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="location-outline"
+              title="Endereços"
+              subtitle="Gerencie seus endereços"
+              onPress={() => {}}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="card-outline"
+              title="Pagamento"
+              subtitle="Cartões e PIX"
+              onPress={() => {}}
+            />
+          </View>
         </View>
 
-        {/* User card */}
-        <Card style={styles.userCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name ? getInitials(user.name) : 'U'}
-            </Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user?.name || 'Usuário'}</Text>
-            <Text style={styles.userEmail}>{user?.email || ''}</Text>
-            {user?.phone && (
-              <Text style={styles.userPhone}>{user.phone}</Text>
-            )}
-          </View>
-          <TouchableOpacity style={styles.editButton}>
-            <Ionicons name="pencil" size={18} color={COLORS.primary} />
-          </TouchableOpacity>
-        </Card>
-
-        {/* Menu items */}
-        <View style={styles.menu}>
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.menuItem}
-              onPress={item.onPress}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.menuIcon,
-                  { backgroundColor: COLORS.primary + '10' },
-                ]}
-              >
-                <Ionicons
-                  name={item.icon as any}
-                  size={20}
-                  color={COLORS.primary}
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferências</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="notifications-outline"
+              title="Notificações"
+              onPress={() => setNotificationsEnabled(!notificationsEnabled)}
+              showArrow={false}
+              rightElement={
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }}
+                  thumbColor={notificationsEnabled ? '#10B981' : '#FFFFFF'}
                 />
-              </View>
-              <View style={styles.menuContent}>
-                <Text style={styles.menuTitle}>{item.title}</Text>
-                <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={COLORS.textMuted}
-              />
-            </TouchableOpacity>
-          ))}
+              }
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="moon-outline"
+              title="Modo escuro"
+              onPress={() => setDarkMode(!darkMode)}
+              showArrow={false}
+              rightElement={
+                <Switch
+                  value={darkMode}
+                  onValueChange={setDarkMode}
+                  trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }}
+                  thumbColor={darkMode ? '#10B981' : '#FFFFFF'}
+                />
+              }
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="language-outline"
+              title="Idioma"
+              subtitle="Português (BR)"
+              onPress={() => {}}
+            />
+          </View>
         </View>
 
-        {/* Logout button */}
-        <Button
-          title="Sair da conta"
-          onPress={handleLogout}
-          variant="outline"
-          fullWidth
-          icon={<Ionicons name="log-out-outline" size={20} color={COLORS.primary} />}
-          style={styles.logoutButton}
-        />
+        {/* Support Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Suporte</Text>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="help-circle-outline"
+              title="Central de ajuda"
+              onPress={() => {}}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="chatbubble-outline"
+              title="Fale conosco"
+              onPress={() => {}}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="document-text-outline"
+              title="Termos de uso"
+              onPress={() => {}}
+            />
+            <View style={styles.menuDivider} />
+            <MenuItem
+              icon="shield-outline"
+              title="Política de privacidade"
+              onPress={() => {}}
+            />
+          </View>
+        </View>
+
+        {/* Logout */}
+        <View style={styles.section}>
+          <View style={styles.menuCard}>
+            <MenuItem
+              icon="log-out-outline"
+              title="Sair da conta"
+              onPress={handleLogout}
+              showArrow={false}
+              danger
+            />
+          </View>
+        </View>
 
         {/* Version */}
-        <Text style={styles.version}>Versão 1.0.0</Text>
+        <Text style={styles.versionText}>RenoveJá+ v2.0.0</Text>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -184,112 +249,184 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFB',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: SIZES.lg,
-    paddingBottom: SIZES.xxl,
-  },
+
+  // Header
   header: {
-    marginBottom: SIZES.lg,
+    paddingTop: 50,
+    paddingBottom: 80,
   },
-  title: {
-    fontSize: SIZES.font3xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  userCard: {
+  headerContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SIZES.lg,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: SIZES.font2xl,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    color: COLORS.textWhite,
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  userName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  userEmail: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  userPhone: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textMuted,
-    marginTop: 2,
+    color: '#FFFFFF',
   },
   editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary + '15',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menu: {
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: SIZES.radiusXl,
-    marginBottom: SIZES.lg,
-    shadowColor: COLORS.shadow,
+
+  // Profile Card
+  profileCard: {
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 32,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+  avatarInitials: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#00B4CD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 12,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 6,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+
+  // Content
+  content: {
+    flex: 1,
+    marginTop: -40,
+  },
+  contentContainer: {
+    paddingHorizontal: 24,
+  },
+
+  // Section
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7C85',
+    marginBottom: 12,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Menu Card
+  menuCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#1A3A4A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 3,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SIZES.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderLight,
+    padding: 16,
   },
-  menuIcon: {
+  menuIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: SIZES.radiusMd,
+    borderRadius: 12,
+    backgroundColor: '#E6F7FA',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 14,
+  },
+  menuIconDanger: {
+    backgroundColor: '#FEE2E2',
   },
   menuContent: {
     flex: 1,
-    marginLeft: SIZES.md,
   },
   menuTitle: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A3A4A',
+  },
+  menuTitleDanger: {
+    color: '#EF4444',
   },
   menuSubtitle: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    color: '#6B7C85',
     marginTop: 2,
   },
-  logoutButton: {
-    marginBottom: SIZES.md,
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F7',
+    marginLeft: 70,
   },
-  version: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
+
+  // Version
+  versionText: {
     textAlign: 'center',
+    fontSize: 13,
+    color: '#9BA7AF',
+    marginTop: 8,
   },
 });

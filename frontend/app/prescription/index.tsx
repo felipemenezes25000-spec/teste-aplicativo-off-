@@ -1,150 +1,197 @@
-import React, { useState } from 'react';
+/**
+ * 💊 Prescription Type Selection - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card } from '../../src/components/Card';
-import { Button } from '../../src/components/Button';
-import { COLORS, SIZES, PRESCRIPTION_TYPES } from '../../src/utils/constants';
+
+const prescriptionTypes = [
+  {
+    id: 'simple',
+    title: 'Receita Simples',
+    subtitle: 'Medicamentos comuns sem retenção',
+    description: 'Para medicamentos de venda livre ou com receita simples',
+    icon: 'document-text',
+    gradient: ['#4AC5E0', '#00B4CD'],
+    price: 'R$ 49,90',
+    examples: ['Analgésicos', 'Anti-inflamatórios', 'Vitaminas'],
+  },
+  {
+    id: 'controlled',
+    title: 'Receita Controlada',
+    subtitle: 'Receita branca com retenção',
+    description: 'Para medicamentos controlados (tarja vermelha)',
+    icon: 'shield-checkmark',
+    gradient: ['#F59E0B', '#D97706'],
+    price: 'R$ 79,90',
+    examples: ['Ansiolíticos', 'Antidepressivos', 'Indutores do sono'],
+  },
+  {
+    id: 'blue',
+    title: 'Receita Azul',
+    subtitle: 'Notificação B (psicotrópicos)',
+    description: 'Para medicamentos de controle especial',
+    icon: 'medical',
+    gradient: ['#3B82F6', '#1D4ED8'],
+    price: 'R$ 99,90',
+    examples: ['Benzodiazepínicos', 'Barbitúricos', 'Anfetaminas'],
+  },
+];
 
 export default function PrescriptionTypeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const [selectedType, setSelectedType] = useState<string | null>(null);
 
-  const handleContinue = () => {
-    if (selectedType) {
-      router.push({
-        pathname: '/prescription/upload',
-        params: { type: selectedType },
-      });
-    }
+  const handleSelectType = (type: string) => {
+    router.push({
+      pathname: '/prescription/upload',
+      params: { type }
+    });
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
+      <LinearGradient
+        colors={['#00B4CD', '#4AC5E0']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
+        
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Renovar Receita</Text>
-          <View style={styles.progress}>
-            <View style={styles.progressStep}>
-              <View style={[styles.progressDot, styles.progressDotActive]} />
-              <Text style={styles.progressText}>Tipo</Text>
-            </View>
-            <View style={styles.progressLine} />
-            <View style={styles.progressStep}>
-              <View style={styles.progressDot} />
-              <Text style={styles.progressTextMuted}>Upload</Text>
-            </View>
-            <View style={styles.progressLine} />
-            <View style={styles.progressStep}>
-              <View style={styles.progressDot} />
-              <Text style={styles.progressTextMuted}>Pagamento</Text>
-            </View>
-          </View>
+          <Text style={styles.headerSubtitle}>
+            Selecione o tipo de receita que você precisa
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Selecione o tipo de receita</Text>
-        <Text style={styles.subtitle}>
-          Escolha a categoria que melhor se aplica aos seus medicamentos
-        </Text>
-
-        {/* Prescription types */}
-        <View style={styles.types}>
-          {PRESCRIPTION_TYPES.map((type) => (
-            <TouchableOpacity
-              key={type.id}
-              onPress={() => setSelectedType(type.id)}
-              activeOpacity={0.8}
-            >
-              <Card
-                style={[
-                  styles.typeCard,
-                  selectedType === type.id && styles.typeCardSelected,
-                ]}
-              >
-                <View style={styles.typeHeader}>
-                  <View
-                    style={[
-                      styles.typeIcon,
-                      selectedType === type.id && styles.typeIconSelected,
-                    ]}
-                  >
-                    <Ionicons
-                      name="document-text"
-                      size={24}
-                      color={selectedType === type.id ? COLORS.textWhite : COLORS.healthGreen}
-                    />
-                  </View>
-                  <View style={styles.typeInfo}>
-                    <Text
-                      style={[
-                        styles.typeName,
-                        selectedType === type.id && styles.typeNameSelected,
-                      ]}
-                    >
-                      {type.name}
-                    </Text>
-                    <Text style={styles.typeDescription}>{type.description}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      selectedType === type.id && styles.radioOuterSelected,
-                    ]}
-                  >
-                    {selectedType === type.id && <View style={styles.radioInner} />}
-                  </View>
-                </View>
-                <View style={styles.typeFooter}>
-                  <Text style={styles.typePrice}>
-                    R$ {type.price.toFixed(2).replace('.', ',')}
-                  </Text>
-                </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Info box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color={COLORS.info} />
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={20} color="#00B4CD" />
           <Text style={styles.infoText}>
-            A receita será avaliada por um médico e enviada em até 24 horas após a confirmação do pagamento.
+            Todas as receitas são avaliadas por médicos credenciados e assinadas digitalmente.
           </Text>
         </View>
-      </ScrollView>
 
-      {/* Footer */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SIZES.md }]}>
-        <Button
-          title="Continuar"
-          onPress={handleContinue}
-          disabled={!selectedType}
-          fullWidth
-          icon={<Ionicons name="arrow-forward" size={20} color={COLORS.textWhite} />}
-        />
-      </View>
+        {/* Prescription Types */}
+        {prescriptionTypes.map((type, index) => (
+          <TouchableOpacity
+            key={type.id}
+            style={styles.typeCard}
+            onPress={() => handleSelectType(type.id)}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={type.gradient}
+              style={styles.typeIconContainer}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name={type.icon as any} size={28} color="#FFFFFF" />
+            </LinearGradient>
+
+            <View style={styles.typeContent}>
+              <View style={styles.typeHeader}>
+                <View>
+                  <Text style={styles.typeTitle}>{type.title}</Text>
+                  <Text style={styles.typeSubtitle}>{type.subtitle}</Text>
+                </View>
+                <Text style={styles.typePrice}>{type.price}</Text>
+              </View>
+
+              <Text style={styles.typeDescription}>{type.description}</Text>
+
+              <View style={styles.examplesContainer}>
+                {type.examples.map((example, i) => (
+                  <View key={i} style={styles.exampleBadge}>
+                    <Text style={styles.exampleText}>{example}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <Ionicons name="chevron-forward" size={24} color="#CDD5DA" style={styles.arrow} />
+          </TouchableOpacity>
+        ))}
+
+        {/* Steps Info */}
+        <View style={styles.stepsCard}>
+          <Text style={styles.stepsTitle}>Como funciona?</Text>
+          
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Escolha o tipo</Text>
+              <Text style={styles.stepDescription}>Selecione o tipo de receita que precisa</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepLine} />
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Envie a receita anterior</Text>
+              <Text style={styles.stepDescription}>Tire foto ou envie da galeria</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepLine} />
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Aguarde a análise</Text>
+              <Text style={styles.stepDescription}>Um médico irá avaliar sua solicitação</Text>
+            </View>
+          </View>
+
+          <View style={styles.stepLine} />
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>4</Text>
+            </View>
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>Receba sua receita</Text>
+              <Text style={styles.stepDescription}>Receita digital assinada pelo médico</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -152,177 +199,188 @@ export default function PrescriptionTypeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFB',
   },
+
+  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
-    gap: SIZES.md,
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.cardBackground,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 16,
   },
-  headerContent: {
-    flex: 1,
-  },
+  headerContent: {},
   headerTitle: {
-    fontSize: SIZES.fontXl,
+    fontSize: 28,
     fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  progress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressStep: {
-    alignItems: 'center',
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.border,
+    color: '#FFFFFF',
     marginBottom: 4,
   },
-  progressDotActive: {
-    backgroundColor: COLORS.primary,
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
-  progressLine: {
-    width: 30,
-    height: 2,
-    backgroundColor: COLORS.border,
-    marginHorizontal: SIZES.xs,
-  },
-  progressText: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  progressTextMuted: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-  },
+
+  // Content
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: SIZES.lg,
+    padding: 24,
   },
-  title: {
-    fontSize: SIZES.font2xl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.xs,
-  },
-  subtitle: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: SIZES.lg,
-  },
-  types: {
-    gap: SIZES.md,
-    marginBottom: SIZES.lg,
-  },
-  typeCard: {
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  typeCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '05',
-  },
-  typeHeader: {
+
+  // Info Card
+  infoCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  typeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.healthGreen + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeIconSelected: {
-    backgroundColor: COLORS.healthGreen,
-  },
-  typeInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  typeName: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  typeNameSelected: {
-    color: COLORS.primary,
-  },
-  typeDescription: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  radioOuter: {
-    width: 24,
-    height: 24,
+    alignItems: 'flex-start',
+    backgroundColor: '#E6F7FA',
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: COLORS.primary,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.primary,
-  },
-  typeFooter: {
-    marginTop: SIZES.md,
-    paddingTop: SIZES.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
-  },
-  typePrice: {
-    fontSize: SIZES.fontLg,
-    fontWeight: '700',
-    color: COLORS.healthGreen,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.info + '10',
-    borderRadius: SIZES.radiusMd,
-    padding: SIZES.md,
-    gap: SIZES.sm,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10,
   },
   infoText: {
     flex: 1,
-    fontSize: SIZES.fontSm,
-    color: COLORS.info,
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#0A3A42',
+    lineHeight: 18,
   },
-  footer: {
-    padding: SIZES.lg,
-    backgroundColor: COLORS.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
+
+  // Type Card
+  typeCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  typeIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  typeContent: {
+    flex: 1,
+  },
+  typeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  typeTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1A3A4A',
+    marginBottom: 2,
+  },
+  typeSubtitle: {
+    fontSize: 12,
+    color: '#6B7C85',
+  },
+  typePrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#00B4CD',
+  },
+  typeDescription: {
+    fontSize: 13,
+    color: '#6B7C85',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  examplesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  exampleBadge: {
+    backgroundColor: '#F1F5F7',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  exampleText: {
+    fontSize: 11,
+    color: '#4A5960',
+  },
+  arrow: {
+    marginLeft: 8,
+    marginTop: 16,
+  },
+
+  // Steps Card
+  stepsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 8,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A3A4A',
+    marginBottom: 20,
+  },
+  step: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#00B4CD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  stepContent: {
+    flex: 1,
+    paddingBottom: 4,
+  },
+  stepTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A3A4A',
+    marginBottom: 2,
+  },
+  stepDescription: {
+    fontSize: 13,
+    color: '#6B7C85',
+  },
+  stepLine: {
+    width: 2,
+    height: 24,
+    backgroundColor: '#E4E9EC',
+    marginLeft: 13,
+    marginVertical: 4,
   },
 });

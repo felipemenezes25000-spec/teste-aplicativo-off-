@@ -1,215 +1,217 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * 📜 History Screen - Modern Design
+ * RenoveJá+ Telemedicina
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { Card } from '../../src/components/Card';
-import { StatusBadge } from '../../src/components/StatusBadge';
-import { SkeletonList } from '../../src/components/Skeleton';
-import { EmptyState } from '../../src/components/EmptyState';
-import { showToast } from '../../src/components/Toast';
-import { requestsAPI } from '../../src/services/api';
-import { Request } from '../../src/types';
-import { COLORS, SIZES } from '../../src/utils/constants';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
+
+interface Request {
+  id: string;
+  request_type: 'prescription' | 'exam' | 'consultation';
+  status: string;
+  created_at: string;
+  price?: number;
+  doctor_name?: string;
+}
+
+const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Enviado' },
+  in_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Em análise' },
+  approved_pending_payment: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Aguardando pgto' },
+  paid: { color: '#10B981', bg: '#D1FAE5', label: 'Pago' },
+  signed: { color: '#10B981', bg: '#D1FAE5', label: 'Assinado' },
+  delivered: { color: '#6B7280', bg: '#F3F4F6', label: 'Entregue' },
+  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusado' },
+  cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Cancelado' },
+};
+
+const typeConfig: Record<string, { icon: string; gradient: string[]; label: string }> = {
+  prescription: { icon: 'document-text', gradient: ['#4AC5E0', '#00B4CD'], label: 'Receita' },
+  exam: { icon: 'flask', gradient: ['#A78BFA', '#7C3AED'], label: 'Exame' },
+  consultation: { icon: 'videocam', gradient: ['#F472B6', '#EC4899'], label: 'Consulta' },
+};
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadRequests();
-    // Auto-refresh every 15 seconds for real-time sync
-    const interval = setInterval(loadRequests, 15000);
-    return () => clearInterval(interval);
-  }, [filter]);
+  const [filter, setFilter] = useState<string>('all');
 
   const loadRequests = async () => {
     try {
-      const data = await requestsAPI.getAll(filter || undefined);
-      setRequests(data);
+      const data = await api.getRequests();
+      setRequests(data || []);
     } catch (error) {
-      console.error('Error loading requests:', error);
-      showToast.error('Erro', 'Não foi possível carregar o histórico');
+      console.error('Erro ao carregar histórico:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const onRefresh = () => {
     setRefreshing(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await loadRequests();
-    setRefreshing(false);
+    loadRequests();
   };
 
-  const getRequestIcon = (type: string): keyof typeof Ionicons.glyphMap => {
-    switch (type) {
-      case 'prescription':
-        return 'document-text';
-      case 'exam':
-        return 'flask';
-      case 'consultation':
-        return 'videocam';
-      default:
-        return 'document';
-    }
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
-  const getRequestColor = (type: string): string => {
-    switch (type) {
-      case 'prescription':
-        return COLORS.healthGreen;
-      case 'exam':
-        return COLORS.healthPurple;
-      case 'consultation':
-        return COLORS.primary;
-      default:
-        return COLORS.textMuted;
-    }
+  const filteredRequests = requests.filter(r => {
+    if (filter === 'all') return true;
+    return r.request_type === filter;
+  });
+
+  const renderRequestItem = ({ item }: { item: Request }) => {
+    const type = typeConfig[item.request_type] || typeConfig.prescription;
+    const status = statusConfig[item.status] || statusConfig.submitted;
+
+    return (
+      <TouchableOpacity
+        style={styles.requestCard}
+        onPress={() => router.push(`/request/${item.id}`)}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={type.gradient}
+          style={styles.requestIcon}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Ionicons name={type.icon as any} size={24} color="#FFFFFF" />
+        </LinearGradient>
+
+        <View style={styles.requestContent}>
+          <View style={styles.requestHeader}>
+            <Text style={styles.requestType}>{type.label}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+            </View>
+          </View>
+
+          {item.doctor_name && (
+            <Text style={styles.doctorName}>Dr(a). {item.doctor_name}</Text>
+          )}
+
+          <View style={styles.requestFooter}>
+            <Text style={styles.requestDate}>{formatDate(item.created_at)}</Text>
+            {item.price && (
+              <Text style={styles.requestPrice}>R$ {item.price.toFixed(2)}</Text>
+            )}
+          </View>
+        </View>
+
+        <Ionicons name="chevron-forward" size={20} color="#CDD5DA" />
+      </TouchableOpacity>
+    );
   };
 
-  const getRequestTitle = (request: Request): string => {
-    switch (request.request_type) {
-      case 'prescription':
-        return `Receita ${request.prescription_type === 'simple' ? 'Simples' : request.prescription_type === 'controlled' ? 'Controlada' : 'Azul'}`;
-      case 'exam':
-        return `Exame ${request.exam_type === 'laboratory' ? 'Laboratorial' : 'de Imagem'}`;
-      case 'consultation':
-        return `Consulta - ${request.specialty}`;
-      default:
-        return 'Solicitação';
-    }
-  };
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="document-text-outline" size={48} color="#CDD5DA" />
+      </View>
+      <Text style={styles.emptyTitle}>Nenhuma solicitação</Text>
+      <Text style={styles.emptySubtitle}>
+        Suas solicitações aparecerão aqui
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyButton}
+        onPress={() => router.push('/prescription')}
+      >
+        <Text style={styles.emptyButtonText}>Fazer primeira solicitação</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const filters = [
-    { id: null, label: 'Todos' },
-    { id: 'submitted', label: 'Enviadas' },
-    { id: 'in_review', label: 'Em Análise' },
-    { id: 'approved_pending_payment', label: 'Aguard. Pagamento' },
-    { id: 'paid', label: 'Pagos' },
-    { id: 'signed', label: 'Assinadas' },
-    { id: 'rejected', label: 'Recusadas' },
+    { id: 'all', label: 'Todos' },
+    { id: 'prescription', label: 'Receitas' },
+    { id: 'exam', label: 'Exames' },
+    { id: 'consultation', label: 'Consultas' },
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Histórico</Text>
-        <Text style={styles.subtitle}>Suas solicitações e pedidos</Text>
-      </View>
+      <LinearGradient
+        colors={['#00B4CD', '#4AC5E0']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.headerTitle}>Histórico</Text>
+        <Text style={styles.headerSubtitle}>
+          {requests.length} {requests.length === 1 ? 'solicitação' : 'solicitações'}
+        </Text>
+      </LinearGradient>
 
       {/* Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filters}
-      >
-        {filters.map((f) => (
-          <TouchableOpacity
-            key={f.id || 'all'}
-            style={[
-              styles.filterButton,
-              filter === f.id && styles.filterButtonActive,
-            ]}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setFilter(f.id);
-            }}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === f.id && styles.filterTextActive,
-              ]}
+      <View style={styles.filtersContainer}>
+        <FlatList
+          horizontal
+          data={filters}
+          keyExtractor={item => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersList}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.filterChip, filter === item.id && styles.filterChipActive]}
+              onPress={() => setFilter(item.id)}
             >
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Content */}
-      {isLoading ? (
-        <View style={styles.list}>
-          <SkeletonList count={4} />
-        </View>
-      ) : requests.length === 0 ? (
-        <EmptyState
-          icon="document-text-outline"
-          title="Nenhuma solicitação"
-          description="Você ainda não fez nenhuma solicitação. Comece agora mesmo!"
-          actionLabel="Fazer solicitação"
-          onAction={() => router.push('/(tabs)')}
+              <Text style={[styles.filterText, filter === item.id && styles.filterTextActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
         />
-      ) : (
-        <ScrollView
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {requests.map((request) => (
-            <Card
-              key={request.id}
-              style={styles.requestCard}
-              onPress={() => router.push(`/request/${request.id}` as any)}
-            >
-              <View style={styles.requestHeader}>
-                <View
-                  style={[
-                    styles.requestIcon,
-                    { backgroundColor: getRequestColor(request.request_type) + '15' },
-                  ]}
-                >
-                  <Ionicons
-                    name={getRequestIcon(request.request_type)}
-                    size={20}
-                    color={getRequestColor(request.request_type)}
-                  />
-                </View>
-                <View style={styles.requestInfo}>
-                  <Text style={styles.requestTitle}>
-                    {getRequestTitle(request)}
-                  </Text>
-                  <Text style={styles.requestDate}>
-                    {format(new Date(request.created_at), "dd 'de' MMM, HH:mm", {
-                      locale: ptBR,
-                    })}
-                  </Text>
-                </View>
-                <StatusBadge status={request.status} size="sm" />
-              </View>
-              <View style={styles.requestFooter}>
-                <Text style={styles.requestPrice}>
-                  R$ {request.price.toFixed(2).replace('.', ',')}
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={16}
-                  color={COLORS.textMuted}
-                />
-              </View>
-            </Card>
-          ))}
-        </ScrollView>
-      )}
+      </View>
+
+      {/* List */}
+      <FlatList
+        data={filteredRequests}
+        keyExtractor={item => item.id}
+        renderItem={renderRequestItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={!loading ? renderEmpty : null}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00B4CD"
+            colors={['#00B4CD']}
+          />
+        }
+      />
     </View>
   );
 }
@@ -217,135 +219,161 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F8FAFB',
   },
+
+  // Header
   header: {
-    paddingHorizontal: SIZES.lg,
-    paddingVertical: SIZES.md,
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
   },
-  title: {
-    fontSize: SIZES.font3xl,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: SIZES.fontSm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+  headerSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
-  filters: {
-    paddingHorizontal: SIZES.lg,
-    paddingBottom: SIZES.md,
-    gap: SIZES.sm,
+
+  // Filters
+  filtersContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E4E9EC',
   },
-  filterButton: {
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radiusFull,
-    backgroundColor: COLORS.cardBackground,
-    marginRight: SIZES.sm,
+  filtersList: {
+    paddingHorizontal: 20,
+    gap: 8,
   },
-  filterButtonActive: {
-    backgroundColor: COLORS.primary,
+  filterChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F7',
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: '#00B4CD',
   },
   filterText: {
-    fontSize: SIZES.fontSm,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7C85',
   },
   filterTextActive: {
-    color: COLORS.textWhite,
+    color: '#FFFFFF',
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SIZES.xl,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.backgroundDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SIZES.md,
-  },
-  emptyTitle: {
-    fontSize: SIZES.fontXl,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginBottom: SIZES.sm,
-  },
-  emptyText: {
-    fontSize: SIZES.fontMd,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: SIZES.lg,
-  },
-  emptyButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: SIZES.xl,
-    paddingVertical: SIZES.md,
-    borderRadius: SIZES.radiusLg,
-  },
-  emptyButtonText: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '600',
-    color: COLORS.textWhite,
-  },
-  list: {
-    flex: 1,
-  },
+
+  // List
   listContent: {
-    padding: SIZES.lg,
+    padding: 24,
+    paddingBottom: 100,
   },
+
+  // Request Card
   requestCard: {
-    marginBottom: SIZES.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  requestIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  requestContent: {
+    flex: 1,
   },
   requestHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  requestIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: SIZES.radiusMd,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  requestInfo: {
-    flex: 1,
-    marginLeft: SIZES.md,
-  },
-  requestTitle: {
-    fontSize: SIZES.fontMd,
+  requestType: {
+    fontSize: 16,
     fontWeight: '600',
-    color: COLORS.textPrimary,
+    color: '#1A3A4A',
   },
-  requestDate: {
-    fontSize: SIZES.fontXs,
-    color: COLORS.textMuted,
-    marginTop: 2,
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  doctorName: {
+    fontSize: 13,
+    color: '#6B7C85',
+    marginBottom: 6,
   },
   requestFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: SIZES.md,
-    paddingTop: SIZES.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderLight,
+    alignItems: 'center',
+  },
+  requestDate: {
+    fontSize: 12,
+    color: '#9BA7AF',
   },
   requestPrice: {
-    fontSize: SIZES.fontMd,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#00B4CD',
+  },
+
+  // Empty
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: '#F1F5F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A3A4A',
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6B7C85',
+    marginBottom: 20,
+  },
+  emptyButton: {
+    backgroundColor: '#00B4CD',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
