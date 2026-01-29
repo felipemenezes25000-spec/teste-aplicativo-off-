@@ -15,6 +15,7 @@ import uuid
 from datetime import datetime, timedelta
 import hashlib
 import secrets
+import httpx
 
 # Import Supabase database module
 from database import db, find_one, find_many, insert_one, update_one, delete_one, count_docs
@@ -350,6 +351,98 @@ async def login(data: UserLogin):
             "nurse_profile": nurse_profile
         }
     )
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+@api_router.post("/auth/google", response_model=Token)
+async def google_auth(data: GoogleAuthRequest):
+    """Authenticate with Google OAuth"""
+    try:
+        # Verify Google token and get user info
+        async with httpx.AsyncClient() as client:
+            # Get user info from Google
+            response = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {data.id_token}"}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Token do Google inválido")
+            
+            google_user = response.json()
+            
+            email = google_user.get("email")
+            name = google_user.get("name", email.split("@")[0])
+            google_id = google_user.get("sub")
+            avatar_url = google_user.get("picture")
+            
+            if not email:
+                raise HTTPException(status_code=400, detail="Email não fornecido pelo Google")
+            
+            # Check if user exists
+            existing_user = await find_one("users", {"email": email})
+            
+            if existing_user:
+                # Update google_id and avatar if needed
+                updates = {"updated_at": datetime.utcnow().isoformat()}
+                if not existing_user.get("google_id"):
+                    updates["google_id"] = google_id
+                if avatar_url and not existing_user.get("avatar_url"):
+                    updates["avatar_url"] = avatar_url
+                
+                await update_one("users", {"id": existing_user["id"]}, updates)
+                user = existing_user
+            else:
+                # Create new user
+                user_id = str(uuid.uuid4())
+                user_data = {
+                    "id": user_id,
+                    "name": name,
+                    "email": email,
+                    "password_hash": "",  # No password for Google users
+                    "google_id": google_id,
+                    "avatar_url": avatar_url,
+                    "role": "patient",
+                    "active": True,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                await insert_one("users", user_data)
+                user = user_data
+            
+            # Generate token
+            token = generate_token()
+            await insert_one("active_tokens", {"token": token, "user_id": user["id"]})
+            
+            # Get profiles if doctor/nurse
+            doctor_profile = None
+            if user.get("role") == "doctor":
+                doctor_profile = await find_one("doctor_profiles", {"user_id": user["id"]})
+            
+            nurse_profile = None
+            if user.get("role") == "nurse":
+                nurse_profile = await find_one("nurse_profiles", {"user_id": user["id"]})
+            
+            return Token(
+                access_token=token,
+                user={
+                    "id": user["id"],
+                    "name": user.get("name", name),
+                    "email": user.get("email", email),
+                    "phone": user.get("phone"),
+                    "cpf": user.get("cpf"),
+                    "role": user.get("role", "patient"),
+                    "avatar_url": user.get("avatar_url", avatar_url),
+                    "doctor_profile": doctor_profile,
+                    "nurse_profile": nurse_profile
+                }
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Google auth error: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao autenticar com Google")
 
 @api_router.post("/auth/logout")
 async def logout(token: str):
