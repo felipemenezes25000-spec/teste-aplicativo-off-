@@ -623,6 +623,10 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
     # Calcular preço baseado na especialidade e duração
     price = calculate_consultation_price(data.specialty, data.duration)
     
+    # Montar notas com informações do agendamento
+    schedule_info = f"[{data.schedule_type.upper()}]" if data.schedule_type else "[IMMEDIATE]"
+    notes_with_schedule = f"{schedule_info} {data.notes or ''}".strip()
+    
     request_id = str(uuid.uuid4())
     request_data = {
         "id": request_id,
@@ -632,14 +636,15 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
         "specialty": data.specialty,
         "duration": data.duration,
         "scheduled_at": data.scheduled_at,
-        "schedule_type": data.schedule_type,
-        "notes": data.notes,
+        "notes": notes_with_schedule,
         "price": price,
-        "status": "submitted",
-        "created_at": datetime.utcnow().isoformat()
+        "status": "submitted"
     }
     
     await insert_one("requests", request_data)
+    
+    # Adicionar schedule_type ao retorno (não salvo no banco ainda)
+    request_data["schedule_type"] = data.schedule_type
     
     # Notificar paciente
     schedule_info = "imediata" if data.schedule_type == "immediate" else f"agendada para {data.scheduled_at}"
