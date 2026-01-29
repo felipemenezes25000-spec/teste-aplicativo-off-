@@ -3,7 +3,8 @@ RenoveJá+ API - Supabase Version
 FastAPI backend with Supabase/PostgreSQL database
 """
 
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request
+import hmac
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -1005,6 +1006,33 @@ async def nursing_reject_request(request_id: str, token: str, data: NursingRejec
 
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")
 MERCADOPAGO_PUBLIC_KEY = os.getenv("MERCADOPAGO_PUBLIC_KEY", "")
+MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "")
+
+def verify_mercadopago_signature(x_signature: str, x_request_id: str, data_id: str) -> bool:
+    """Verify MercadoPago webhook signature"""
+    if not MERCADOPAGO_WEBHOOK_SECRET or not x_signature:
+        return True  # Skip validation if not configured
+    
+    try:
+        # Parse x-signature header (format: ts=xxx,v1=xxx)
+        parts = dict(p.split("=") for p in x_signature.split(","))
+        ts = parts.get("ts", "")
+        v1 = parts.get("v1", "")
+        
+        # Build manifest string
+        manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+        
+        # Calculate expected signature
+        expected = hmac.new(
+            MERCADOPAGO_WEBHOOK_SECRET.encode(),
+            manifest.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        return hmac.compare_digest(expected, v1)
+    except Exception as e:
+        print(f"Webhook signature verification error: {e}")
+        return False
 
 async def create_mercadopago_pix(amount: float, description: str, payer_email: str, external_reference: str):
     """Create a PIX payment using MercadoPago API"""
@@ -1233,9 +1261,21 @@ class WebhookData(BaseModel):
     user_id: Optional[str] = None
 
 @api_router.post("/payments/webhook/mercadopago")
-async def mercadopago_webhook(data: WebhookData):
+async def mercadopago_webhook(
+    request: Request,
+    data: WebhookData
+):
     """Webhook to receive MercadoPago payment notifications"""
     try:
+        # Verify webhook signature if configured
+        x_signature = request.headers.get("x-signature", "")
+        x_request_id = request.headers.get("x-request-id", "")
+        data_id = str(data.data.get("id", "")) if data.data else ""
+        
+        if MERCADOPAGO_WEBHOOK_SECRET and not verify_mercadopago_signature(x_signature, x_request_id, data_id):
+            print(f"⚠️ Webhook signature verification failed")
+            # Continue anyway for now, just log
+        
         # MercadoPago sends payment.created, payment.updated events
         if data.type == "payment" and data.data:
             mp_payment_id = data.data.get("id")
@@ -1262,26 +1302,39 @@ async def mercadopago_webhook(data: WebhookData):
                                 "paid_at": datetime.utcnow().isoformat()
                             })
                             
-                            # Notify doctor
-                            request = await find_one("requests", {"id": payment["request_id"]})
-                            if request and request.get("doctor_id"):
-                                await insert_one("notifications", {
-                                    "id": str(uuid.uuid4()),
-                                    "user_id": request["doctor_id"],
-                                    "title": "💰 Pagamento Recebido!",
-                                    "message": f"Pagamento PIX confirmado para {request.get('patient_name', 'paciente')}.",
-                                    "notification_type": "success"
-                                })
+                            # Get request for notifications
+                            req = await find_one("requests", {"id": payment["request_id"]})
                             
                             # Notify patient
-                            if request and request.get("patient_id"):
-                                await insert_one("notifications", {
-                                    "id": str(uuid.uuid4()),
-                                    "user_id": request["patient_id"],
-                                    "title": "✅ Pagamento Confirmado!",
-                                    "message": "Seu pagamento foi confirmado. Aguarde a assinatura da receita.",
-                                    "notification_type": "success"
-                                })
+                            if req:
+                                await notify_user(
+                                    insert_one, req["patient_id"], "payment_confirmed",
+                                    {"amount": payment.get("amount", 0)}, request_id=payment["request_id"]
+                                )
+                            
+                            # Notify doctor or nurse
+                            if req and req.get("doctor_id"):
+                                await notify_user(
+                                    insert_one, req["doctor_id"], "prescription_paid_doctor",
+                                    {"patient_name": req.get("patient_name", "Paciente")},
+                                    request_id=payment["request_id"]
+                                )
+                            elif req and req.get("nurse_id"):
+                                await notify_user(
+                                    insert_one, req["nurse_id"], "exam_paid",
+                                    {"patient_name": req.get("patient_name", "Paciente")},
+                                    request_id=payment["request_id"]
+                                )
+                            
+                            # Notify admins
+                            if req:
+                                await notify_admins(
+                                    insert_one, find_many, "admin_payment_received",
+                                    {"amount": payment.get("amount", 0), "patient_name": req.get("patient_name", "Paciente")},
+                                    request_id=payment["request_id"]
+                                )
+                            
+                            print(f"✅ Webhook: Payment {mp_payment_id} approved and processed")
         
         return {"status": "ok"}
     except Exception as e:
