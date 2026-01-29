@@ -287,6 +287,13 @@ export const api = {
     return response.data;
   },
 
+  // Fila de teleconsultas para médicos
+  getDoctorConsultationQueue: async () => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.get('/doctor/consultation-queue', { params });
+    return response.data;
+  },
+
   // ============== ADMIN ==============
   getAdminStats: async () => {
     const params = await getAuthParams();

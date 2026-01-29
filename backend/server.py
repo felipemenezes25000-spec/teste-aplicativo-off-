@@ -105,9 +105,36 @@ class ExamRequestCreate(BaseModel):
 
 class ConsultationRequestCreate(BaseModel):
     specialty: str
-    duration: int = 15
+    duration: int = 30
     scheduled_at: Optional[str] = None
+    schedule_type: Literal["immediate", "scheduled"] = "immediate"
     notes: Optional[str] = None
+
+# Preços base por especialidade (para teleconsultas)
+SPECIALTY_PRICES = {
+    "general": 59.90,
+    "cardiology": 99.90,
+    "dermatology": 89.90,
+    "gynecology": 89.90,
+    "orthopedics": 89.90,
+    "psychiatry": 119.90,
+    "nutrition": 69.90,
+    "endocrinology": 99.90
+}
+
+# Multiplicadores por duração
+DURATION_MULTIPLIERS = {
+    15: 0.6,
+    30: 1.0,
+    45: 1.4,
+    60: 1.8
+}
+
+def calculate_consultation_price(specialty: str, duration: int) -> float:
+    """Calcula preço da consulta baseado na especialidade e duração"""
+    base_price = SPECIALTY_PRICES.get(specialty, 79.90)
+    multiplier = DURATION_MULTIPLIERS.get(duration, 1.0)
+    return round(base_price * multiplier, 2)
 
 class RequestUpdate(BaseModel):
     status: Optional[str] = None
@@ -591,7 +618,8 @@ async def create_exam_request(token: str, data: ExamRequestCreate):
 async def create_consultation_request(token: str, data: ConsultationRequestCreate):
     user = await get_current_user(token)
     
-    price = get_price("consultation")
+    # Calcular preço baseado na especialidade e duração
+    price = calculate_consultation_price(data.specialty, data.duration)
     
     request_id = str(uuid.uuid4())
     request_data = {
@@ -602,14 +630,17 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
         "specialty": data.specialty,
         "duration": data.duration,
         "scheduled_at": data.scheduled_at,
+        "schedule_type": data.schedule_type,
         "notes": data.notes,
         "price": price,
-        "status": "submitted"
+        "status": "submitted",
+        "created_at": datetime.utcnow().isoformat()
     }
     
     await insert_one("requests", request_data)
     
     # Notificar paciente
+    schedule_info = "imediata" if data.schedule_type == "immediate" else f"agendada para {data.scheduled_at}"
     await notify_user(
         insert_one, user["id"], "consultation_created_patient",
         {"specialty": data.specialty}, request_id=request_id
@@ -625,7 +656,7 @@ async def create_consultation_request(token: str, data: ConsultationRequestCreat
     # Notificar admins
     await notify_admins(
         insert_one, find_many, "admin_new_request",
-        {"request_type": "consulta", "patient_name": user["name"]}, request_id=request_id
+        {"request_type": "teleconsulta", "patient_name": user["name"]}, request_id=request_id
     )
     
     return request_data
@@ -867,6 +898,61 @@ async def get_doctors(specialty: Optional[str] = None):
             })
     
     return doctors
+
+# ============== DOCTOR CONSULTATION QUEUE ==============
+
+@api_router.get("/doctor/consultation-queue")
+async def get_doctor_consultation_queue(token: str):
+    """Fila de teleconsultas para médicos"""
+    user = await get_current_user(token)
+    
+    if user.get("role") not in ["doctor", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para médicos")
+    
+    # Buscar todas as consultas
+    all_requests = await find_many("requests", order="created_at.asc", limit=100)
+    
+    # Filtrar apenas teleconsultas
+    consultations = [r for r in all_requests if r.get("request_type") == "consultation"]
+    
+    # Obter perfil do médico para ver especialidades
+    doctor_profile = await find_one("doctor_profiles", {"user_id": user["id"]})
+    doctor_specialties = doctor_profile.get("specialties", []) if doctor_profile else []
+    
+    # Aguardando atendimento (pagas, status paid ou submitted após pagamento)
+    # Filtra por especialidade do médico se disponível
+    waiting = []
+    for c in consultations:
+        # Consulta paga aguardando início
+        if c.get("status") == "paid":
+            # Se médico tem especialidades definidas, filtrar
+            if doctor_specialties and c.get("specialty") not in doctor_specialties:
+                continue
+            waiting.append(c)
+    
+    # Ordenar por tipo (imediatas primeiro) e depois por tempo de espera
+    waiting.sort(key=lambda x: (
+        0 if x.get("schedule_type") == "immediate" else 1,
+        x.get("paid_at", x.get("created_at", ""))
+    ))
+    
+    # Em andamento (do médico atual)
+    in_progress = [c for c in consultations 
+                   if c.get("status") == "in_consultation" 
+                   and c.get("doctor_id") == user["id"]]
+    
+    # Completadas hoje (do médico atual)
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    completed = [c for c in consultations 
+                 if c.get("status") == "completed" 
+                 and c.get("doctor_id") == user["id"]
+                 and c.get("completed_at", "").startswith(today)]
+    
+    return {
+        "waiting": waiting,
+        "in_progress": in_progress,
+        "completed": completed
+    }
 
 # ============== NURSING ROUTES ==============
 
