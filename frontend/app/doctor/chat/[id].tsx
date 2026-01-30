@@ -19,7 +19,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +35,7 @@ interface ChatMessage {
 }
 
 export default function DoctorChatScreen() {
+  const colors = useColors();
   const { id, patient } = useLocalSearchParams<{ id: string; patient?: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -90,10 +92,10 @@ export default function DoctorChatScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       {/* Header */}
-      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -192,41 +194,41 @@ export default function DoctorChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
 
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   headerInfo: { flex: 1, marginLeft: 14 },
-  headerName: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+  headerName: { fontSize: 17, fontWeight: '600', color: colors.card },
   headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  videoButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center' },
+  videoButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.success, alignItems: 'center', justifyContent: 'center' },
 
   messagesContainer: { flex: 1 },
   messagesContent: { padding: 24, paddingBottom: 16 },
 
   emptyChat: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyChatIcon: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#F1F5F7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyChatText: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
-  emptyChatSubtext: { fontSize: 14, color: '#6B7C85', marginTop: 4 },
+  emptyChatIcon: { width: 72, height: 72, borderRadius: 20, backgroundColor: colors.backgroundDark, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  emptyChatText: { fontSize: 17, fontWeight: '600', color: colors.textPrimary },
+  emptyChatSubtext: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
 
   dateSeparator: { alignItems: 'center', marginVertical: 16 },
-  dateSeparatorText: { fontSize: 12, color: '#9BA7AF', backgroundColor: '#F1F5F7', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
+  dateSeparatorText: { fontSize: 12, color: colors.textMuted, backgroundColor: colors.backgroundDark, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
 
   messageBubble: { maxWidth: '80%', padding: 14, borderRadius: 18, marginBottom: 8 },
-  myMessage: { alignSelf: 'flex-end', backgroundColor: '#1A3A4A', borderBottomRightRadius: 4 },
-  otherMessage: { alignSelf: 'flex-start', backgroundColor: '#FFFFFF', borderBottomLeftRadius: 4, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  systemMessage: { alignSelf: 'center', backgroundColor: '#F1F5F7', maxWidth: '90%' },
-  senderName: { fontSize: 12, fontWeight: '600', color: '#00B4CD', marginBottom: 4 },
-  messageText: { fontSize: 15, color: '#1A3A4A', lineHeight: 21 },
-  myMessageText: { color: '#FFFFFF' },
-  systemMessageText: { textAlign: 'center', fontStyle: 'italic', color: '#6B7C85' },
-  messageTime: { fontSize: 11, color: '#9BA7AF', marginTop: 6, alignSelf: 'flex-end' },
+  myMessage: { alignSelf: 'flex-end', backgroundColor: colors.textPrimary, borderBottomRightRadius: 4 },
+  otherMessage: { alignSelf: 'flex-start', backgroundColor: colors.card, borderBottomLeftRadius: 4, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
+  systemMessage: { alignSelf: 'center', backgroundColor: colors.backgroundDark, maxWidth: '90%' },
+  senderName: { fontSize: 12, fontWeight: '600', color: colors.primary, marginBottom: 4 },
+  messageText: { fontSize: 15, color: colors.textPrimary, lineHeight: 21 },
+  myMessageText: { color: colors.card },
+  systemMessageText: { textAlign: 'center', fontStyle: 'italic', color: colors.textSecondary },
+  messageTime: { fontSize: 11, color: colors.textMuted, marginTop: 6, alignSelf: 'flex-end' },
   myMessageTime: { color: 'rgba(255,255,255,0.6)' },
 
-  inputContainer: { backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 12, paddingBottom: 32, borderTopWidth: 1, borderTopColor: '#F1F5F7' },
-  inputWrapper: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#F8FAFB', borderRadius: 24, paddingHorizontal: 16, paddingVertical: 6 },
-  input: { flex: 1, fontSize: 15, color: '#1A3A4A', maxHeight: 100, paddingVertical: 10 },
-  sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1A3A4A', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
-  sendButtonDisabled: { backgroundColor: '#CDD5DA' },
+  inputContainer: { backgroundColor: colors.card, paddingHorizontal: 24, paddingVertical: 12, paddingBottom: 32, borderTopWidth: 1, borderTopColor: '#F1F5F7' },
+  inputWrapper: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: colors.background, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 6 },
+  input: { flex: 1, fontSize: 15, color: colors.textPrimary, maxHeight: 100, paddingVertical: 10 },
+  sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  sendButtonDisabled: { backgroundColor: colors.border },
 });

@@ -18,7 +18,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 
 interface MenuItemProps {
   icon: string;
@@ -33,7 +34,7 @@ interface MenuItemProps {
 const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightElement, danger }: MenuItemProps) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.menuIconContainer, danger && styles.menuIconDanger]}>
-      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : '#00B4CD'} />
+      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : colors.primary} />
     </View>
     <View style={styles.menuContent}>
       <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
@@ -47,6 +48,7 @@ const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightEleme
 );
 
 export default function ProfileScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -73,11 +75,11 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -96,7 +98,7 @@ export default function ProfileScreen() {
               <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
             ) : (
               <LinearGradient
-                colors={['#1A3A4A', '#2D5A6B']}
+                colors={colors.headerGradient}
                 style={styles.avatarPlaceholder}
               >
                 <Text style={styles.avatarInitials}>{getInitials()}</Text>
@@ -249,7 +251,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
   },
 
   // Header
@@ -267,7 +269,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.card,
   },
   editButton: {
     width: 40,
@@ -291,7 +293,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 32,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: colors.card,
   },
   avatarPlaceholder: {
     width: 100,
@@ -300,12 +302,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: colors.card,
   },
   avatarInitials: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.card,
   },
   cameraButton: {
     position: 'absolute',
@@ -314,16 +316,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: '#00B4CD',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: colors.card,
   },
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.card,
     marginBottom: 4,
   },
   userEmail: {
@@ -346,7 +348,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.card,
   },
 
   // Content
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7C85',
+    color: colors.textSecondary,
     marginBottom: 12,
     marginLeft: 4,
     textTransform: 'uppercase',
@@ -374,10 +376,10 @@ const styles = StyleSheet.create({
 
   // Menu Card
   menuCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -392,7 +394,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E6F7FA',
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -406,19 +408,19 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
   },
   menuTitleDanger: {
-    color: '#EF4444',
+    color: colors.error,
   },
   menuSubtitle: {
     fontSize: 13,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F7',
+    backgroundColor: colors.backgroundDark,
     marginLeft: 70,
   },
 
@@ -426,7 +428,7 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     fontSize: 13,
-    color: '#9BA7AF',
+    color: colors.textMuted,
     marginTop: 8,
   },
 });

@@ -16,8 +16,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 interface Request {
   id: string;
@@ -29,13 +31,13 @@ interface Request {
 }
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Enviado' },
-  in_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Em análise' },
+  submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Enviado' },
+  in_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Em análise' },
   approved_pending_payment: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Aguardando pgto' },
-  paid: { color: '#10B981', bg: '#D1FAE5', label: 'Pago' },
-  signed: { color: '#10B981', bg: '#D1FAE5', label: 'Assinado' },
+  paid: { color: colors.success, bg: '#D1FAE5', label: 'Pago' },
+  signed: { color: colors.success, bg: '#D1FAE5', label: 'Assinado' },
   delivered: { color: '#6B7280', bg: '#F3F4F6', label: 'Entregue' },
-  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusado' },
+  rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusado' },
   cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Cancelado' },
 };
 
@@ -46,6 +48,7 @@ const typeConfig: Record<string, { icon: string; gradient: string[]; label: stri
 };
 
 export default function HistoryScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
@@ -159,11 +162,11 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -207,8 +210,8 @@ export default function HistoryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00B4CD"
-            colors={['#00B4CD']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       />
@@ -219,7 +222,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
   },
 
   // Header
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.card,
     marginBottom: 4,
   },
   headerSubtitle: {
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
 
   // Filters
   filtersContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E4E9EC',
@@ -254,19 +257,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#F1F5F7',
+    backgroundColor: colors.backgroundDark,
     marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: '#00B4CD',
+    backgroundColor: colors.primary,
   },
   filterText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: colors.card,
   },
 
   // List
@@ -279,11 +282,11 @@ const styles = StyleSheet.create({
   requestCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -309,7 +312,7 @@ const styles = StyleSheet.create({
   requestType: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
   },
   statusBadge: {
     paddingVertical: 4,
@@ -322,7 +325,7 @@ const styles = StyleSheet.create({
   },
   doctorName: {
     fontSize: 13,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     marginBottom: 6,
   },
   requestFooter: {
@@ -332,12 +335,12 @@ const styles = StyleSheet.create({
   },
   requestDate: {
     fontSize: 12,
-    color: '#9BA7AF',
+    color: colors.textMuted,
   },
   requestPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00B4CD',
+    color: colors.primary,
   },
 
   // Empty
@@ -349,7 +352,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#F1F5F7',
+    backgroundColor: colors.backgroundDark,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -357,16 +360,16 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     marginBottom: 20,
   },
   emptyButton: {
-    backgroundColor: '#00B4CD',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -374,6 +377,6 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.card,
   },
 });

@@ -8,7 +8,7 @@ export const COLORS = {
   healthGreen: '#10B981',
   healthGreenLight: '#34D399',
   healthTeal: '#14B8A6',
-  healthBlue: '#3B82F6',
+  healthBlue: '#00B4CD', // Aligned with primary
   healthPurple: '#8B5CF6',
   healthOrange: '#F59E0B',
   healthPink: '#EC4899',
@@ -28,7 +28,7 @@ export const COLORS = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
-  info: '#3B82F6',
+  info: '#00B4CD', // Aligned with primary
   
   // Border colors
   border: '#E4E9EC',

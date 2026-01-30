@@ -20,7 +20,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
 
 type ConsultationType = {
@@ -38,6 +39,7 @@ type ConsultationType = {
 };
 
 export default function DoctorConsultationsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { user } = useAuth();
   
@@ -186,7 +188,7 @@ export default function DoctorConsultationsScreen() {
         {consultation.paid_at && showActions && (
           <View style={styles.infoItem}>
             <Ionicons name="hourglass-outline" size={16} color="#F59E0B" />
-            <Text style={[styles.infoText, { color: '#F59E0B' }]}>
+            <Text style={[styles.infoText, { color: colors.warning }]}>
               Aguardando há {getWaitingTime(consultation.paid_at)}
             </Text>
           </View>
@@ -364,49 +366,49 @@ export default function DoctorConsultationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
   
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   headerContent: { marginBottom: 8 },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 4 },
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   refreshIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   refreshText: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
 
   // Tabs
-  tabsContainer: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E4E9EC' },
+  tabsContainer: { flexDirection: 'row', backgroundColor: colors.card, paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#E4E9EC' },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 10, gap: 6 },
   tabActive: { backgroundColor: '#FDF2F8' },
-  tabLabel: { fontSize: 12, fontWeight: '500', color: '#6B7C85' },
+  tabLabel: { fontSize: 12, fontWeight: '500', color: colors.textSecondary },
   tabLabelActive: { color: '#EC4899', fontWeight: '600' },
-  tabBadge: { backgroundColor: '#E4E9EC', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  tabBadge: { backgroundColor: colors.border, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
   tabBadgeActive: { backgroundColor: '#EC4899' },
-  tabBadgeText: { fontSize: 11, fontWeight: '600', color: '#6B7C85' },
-  tabBadgeTextActive: { color: '#FFFFFF' },
+  tabBadgeText: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
+  tabBadgeTextActive: { color: colors.card },
 
   // Content
   content: { flex: 1 },
   contentContainer: { padding: 16 },
 
   // Consultation card
-  consultationCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+  consultationCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   patientAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   patientInitial: { fontSize: 20, fontWeight: '700', color: '#EC4899' },
   cardHeaderInfo: { flex: 1 },
-  patientName: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 4 },
+  patientName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
   specialtyBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
-  specialtyText: { fontSize: 12, color: '#6B7C85' },
-  urgentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
-  urgentText: { fontSize: 11, fontWeight: '600', color: '#FFFFFF' },
+  specialtyText: { fontSize: 12, color: colors.textSecondary },
+  urgentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.warning, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
+  urgentText: { fontSize: 11, fontWeight: '600', color: colors.card },
 
   cardInfo: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
   infoItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  infoText: { fontSize: 13, color: '#6B7C85' },
+  infoText: { fontSize: 13, color: colors.textSecondary },
 
   scheduleInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FDF2F8', padding: 10, borderRadius: 10, marginBottom: 12 },
   scheduleText: { fontSize: 13, color: '#EC4899', fontWeight: '500' },
@@ -414,11 +416,11 @@ const styles = StyleSheet.create({
   startButton: { marginTop: 4 },
   continueButton: { marginTop: 4 },
   startButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8 },
-  startButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  startButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#1A3A4A', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#6B7C85', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
 });

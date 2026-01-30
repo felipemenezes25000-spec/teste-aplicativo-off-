@@ -29,6 +29,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -49,14 +50,15 @@ interface User {
 type RoleFilter = 'all' | 'patient' | 'doctor' | 'nurse' | 'admin';
 
 const roleConfig = {
-  all: { label: 'Todos', icon: 'people', color: '#00B4CD' },
-  patient: { label: 'Pacientes', icon: 'person', color: '#00B4CD' },
-  doctor: { label: 'Médicos', icon: 'medkit', color: '#10B981' },
+  all: { label: 'Todos', icon: 'people', color: colors.primary },
+  patient: { label: 'Pacientes', icon: 'person', color: colors.primary },
+  doctor: { label: 'Médicos', icon: 'medkit', color: colors.success },
   nurse: { label: 'Enfermeiros', icon: 'medical', color: '#8B5CF6' },
-  admin: { label: 'Admins', icon: 'shield', color: '#F59E0B' },
+  admin: { label: 'Admins', icon: 'shield', color: colors.warning },
 };
 
 export default function AdminUsersScreen() {
+  const colors = useColors();
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,18 +175,18 @@ export default function AdminUsersScreen() {
 
   const getRoleInfo = (role: string) => {
     switch (role) {
-      case 'patient': return { label: 'Paciente', color: '#00B4CD', icon: 'person' };
-      case 'doctor': return { label: 'Médico', color: '#10B981', icon: 'medkit' };
+      case 'patient': return { label: 'Paciente', color: colors.primary, icon: 'person' };
+      case 'doctor': return { label: 'Médico', color: colors.success, icon: 'medkit' };
       case 'nurse': return { label: 'Enfermeiro', color: '#8B5CF6', icon: 'medical' };
-      case 'admin': return { label: 'Admin', color: '#F59E0B', icon: 'shield' };
-      default: return { label: role, color: '#6B7C85', icon: 'person' };
+      case 'admin': return { label: 'Admin', color: colors.warning, icon: 'shield' };
+      default: return { label: role, color: colors.textSecondary, icon: 'person' };
     }
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4CD" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Carregando usuários...</Text>
       </View>
     );
@@ -192,10 +194,10 @@ export default function AdminUsersScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       {/* Header */}
-      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -273,7 +275,7 @@ export default function AdminUsersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); loadUsers(); }}
-            tintColor="#00B4CD"
+            tintColor={colors.primary}
           />
         }
       >
@@ -357,7 +359,7 @@ export default function AdminUsersScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Detalhes do Usuário</Text>
               <TouchableOpacity onPress={() => setShowUserModal(false)}>
-                <Ionicons name="close" size={24} color="#1A3A4A" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -406,7 +408,7 @@ export default function AdminUsersScreen() {
                     style={[styles.modalActionBtn, styles.editBtn]}
                     onPress={() => { setShowUserModal(false); handleUserAction('edit', selectedUser); }}
                   >
-                    <Ionicons name="create" size={18} color="#00B4CD" />
+                    <Ionicons name="create" size={18} color={colors.primary} />
                     <Text style={styles.editBtnText}>Editar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
@@ -441,33 +443,33 @@ function FieldItem({ icon, label, value, valueColor }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7C85' },
+  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 },
   headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   headerTitleContainer: { flex: 1, marginLeft: 16 },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: colors.card },
   headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  addButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#00B4CD', alignItems: 'center', justifyContent: 'center' },
+  addButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
 
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
-  searchInput: { flex: 1, fontSize: 15, color: '#FFFFFF' },
+  searchInput: { flex: 1, fontSize: 15, color: colors.card },
 
   // Filter Tabs
-  filterContainer: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E4E9EC' },
+  filterContainer: { backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: '#E4E9EC' },
   filterContent: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
-  filterTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#F8FAFB' },
-  filterTabActive: { backgroundColor: '#00B4CD' },
-  filterTabText: { fontSize: 13, fontWeight: '500', color: '#1A3A4A' },
-  filterTabTextActive: { color: '#FFFFFF' },
-  filterBadge: { backgroundColor: '#E4E9EC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
+  filterTab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.background },
+  filterTabActive: { backgroundColor: colors.primary },
+  filterTabText: { fontSize: 13, fontWeight: '500', color: colors.textPrimary },
+  filterTabTextActive: { color: colors.card },
+  filterBadge: { backgroundColor: colors.border, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
   filterBadgeActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
-  filterBadgeText: { fontSize: 11, fontWeight: '600', color: '#6B7C85' },
-  filterBadgeTextActive: { color: '#FFFFFF' },
+  filterBadgeText: { fontSize: 11, fontWeight: '600', color: colors.textSecondary },
+  filterBadgeTextActive: { color: colors.card },
 
   // Content
   content: { flex: 1 },
@@ -475,43 +477,43 @@ const styles = StyleSheet.create({
 
   // Empty State
   emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyStateText: { fontSize: 16, fontWeight: '500', color: '#6B7C85', marginTop: 16 },
-  emptyStateSubtext: { fontSize: 13, color: '#9BA7AF', marginTop: 4 },
+  emptyStateText: { fontSize: 16, fontWeight: '500', color: colors.textSecondary, marginTop: 16 },
+  emptyStateSubtext: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
 
   // User Card
-  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 14, marginBottom: 10, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   userAvatar: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   userInfo: { flex: 1 },
   userNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  userName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  userName: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   blockedBadge: { backgroundColor: '#FEE2E2', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  blockedBadgeText: { fontSize: 10, fontWeight: '600', color: '#EF4444' },
-  userEmail: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  blockedBadgeText: { fontSize: 10, fontWeight: '600', color: colors.error },
+  userEmail: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   userMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   roleBadgeText: { fontSize: 11, fontWeight: '600' },
-  userCrm: { fontSize: 11, color: '#9BA7AF' },
+  userCrm: { fontSize: 11, color: colors.textMuted },
   moreButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
+  modalContent: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E4E9EC' },
-  modalTitle: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
+  modalTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
   modalBody: { padding: 20 },
   modalAvatar: { alignItems: 'center', marginBottom: 24 },
   avatarLarge: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  modalUserName: { fontSize: 20, fontWeight: '600', color: '#1A3A4A', marginBottom: 8 },
+  modalUserName: { fontSize: 20, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
   modalFields: { gap: 12, marginBottom: 24 },
-  fieldItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#F8FAFB', padding: 14, borderRadius: 12 },
-  fieldIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fieldItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.background, padding: 14, borderRadius: 12 },
+  fieldIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   fieldContent: { flex: 1 },
-  fieldLabel: { fontSize: 11, color: '#9BA7AF' },
-  fieldValue: { fontSize: 14, fontWeight: '500', color: '#1A3A4A', marginTop: 2 },
+  fieldLabel: { fontSize: 11, color: colors.textMuted },
+  fieldValue: { fontSize: 14, fontWeight: '500', color: colors.textPrimary, marginTop: 2 },
   modalActions: { flexDirection: 'row', gap: 10 },
   modalActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderRadius: 12 },
-  editBtn: { backgroundColor: '#E6F7FA' },
-  editBtnText: { fontSize: 14, fontWeight: '600', color: '#00B4CD' },
+  editBtn: { backgroundColor: colors.primaryLight },
+  editBtnText: { fontSize: 14, fontWeight: '600', color: colors.primary },
   blockBtn: { backgroundColor: '#FEF3C7' },
-  blockBtnText: { fontSize: 14, fontWeight: '600', color: '#F59E0B' },
+  blockBtnText: { fontSize: 14, fontWeight: '600', color: colors.warning },
 });

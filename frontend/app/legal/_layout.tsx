@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
+import { useColors } from '@/contexts/ThemeContext';
 
 export default function LegalLayout() {
+  const colors = useColors();
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#00B4CD' },
+        headerStyle: { backgroundColor: colors.primary },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
       }}

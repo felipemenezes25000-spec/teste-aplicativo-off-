@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '@/contexts/ThemeContext';
 
 const CONSENT_CONTENT = `
 # TERMO DE CONSENTIMENTO PARA TELEMEDICINA
@@ -129,7 +130,7 @@ export default function ConsentScreen({ onAccept, showAcceptButton = true }: Con
     section: {
       fontSize: 17,
       fontWeight: 'bold',
-      color: '#00B4CD',
+      color: colors.primary,
       marginTop: 20,
       marginBottom: 8,
     },
@@ -157,7 +158,7 @@ export default function ConsentScreen({ onAccept, showAcceptButton = true }: Con
       paddingBottom: 32,
     },
     acceptButton: {
-      backgroundColor: '#00B4CD',
+      backgroundColor: colors.primary,
       paddingVertical: 16,
       borderRadius: 12,
       flexDirection: 'row',
@@ -186,13 +187,13 @@ export default function ConsentScreen({ onAccept, showAcceptButton = true }: Con
       height: 24,
       borderRadius: 6,
       borderWidth: 2,
-      borderColor: '#00B4CD',
+      borderColor: colors.primary,
       marginRight: 12,
       alignItems: 'center',
       justifyContent: 'center',
     },
     checkboxChecked: {
-      backgroundColor: '#00B4CD',
+      backgroundColor: colors.primary,
     },
     checkboxLabel: {
       flex: 1,

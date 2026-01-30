@@ -25,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +54,7 @@ const periods: { key: Period; label: string; icon: string }[] = [
 ];
 
 export default function AdminReportsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('week');
   const [loading, setLoading] = useState(true);
@@ -137,7 +139,7 @@ export default function AdminReportsScreen() {
   if (loading && !data) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4CD" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Carregando relatórios...</Text>
       </View>
     );
@@ -145,10 +147,10 @@ export default function AdminReportsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       {/* Header */}
-      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -200,7 +202,7 @@ export default function AdminReportsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); loadReports(); }}
-            tintColor="#00B4CD"
+            tintColor={colors.primary}
           />
         }
       >
@@ -210,7 +212,7 @@ export default function AdminReportsScreen() {
             icon="document-text"
             label="Total de Solicitações"
             value={data?.total_requests || 0}
-            color="#00B4CD"
+            color={colors.primary}
             trend="+12%"
             trendUp={true}
           />
@@ -248,7 +250,7 @@ export default function AdminReportsScreen() {
               label="Receitas"
               value={data?.prescriptions || 0}
               total={data?.total_requests || 1}
-              color="#00B4CD"
+              color={colors.primary}
               icon="document-text"
             />
             <TypeBar
@@ -305,7 +307,7 @@ export default function AdminReportsScreen() {
                       styles.dailyBar,
                       {
                         height: `${(day.count / maxDailyCount) * 100}%`,
-                        backgroundColor: '#00B4CD',
+                        backgroundColor: colors.primary,
                       },
                     ]}
                   />
@@ -369,7 +371,7 @@ export default function AdminReportsScreen() {
           <Text style={styles.exportDesc}>Baixe os dados detalhados em diferentes formatos</Text>
           <View style={styles.exportButtons}>
             <TouchableOpacity style={styles.exportBtn}>
-              <Ionicons name="document" size={18} color="#00B4CD" />
+              <Ionicons name="document" size={18} color={colors.primary} />
               <Text style={styles.exportBtnText}>PDF</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.exportBtn}>
@@ -437,24 +439,24 @@ function StatusItem({ label, value, percentage, color }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7C85' },
+  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 },
   headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   headerTitleContainer: { flex: 1, marginLeft: 16 },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: colors.card },
   headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   exportButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
 
   periodSelector: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 4 },
   periodButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
-  periodButtonActive: { backgroundColor: '#FFFFFF' },
+  periodButtonActive: { backgroundColor: colors.card },
   periodButtonText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-  periodButtonTextActive: { color: '#1A3A4A' },
+  periodButtonTextActive: { color: colors.textPrimary },
 
   // Content
   content: { flex: 1 },
@@ -462,38 +464,38 @@ const styles = StyleSheet.create({
 
   // Summary Grid
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  summaryCard: { width: (width - 50) / 2, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  summaryCard: { width: (width - 50) / 2, backgroundColor: colors.card, borderRadius: 16, padding: 14, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   summaryIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  summaryValue: { fontSize: 18, fontWeight: '700', color: '#1A3A4A' },
-  summaryLabel: { fontSize: 11, color: '#6B7C85', marginTop: 2 },
+  summaryValue: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  summaryLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   trendBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, alignSelf: 'flex-start' },
   trendUp: { backgroundColor: '#D1FAE5' },
   trendDown: { backgroundColor: '#FEE2E2' },
   trendText: { fontSize: 11, fontWeight: '600' },
-  trendTextUp: { color: '#10B981' },
-  trendTextDown: { color: '#EF4444' },
+  trendTextUp: { color: colors.success },
+  trendTextDown: { color: colors.error },
 
   // Chart Card
-  chartCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  chartTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 16 },
+  chartCard: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 16, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  chartTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
 
   // Type Chart
   typeChart: { gap: 14 },
   typeBarContainer: {},
   typeBarHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  typeBarLabel: { flex: 1, fontSize: 14, color: '#1A3A4A' },
-  typeBarValue: { fontSize: 14, fontWeight: '600', color: '#1A3A4A' },
+  typeBarLabel: { flex: 1, fontSize: 14, color: colors.textPrimary },
+  typeBarValue: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   typeBarOuter: { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden' },
   typeBarInner: { height: '100%', borderRadius: 4 },
-  typeBarPercentage: { fontSize: 11, color: '#9BA7AF', marginTop: 4, textAlign: 'right' },
+  typeBarPercentage: { fontSize: 11, color: colors.textMuted, marginTop: 4, textAlign: 'right' },
 
   // Status Distribution
   statusDistribution: { flexDirection: 'row', justifyContent: 'space-between' },
   statusItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusInfo: {},
-  statusLabel: { fontSize: 11, color: '#6B7C85' },
-  statusValue: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  statusLabel: { fontSize: 11, color: colors.textSecondary },
+  statusValue: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
   statusPercentage: { fontSize: 12, fontWeight: '600' },
 
   // Daily Chart
@@ -501,33 +503,33 @@ const styles = StyleSheet.create({
   dailyBarContainer: { flex: 1, alignItems: 'center' },
   dailyBarWrapper: { flex: 1, width: 24, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden', justifyContent: 'flex-end' },
   dailyBar: { width: '100%', borderRadius: 4, minHeight: 4 },
-  dailyBarLabel: { fontSize: 10, color: '#9BA7AF', marginTop: 6 },
-  dailyBarValue: { fontSize: 10, fontWeight: '600', color: '#1A3A4A' },
+  dailyBarLabel: { fontSize: 10, color: colors.textMuted, marginTop: 6 },
+  dailyBarValue: { fontSize: 10, fontWeight: '600', color: colors.textPrimary },
 
   // Specialties
   specialtyItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
   specialtyRank: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#00B4CD15', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  specialtyRankText: { fontSize: 12, fontWeight: '600', color: '#00B4CD' },
+  specialtyRankText: { fontSize: 12, fontWeight: '600', color: colors.primary },
   specialtyInfo: { flex: 1 },
-  specialtyName: { fontSize: 14, color: '#1A3A4A', marginBottom: 4 },
+  specialtyName: { fontSize: 14, color: colors.textPrimary, marginBottom: 4 },
   specialtyBarOuter: { height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden' },
-  specialtyBarInner: { height: '100%', backgroundColor: '#00B4CD', borderRadius: 3 },
-  specialtyCount: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', marginLeft: 12 },
+  specialtyBarInner: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
+  specialtyCount: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginLeft: 12 },
 
   // Section Title
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginTop: 8, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginTop: 8, marginBottom: 12 },
 
   // Quick Stats Grid
   quickStatsGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  quickStatCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  quickStatValue: { fontSize: 22, fontWeight: '700', color: '#1A3A4A', marginTop: 8 },
-  quickStatLabel: { fontSize: 11, color: '#6B7C85', marginTop: 2 },
+  quickStatCard: { flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: 14, alignItems: 'center', shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  quickStatValue: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginTop: 8 },
+  quickStatLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 
   // Export Card
-  exportCard: { backgroundColor: '#0F172A', borderRadius: 16, padding: 20 },
-  exportTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 4 },
+  exportCard: { backgroundColor: colors.background, borderRadius: 16, padding: 20 },
+  exportTitle: { fontSize: 16, fontWeight: '600', color: colors.card, marginBottom: 4 },
   exportDesc: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 16 },
   exportButtons: { flexDirection: 'row', gap: 10 },
   exportBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 12, borderRadius: 10 },
-  exportBtnText: { fontSize: 13, fontWeight: '500', color: '#FFFFFF' },
+  exportBtnText: { fontSize: 13, fontWeight: '500', color: colors.card },
 });

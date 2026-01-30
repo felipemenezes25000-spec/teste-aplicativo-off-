@@ -20,6 +20,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 const REVIEW_TAGS = [
   { id: 'professional', label: 'Profissional', icon: 'briefcase' },
@@ -30,6 +31,7 @@ const REVIEW_TAGS = [
 ];
 
 export default function ReviewScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   
@@ -111,7 +113,7 @@ export default function ReviewScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#F59E0B" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.warning} />
       
       <LinearGradient colors={['#F59E0B', '#FBBF24']} style={styles.header}>
         <View style={styles.headerContent}>
@@ -215,39 +217,39 @@ export default function ReviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
 
   header: { paddingTop: 60, paddingBottom: 32, paddingHorizontal: 24, alignItems: 'center' },
   headerContent: { alignItems: 'center' },
   starIconContainer: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', textAlign: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: colors.card, textAlign: 'center' },
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 6 },
 
   content: { flex: 1 },
   contentContainer: { padding: 24, paddingBottom: 40 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 14 },
 
   ratingSection: { alignItems: 'center', marginBottom: 32 },
   starsContainer: { flexDirection: 'row', gap: 8 },
   star: { marginHorizontal: 4 },
-  ratingLabel: { marginTop: 12, fontSize: 18, fontWeight: '600', color: '#F59E0B' },
+  ratingLabel: { marginTop: 12, fontSize: 18, fontWeight: '600', color: colors.warning },
 
   tagsSection: { marginBottom: 28 },
   tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#FFFFFF', borderRadius: 24, borderWidth: 1.5, borderColor: '#E4E9EC', gap: 6 },
-  tagSelected: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  tagText: { fontSize: 14, fontWeight: '500', color: '#6B7C85' },
-  tagTextSelected: { color: '#FFFFFF' },
+  tag: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, backgroundColor: colors.card, borderRadius: 24, borderWidth: 1.5, borderColor: colors.border, gap: 6 },
+  tagSelected: { backgroundColor: colors.warning, borderColor: colors.warning },
+  tagText: { fontSize: 14, fontWeight: '500', color: colors.textSecondary },
+  tagTextSelected: { color: colors.card },
 
   commentSection: { marginBottom: 32 },
-  commentInput: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, fontSize: 15, color: '#1A3A4A', minHeight: 120, borderWidth: 1, borderColor: '#E4E9EC' },
-  charCount: { textAlign: 'right', marginTop: 6, fontSize: 12, color: '#9BA7AF' },
+  commentInput: { backgroundColor: colors.card, borderRadius: 14, padding: 16, fontSize: 15, color: colors.textPrimary, minHeight: 120, borderWidth: 1, borderColor: colors.border },
+  charCount: { textAlign: 'right', marginTop: 6, fontSize: 12, color: colors.textMuted },
 
   actions: { gap: 12 },
   submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  submitButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  submitButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
   skipButton: { alignItems: 'center', justifyContent: 'center', height: 44 },
-  skipButtonText: { fontSize: 15, color: '#6B7C85' },
+  skipButtonText: { fontSize: 15, color: colors.textSecondary },
 });

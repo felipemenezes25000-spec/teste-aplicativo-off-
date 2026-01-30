@@ -20,10 +20,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
 
 export default function WaitingRoomScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -159,7 +161,7 @@ export default function WaitingRoomScreen() {
   if (consultationReady) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#10B981" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.success} />
         <LinearGradient colors={['#10B981', '#34D399']} style={styles.readyGradient}>
           
           {/* Ícone de sucesso */}
@@ -321,7 +323,7 @@ const styles = StyleSheet.create({
   
   loadingContainer: { flex: 1 },
   loadingGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#FFFFFF' },
+  loadingText: { marginTop: 16, fontSize: 16, color: colors.card },
 
   gradient: { flex: 1, paddingTop: 50 },
   readyGradient: { flex: 1, paddingTop: 50, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
@@ -337,13 +339,13 @@ const styles = StyleSheet.create({
   rotatingGradient: { width: '100%', height: '100%', borderRadius: 70 },
   waitingIconInner: { width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
 
-  waitingTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', textAlign: 'center', marginBottom: 8 },
+  waitingTitle: { fontSize: 28, fontWeight: '700', color: colors.card, textAlign: 'center', marginBottom: 8 },
   waitingSubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginBottom: 32 },
 
   // Stats
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: 16, alignItems: 'center' },
-  statValue: { fontSize: 22, fontWeight: '700', color: '#FFFFFF', marginTop: 8 },
+  statValue: { fontSize: 22, fontWeight: '700', color: colors.card, marginTop: 8 },
   statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4, textAlign: 'center' },
 
   // Request info
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
   requestInfoTitle: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginBottom: 12 },
   requestInfoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   requestInfoLabel: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
-  requestInfoValue: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  requestInfoValue: { fontSize: 14, fontWeight: '600', color: colors.card },
 
   // Tips
   bottomTips: { paddingHorizontal: 24, paddingBottom: 8 },
@@ -363,18 +365,18 @@ const styles = StyleSheet.create({
 
   // Ready state
   readyIconContainer: { marginBottom: 24 },
-  readyTitle: { fontSize: 32, fontWeight: '700', color: '#FFFFFF', textAlign: 'center', marginBottom: 8 },
+  readyTitle: { fontSize: 32, fontWeight: '700', color: colors.card, textAlign: 'center', marginBottom: 8 },
   readySubtitle: { fontSize: 16, color: 'rgba(255,255,255,0.9)', textAlign: 'center', marginBottom: 32 },
 
   doctorCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 16, padding: 16, marginBottom: 32, width: '100%' },
-  doctorAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  doctorAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   doctorInfo: { flex: 1 },
-  doctorName: { fontSize: 18, fontWeight: '600', color: '#FFFFFF', marginBottom: 2 },
+  doctorName: { fontSize: 18, fontWeight: '600', color: colors.card, marginBottom: 2 },
   doctorSpecialty: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
 
   joinButtonWrapper: { width: '100%', marginBottom: 32 },
   joinButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 16, gap: 12 },
-  joinButtonText: { fontSize: 18, fontWeight: '700', color: '#10B981' },
+  joinButtonText: { fontSize: 18, fontWeight: '700', color: colors.success },
 
   tipsContainer: { alignItems: 'flex-start', width: '100%' },
   tipsTitle: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.8)', marginBottom: 12 },

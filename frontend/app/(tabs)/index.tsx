@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 
 // Service Cards Data
 const services = [
@@ -64,6 +65,7 @@ const quickActions = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const colors = useColors();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -85,12 +87,12 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header with Gradient */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -111,13 +113,13 @@ export default function HomeScreen() {
 
           {/* Search Bar */}
           <TouchableOpacity style={styles.searchBar} activeOpacity={0.8}>
-            <Ionicons name="search" size={20} color="#6B7C85" />
-            <Text style={styles.searchPlaceholder}>Buscar serviços...</Text>
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
+            <Text style={[styles.searchPlaceholder, { color: colors.textMuted }]}>Buscar serviços...</Text>
           </TouchableOpacity>
         </View>
 
         {/* Wave decoration */}
-        <View style={styles.wave} />
+        <View style={[styles.wave, { backgroundColor: colors.background }]} />
       </LinearGradient>
 
       <ScrollView
@@ -128,19 +130,19 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00B4CD"
-            colors={['#00B4CD']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
         {/* Services Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Serviços</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Serviços</Text>
           <View style={styles.servicesGrid}>
             {services.map((service) => (
               <TouchableOpacity
                 key={service.id}
-                style={styles.serviceCard}
+                style={[styles.serviceCard, { backgroundColor: colors.card, shadowColor: colors.shadowColor }]}
                 onPress={() => router.push(service.route as any)}
                 activeOpacity={0.8}
               >
@@ -152,8 +154,8 @@ export default function HomeScreen() {
                 >
                   <Ionicons name={service.icon as any} size={28} color="#FFFFFF" />
                 </LinearGradient>
-                <Text style={styles.serviceTitle}>{service.title}</Text>
-                <Text style={styles.serviceSubtitle}>{service.subtitle}</Text>
+                <Text style={[styles.serviceTitle, { color: colors.textPrimary }]}>{service.title}</Text>
+                <Text style={[styles.serviceSubtitle, { color: colors.textSecondary }]}>{service.subtitle}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -161,8 +163,8 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Acesso Rápido</Text>
-          <View style={styles.quickActionsRow}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Acesso Rápido</Text>
+          <View style={[styles.quickActionsRow, { backgroundColor: colors.card, shadowColor: colors.shadowColor }]}>
             {quickActions.map((action) => (
               <TouchableOpacity
                 key={action.id}
@@ -170,10 +172,10 @@ export default function HomeScreen() {
                 onPress={() => router.push(action.route as any)}
                 activeOpacity={0.7}
               >
-                <View style={styles.quickActionIcon}>
-                  <Ionicons name={action.icon as any} size={22} color="#00B4CD" />
+                <View style={[styles.quickActionIcon, { backgroundColor: colors.primaryLight }]}>
+                  <Ionicons name={action.icon as any} size={22} color={colors.primary} />
                 </View>
-                <Text style={styles.quickActionText}>{action.title}</Text>
+                <Text style={[styles.quickActionText, { color: colors.textSecondary }]}>{action.title}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -183,7 +185,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <TouchableOpacity activeOpacity={0.9}>
             <LinearGradient
-              colors={['#1A3A4A', '#2D5A6B']}
+              colors={colors.headerGradient}
               style={styles.promoBanner}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -195,8 +197,8 @@ export default function HomeScreen() {
                     Ganhe 20% de desconto na sua primeira teleconsulta!
                   </Text>
                   <View style={styles.promoButton}>
-                    <Text style={styles.promoButtonText}>Aproveitar</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#00B4CD" />
+                    <Text style={[styles.promoButtonText, { color: colors.primary }]}>Aproveitar</Text>
+                    <Ionicons name="arrow-forward" size={16} color={colors.primary} />
                   </View>
                 </View>
                 <View style={styles.promoIconContainer}>
@@ -210,18 +212,18 @@ export default function HomeScreen() {
         {/* Recent Activity */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Atividade Recente</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Atividade Recente</Text>
             <TouchableOpacity>
-              <Text style={styles.seeAllText}>Ver tudo</Text>
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>Ver tudo</Text>
             </TouchableOpacity>
           </View>
           
-          <View style={styles.emptyActivity}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="document-text-outline" size={40} color="#CDD5DA" />
+          <View style={[styles.emptyActivity, { backgroundColor: colors.card, shadowColor: colors.shadowColor }]}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: colors.backgroundDark }]}>
+              <Ionicons name="document-text-outline" size={40} color={colors.border} />
             </View>
-            <Text style={styles.emptyTitle}>Nenhuma atividade recente</Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Nenhuma atividade recente</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               Suas solicitações aparecerão aqui
             </Text>
           </View>
@@ -237,7 +239,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFB',
   },
 
   // Header
@@ -306,7 +307,6 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     fontSize: 15,
-    color: '#9BA7AF',
   },
   wave: {
     position: 'absolute',
@@ -314,7 +314,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 20,
-    backgroundColor: '#F8FAFB',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
   },
@@ -342,12 +341,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A3A4A',
     marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,
-    color: '#00B4CD',
     fontWeight: '500',
     marginBottom: 16,
   },
@@ -360,10 +357,8 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     width: '47%',
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 20,
-    shadowColor: '#1A3A4A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -380,22 +375,18 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A3A4A',
     marginBottom: 4,
   },
   serviceSubtitle: {
     fontSize: 13,
-    color: '#6B7C85',
   },
 
   // Quick Actions
   quickActionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 16,
-    shadowColor: '#1A3A4A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -409,14 +400,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#E6F7FA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   quickActionText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#4A5960',
   },
 
   // Promo Banner
@@ -459,7 +448,6 @@ const styles = StyleSheet.create({
   promoButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#00B4CD',
   },
   promoIconContainer: {
     opacity: 0.8,
@@ -467,11 +455,9 @@ const styles = StyleSheet.create({
 
   // Empty Activity
   emptyActivity: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#1A3A4A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -481,7 +467,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: '#F8FAFB',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -489,11 +474,9 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A3A4A',
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7C85',
   },
 });

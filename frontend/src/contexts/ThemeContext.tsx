@@ -66,7 +66,7 @@ const lightColors: ThemeColors = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
-  info: '#3B82F6',
+  info: '#00B4CD', // Aligned with primary
   
   headerGradient: ['#1A3A4A', '#2D5A6B'],
   inputBackground: '#F8FAFB',

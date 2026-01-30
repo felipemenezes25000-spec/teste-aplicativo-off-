@@ -20,9 +20,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 
 export default function RegisterScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { register } = useAuth();
   
@@ -129,7 +131,7 @@ export default function RegisterScreen() {
       <Ionicons 
         name={icon as any}
         size={20} 
-        color={focusedInput === inputKey ? '#00B4CD' : '#9BA7AF'} 
+        color={focusedInput === inputKey ? colors.primary : '#9BA7AF'} 
         style={styles.inputIcon}
       />
       <TextInput
@@ -183,7 +185,7 @@ export default function RegisterScreen() {
           <View style={styles.header}>
             <Link href="/login" asChild>
               <TouchableOpacity style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#1A3A4A" />
+                <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </Link>
           </View>
@@ -309,21 +311,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
 
   // Form Card
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -334,17 +336,17 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E4E9EC',
+    borderColor: colors.border,
     marginBottom: 16,
     paddingHorizontal: 16,
     height: 56,
   },
   inputFocused: {
-    borderColor: '#00B4CD',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
   },
   inputIcon: {
     marginRight: 12,
@@ -352,7 +354,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1A3A4A',
+    color: colors.textPrimary,
   },
   eyeButton: {
     padding: 4,
@@ -370,23 +372,23 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#E4E9EC',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#00B4CD',
-    borderColor: '#00B4CD',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   termsText: {
     flex: 1,
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   termsLink: {
-    color: '#00B4CD',
+    color: colors.primary,
     fontWeight: '500',
   },
 
@@ -398,7 +400,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 16,
     gap: 8,
-    shadowColor: '#00B4CD',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -407,7 +409,7 @@ const styles = StyleSheet.create({
   registerButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.card,
   },
 
   // Login Link
@@ -418,11 +420,11 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
   loginLink: {
     fontSize: 14,
-    color: '#00B4CD',
+    color: colors.primary,
     fontWeight: '600',
   },
 });

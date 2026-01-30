@@ -22,19 +22,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Aguardando análise' },
-  in_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Em análise' },
-  approved_pending_payment: { color: '#10B981', bg: '#D1FAE5', label: 'Aprovada - Aguard. pagamento' },
+  submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Aguardando análise' },
+  in_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Em análise' },
+  approved_pending_payment: { color: colors.success, bg: '#D1FAE5', label: 'Aprovada - Aguard. pagamento' },
   paid: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Pago - Aguard. assinatura' },
-  signed: { color: '#10B981', bg: '#D1FAE5', label: 'Assinada' },
-  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusada' },
+  signed: { color: colors.success, bg: '#D1FAE5', label: 'Assinada' },
+  rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusada' },
 };
 
 export default function DoctorRequestDetailScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -160,10 +163,10 @@ export default function DoctorRequestDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       {/* Header */}
-      <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.header}>
+      <LinearGradient colors={colors.headerGradient} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -293,7 +296,7 @@ export default function DoctorRequestDetailScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.outlineButton} onPress={() => setShowRejectModal(true)}>
                 <Ionicons name="close" size={18} color="#EF4444" />
-                <Text style={[styles.outlineButtonText, { color: '#EF4444' }]}>Recusar Solicitação</Text>
+                <Text style={[styles.outlineButtonText, { color: colors.error }]}>Recusar Solicitação</Text>
               </TouchableOpacity>
             </>
           )}
@@ -360,13 +363,13 @@ export default function DoctorRequestDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
-  errorText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  errorText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
 
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: colors.card },
   chatButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
 
   content: { flex: 1 },
@@ -376,51 +379,51 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 14, fontWeight: '600' },
 
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  cardTitle: { fontSize: 12, fontWeight: '600', color: '#9BA7AF', textTransform: 'uppercase', marginBottom: 12 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: 12, fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 12 },
 
   patientRow: { flexDirection: 'row', alignItems: 'center' },
   patientAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  patientInitials: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  patientInitials: { fontSize: 18, fontWeight: '700', color: colors.card },
   patientInfo: { flex: 1, marginLeft: 14 },
-  patientName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
-  requestDate: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
-  priceTag: { fontSize: 17, fontWeight: '700', color: '#10B981' },
+  patientName: { fontSize: 17, fontWeight: '600', color: colors.textPrimary },
+  requestDate: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  priceTag: { fontSize: 17, fontWeight: '700', color: colors.success },
 
   typeRow: { flexDirection: 'row', alignItems: 'center' },
-  typeIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#E6F7FA', alignItems: 'center', justifyContent: 'center' },
+  typeIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   typeInfo: { flex: 1, marginLeft: 12 },
-  typeName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
-  typeSubtitle: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  typeName: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  typeSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 
   imagesScroll: { marginVertical: 8 },
-  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: '#F1F5F7' },
-  imageHint: { fontSize: 11, color: '#9BA7AF', textAlign: 'center' },
+  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: colors.backgroundDark },
+  imageHint: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
 
-  notesText: { fontSize: 15, color: '#1A3A4A', lineHeight: 22 },
+  notesText: { fontSize: 15, color: colors.textPrimary, lineHeight: 22 },
 
-  priceInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFB', borderRadius: 12, paddingHorizontal: 14 },
-  pricePrefix: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
-  priceInput: { flex: 1, fontSize: 20, fontWeight: '700', color: '#1A3A4A', paddingVertical: 14, marginLeft: 8 },
+  priceInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 12, paddingHorizontal: 14 },
+  pricePrefix: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+  priceInput: { flex: 1, fontSize: 20, fontWeight: '700', color: colors.textPrimary, paddingVertical: 14, marginLeft: 8 },
 
   actionsSection: { marginTop: 8, gap: 10 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: '#00B4CD' },
-  outlineButtonText: { fontSize: 15, fontWeight: '500', color: '#00B4CD' },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
+  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: colors.primary },
+  outlineButtonText: { fontSize: 15, fontWeight: '500', color: colors.primary },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
   modalImage: { width: '90%', height: '70%' },
   modalClose: { position: 'absolute', top: 50, right: 20 },
 
   rejectModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  rejectModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  rejectModalTitle: { fontSize: 20, fontWeight: '700', color: '#1A3A4A', marginBottom: 16 },
-  rejectInput: { backgroundColor: '#F8FAFB', borderRadius: 12, padding: 14, fontSize: 15, color: '#1A3A4A', height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E4E9EC' },
+  rejectModalContent: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  rejectModalTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary, marginBottom: 16 },
+  rejectInput: { backgroundColor: colors.background, borderRadius: 12, padding: 14, fontSize: 15, color: colors.textPrimary, height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: colors.border },
   rejectModalActions: { flexDirection: 'row', marginTop: 20, gap: 12 },
   modalButton: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalButtonOutline: { borderWidth: 1.5, borderColor: '#E4E9EC' },
-  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
-  modalButtonDanger: { backgroundColor: '#EF4444' },
-  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  modalButtonOutline: { borderWidth: 1.5, borderColor: colors.border },
+  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
+  modalButtonDanger: { backgroundColor: colors.error },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
 });

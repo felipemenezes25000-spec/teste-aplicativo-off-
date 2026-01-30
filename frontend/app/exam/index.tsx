@@ -43,6 +43,7 @@ const examCategories = [
 
 export default function ExamRequestScreen() {
   const router = useRouter();
+  const colors = useColors();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -258,14 +259,14 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentContainer: { padding: 24 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
   categoryCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   categoryCardSelected: { borderColor: '#7C3AED', backgroundColor: '#FAF5FF' },
   categoryIcon: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   categoryContent: { flex: 1 },
-  categoryTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 2 },
-  categorySubtitle: { fontSize: 13, color: '#6B7C85', marginBottom: 8 },
+  categoryTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  categorySubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 8 },
   examplesContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   exampleBadge: { backgroundColor: '#F1F5F7', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
   exampleText: { fontSize: 11, color: '#4A5960' },
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#7C3AED' },
 
   textAreaContainer: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', padding: 16, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  textArea: { fontSize: 16, color: '#1A3A4A', minHeight: 100 },
+  textArea: { fontSize: 16, color: colors.textPrimary, minHeight: 100 },
 
   uploadContainer: { flexDirection: 'row', gap: 12 },
   uploadButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAF5FF', borderRadius: 16, paddingVertical: 16, gap: 8, borderWidth: 1.5, borderColor: '#E9D5FF', borderStyle: 'dashed' },

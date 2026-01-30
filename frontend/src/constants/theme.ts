@@ -35,9 +35,9 @@ export const COLORS = {
   errorLight: '#F87171',
   errorBg: '#FEE2E2',
   
-  info: '#3B82F6',
-  infoLight: '#60A5FA',
-  infoBg: '#DBEAFE',
+  info: '#00B4CD', // Aligned with primary
+  infoLight: '#4AC5E0',
+  infoBg: '#DFF7FB',
   
   // Accent Colors
   pink: '#EC4899',

@@ -54,7 +54,7 @@ class NotificationService {
           name: 'RenoveJá+ Notificações',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#007AFF',
+          lightColor: '#00B4CD', // RenoveJá primary color
           sound: 'default',
         });
 

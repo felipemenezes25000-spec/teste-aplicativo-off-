@@ -27,6 +27,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Medication {
   name: string;
@@ -52,6 +53,7 @@ interface AnalysisResult {
 }
 
 export default function AIAnalyzeDocumentScreen() {
+  const colors = useColors();
   const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
   const router = useRouter();
   
@@ -424,64 +426,64 @@ export default function AIAnalyzeDocumentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
 
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   headerContent: {},
-  headerTitle: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
+  headerTitle: { fontSize: 24, fontWeight: '700', color: colors.card },
   headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
 
   content: { flex: 1 },
   contentContainer: { padding: 20 },
 
-  patientCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  patientName: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
-  requestType: { fontSize: 14, color: '#6B7C85', marginTop: 4 },
+  patientCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  patientName: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+  requestType: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
 
   section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
   imageContainer: { position: 'relative', borderRadius: 16, overflow: 'hidden', backgroundColor: '#F1F5F9' },
   documentImage: { width: '100%', height: 300, backgroundColor: '#F1F5F9' },
   changeImageOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 12 },
-  changeImageText: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
+  changeImageText: { color: colors.card, fontSize: 14, fontWeight: '500' },
 
   uploadContainer: { flexDirection: 'row', gap: 12 },
-  uploadButton: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 2, borderColor: '#E4E9EC', borderStyle: 'dashed' },
+  uploadButton: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed' },
   uploadButtonText: { marginTop: 8, fontSize: 14, fontWeight: '500', color: '#8B5CF6' },
 
   analyzeButton: { marginVertical: 16 },
   analyzeButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 10 },
-  analyzeButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  analyzeButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
 
   confidenceBadge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, marginBottom: 16, gap: 8 },
   confidenceText: { fontSize: 14, fontWeight: '600' },
-  costText: { fontSize: 12, color: '#6B7C85', marginLeft: 'auto' },
+  costText: { fontSize: 12, color: colors.textSecondary, marginLeft: 'auto' },
 
-  medicationCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#8B5CF6' },
+  medicationCard: { backgroundColor: colors.card, borderRadius: 14, padding: 16, marginBottom: 10, borderLeftWidth: 4, borderLeftColor: '#8B5CF6' },
   medicationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  medicationName: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', flex: 1 },
+  medicationName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, flex: 1 },
   confidenceTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   confidenceTagText: { fontSize: 11, fontWeight: '600' },
-  medicationDetail: { fontSize: 14, color: '#6B7C85', marginBottom: 4 },
-  medicationPosology: { fontSize: 14, color: '#1A3A4A', marginTop: 8, backgroundColor: '#F8FAFB', padding: 10, borderRadius: 8 },
-  medicationQuantity: { fontSize: 13, color: '#6B7C85', marginTop: 8 },
+  medicationDetail: { fontSize: 14, color: colors.textSecondary, marginBottom: 4 },
+  medicationPosology: { fontSize: 14, color: colors.textPrimary, marginTop: 8, backgroundColor: colors.background, padding: 10, borderRadius: 8 },
+  medicationQuantity: { fontSize: 13, color: colors.textSecondary, marginTop: 8 },
 
-  examItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, marginBottom: 8 },
-  examName: { fontSize: 15, color: '#1A3A4A', flex: 1 },
+  examItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, padding: 14, borderRadius: 10, marginBottom: 8 },
+  examName: { fontSize: 15, color: colors.textPrimary, flex: 1 },
 
   indicationBox: { backgroundColor: '#FDF2F8', padding: 14, borderRadius: 10, marginTop: 12 },
   indicationLabel: { fontSize: 12, fontWeight: '600', color: '#EC4899', marginBottom: 4 },
-  indicationText: { fontSize: 14, color: '#1A3A4A' },
+  indicationText: { fontSize: 14, color: colors.textPrimary },
 
-  observationsText: { fontSize: 14, color: '#6B7C85', backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, lineHeight: 22 },
+  observationsText: { fontSize: 14, color: colors.textSecondary, backgroundColor: colors.card, padding: 14, borderRadius: 10, lineHeight: 22 },
 
   actionsSection: { flexDirection: 'row', gap: 12, marginTop: 16 },
   reanalyzeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 2, borderColor: '#8B5CF6', gap: 8 },
   reanalyzeButtonText: { fontSize: 15, fontWeight: '500', color: '#8B5CF6' },
   saveButton: { flex: 2 },
   saveButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8 },
-  saveButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  saveButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
 });

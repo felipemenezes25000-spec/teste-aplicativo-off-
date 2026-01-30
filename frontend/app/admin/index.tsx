@@ -27,6 +27,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 
 const { width } = Dimensions.get('window');
@@ -68,6 +69,7 @@ interface RecentActivity {
 export default function AdminDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const colors = useColors();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,7 +130,7 @@ export default function AdminDashboardScreen() {
         description: `${data.pending_requests} solicitações aguardando atendimento`,
         time: 'Agora',
         icon: 'time',
-        color: '#F59E0B',
+        color: colors.warning,
       });
     }
 
@@ -140,7 +142,7 @@ export default function AdminDashboardScreen() {
         description: `${data.completed_today} atendimentos concluídos hoje`,
         time: 'Hoje',
         icon: 'checkmark-circle',
-        color: '#10B981',
+        color: colors.success,
       });
     }
 
@@ -152,7 +154,7 @@ export default function AdminDashboardScreen() {
         description: `R$ ${data.total_revenue?.toFixed(2) || '0.00'} em receita total`,
         time: 'Acumulado',
         icon: 'card',
-        color: '#00B4CD',
+        color: colors.primary,
       });
     }
 
@@ -163,7 +165,7 @@ export default function AdminDashboardScreen() {
       description: 'Todos os serviços funcionando normalmente',
       time: 'Status',
       icon: 'shield-checkmark',
-      color: '#10B981',
+      color: colors.success,
     });
 
     setActivities(activities);
@@ -186,7 +188,7 @@ export default function AdminDashboardScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4CD" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Carregando painel...</Text>
       </View>
     );
@@ -194,7 +196,7 @@ export default function AdminDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
       {/* Header Premium */}
       <LinearGradient
@@ -223,7 +225,7 @@ export default function AdminDashboardScreen() {
               style={[styles.headerButton, styles.logoutBtn]}
               onPress={logout}
             >
-              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Ionicons name="log-out-outline" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
         </View>
@@ -231,17 +233,17 @@ export default function AdminDashboardScreen() {
         {/* Mini Stats Bar */}
         <View style={styles.miniStatsBar}>
           <View style={styles.miniStat}>
-            <Ionicons name="pulse" size={16} color="#10B981" />
+            <Ionicons name="pulse" size={16} color={colors.success} />
             <Text style={styles.miniStatText}>Sistema OK</Text>
           </View>
           <View style={styles.miniStatDivider} />
           <View style={styles.miniStat}>
-            <Ionicons name="people" size={16} color="#00B4CD" />
+            <Ionicons name="people" size={16} color={colors.primary} />
             <Text style={styles.miniStatText}>{stats?.total_users || 0} usuários</Text>
           </View>
           <View style={styles.miniStatDivider} />
           <View style={styles.miniStat}>
-            <Ionicons name="time" size={16} color="#F59E0B" />
+            <Ionicons name="time" size={16} color={colors.warning} />
             <Text style={styles.miniStatText}>{stats?.pending_requests || 0} pendentes</Text>
           </View>
         </View>
@@ -255,14 +257,14 @@ export default function AdminDashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00B4CD"
+            tintColor={colors.primary}
           />
         }
       >
         {/* Revenue Card */}
         <View style={styles.revenueCard}>
           <LinearGradient
-            colors={['#00B4CD', '#4AC5E0']}
+            colors={[colors.primary, '#4AC5E0']}
             style={styles.revenueGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -318,7 +320,7 @@ export default function AdminDashboardScreen() {
             label="Satisfação"
             value={`${stats?.satisfaction_rate || 98}%`}
             subtitle="dos pacientes"
-            color="#F59E0B"
+            color={colors.warning}
             bgColor="#FEF3C7"
           />
           <MetricCard
@@ -326,7 +328,7 @@ export default function AdminDashboardScreen() {
             label="Concluídos"
             value={`${stats?.completed_today || 0}`}
             subtitle="hoje"
-            color="#10B981"
+            color={colors.success}
             bgColor="#D1FAE5"
           />
           <MetricCard
@@ -334,7 +336,7 @@ export default function AdminDashboardScreen() {
             label="Esta Semana"
             value={`${stats?.completed_week || 0}`}
             subtitle="atendimentos"
-            color="#00B4CD"
+            color={colors.primary}
             bgColor="#E6F7FA"
           />
         </View>
@@ -346,14 +348,14 @@ export default function AdminDashboardScreen() {
             icon="person"
             role="Pacientes"
             count={stats?.total_patients || 0}
-            color="#00B4CD"
+            color={colors.primary}
           />
           <View style={styles.teamDivider} />
           <TeamMember
             icon="medkit"
             role="Médicos"
             count={stats?.total_doctors || 0}
-            color="#10B981"
+            color={colors.success}
           />
           <View style={styles.teamDivider} />
           <TeamMember
@@ -367,7 +369,7 @@ export default function AdminDashboardScreen() {
             icon="shield"
             role="Admins"
             count={stats?.total_admins || 1}
-            color="#F59E0B"
+            color={colors.warning}
           />
         </View>
 
@@ -378,7 +380,7 @@ export default function AdminDashboardScreen() {
             icon="people"
             title="Usuários"
             subtitle="Gerenciar"
-            color="#00B4CD"
+            color={colors.primary}
             onPress={() => router.push('/admin/users')}
           />
           <ActionCard
@@ -392,14 +394,14 @@ export default function AdminDashboardScreen() {
             icon="stats-chart"
             title="Relatórios"
             subtitle="Analisar"
-            color="#F59E0B"
+            color={colors.warning}
             onPress={() => router.push('/admin/reports')}
           />
           <ActionCard
             icon="card"
             title="Financeiro"
             subtitle="Verificar"
-            color="#10B981"
+            color={colors.success}
             onPress={() => Alert.alert('Financeiro', 'Módulo em desenvolvimento')}
           />
         </View>
@@ -459,7 +461,7 @@ export default function AdminDashboardScreen() {
         {/* System Status */}
         <View style={styles.systemStatusCard}>
           <View style={styles.systemStatusHeader}>
-            <Ionicons name="server" size={20} color="#10B981" />
+            <Ionicons name="server" size={20} color={colors.success} />
             <Text style={styles.systemStatusTitle}>Status do Sistema</Text>
           </View>
           <View style={styles.systemStatusGrid}>
@@ -521,7 +523,7 @@ function IntegrationItem({ name, description, icon, active }: any) {
   return (
     <View style={styles.integrationItem}>
       <View style={styles.integrationLeft}>
-        <Ionicons name={icon} size={22} color={active ? '#00B4CD' : '#9BA7AF'} />
+        <Ionicons name={icon} size={22} color={active ? colors.primary : '#9BA7AF'} />
         <View style={styles.integrationInfo}>
           <Text style={styles.integrationName}>{name}</Text>
           <Text style={styles.integrationDesc}>{description}</Text>
@@ -554,7 +556,7 @@ function SystemStatus({ label, status }: { label: string; status: 'online' | 'of
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFB' },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7C85' },
+  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 },
@@ -575,7 +577,7 @@ const styles = StyleSheet.create({
   contentContainer: { padding: 20 },
 
   // Revenue Card
-  revenueCard: { marginBottom: 24, borderRadius: 20, overflow: 'hidden', shadowColor: '#00B4CD', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
+  revenueCard: { marginBottom: 24, borderRadius: 20, overflow: 'hidden', shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 },
   revenueGradient: { padding: 20 },
   revenueHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   revenueLabel: { fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: '500' },
@@ -589,47 +591,47 @@ const styles = StyleSheet.create({
   revenueStatDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 8 },
 
   // Section Title
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
   // Metrics Grid
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  metricCard: { width: (width - 50) / 2, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  metricCard: { width: (width - 50) / 2, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   metricIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  metricValue: { fontSize: 22, fontWeight: '700', color: '#1A3A4A' },
-  metricLabel: { fontSize: 13, fontWeight: '500', color: '#1A3A4A', marginTop: 2 },
+  metricValue: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
+  metricLabel: { fontSize: 13, fontWeight: '500', color: colors.textPrimary, marginTop: 2 },
   metricSubtitle: { fontSize: 11, color: '#9BA7AF' },
 
   // Team Card
-  teamCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  teamCard: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   teamMember: { flex: 1, alignItems: 'center' },
   teamIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  teamCount: { fontSize: 20, fontWeight: '700', color: '#1A3A4A' },
-  teamRole: { fontSize: 11, color: '#6B7C85', marginTop: 2 },
+  teamCount: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  teamRole: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   teamDivider: { width: 1, backgroundColor: '#F1F5F9', marginHorizontal: 8 },
 
   // Actions Grid
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  actionCard: { width: (width - 50) / 2, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  actionCard: { width: (width - 50) / 2, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   actionIcon: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  actionTitle: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
+  actionTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   actionSubtitle: { fontSize: 12, color: '#9BA7AF', marginTop: 2 },
 
   // Activities Card
-  activitiesCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  activitiesCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   activityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   activityIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   activityContent: { flex: 1 },
-  activityTitle: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
-  activityDesc: { fontSize: 12, color: '#6B7C85', marginTop: 2 },
+  activityTitle: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
+  activityDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   activityTime: { fontSize: 11, color: '#9BA7AF' },
   activityDivider: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 4 },
 
   // Integrations Card
-  integrationsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  integrationsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   integrationItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
   integrationLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   integrationInfo: {},
-  integrationName: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
+  integrationName: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
   integrationDesc: { fontSize: 11, color: '#9BA7AF', marginTop: 1 },
   integrationDivider: { height: 1, backgroundColor: '#F1F5F9' },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 20 },
@@ -637,8 +639,8 @@ const styles = StyleSheet.create({
   statusPillInactive: { backgroundColor: '#F1F5F9' },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#9BA7AF' },
   statusDotActive: { backgroundColor: '#10B981' },
-  statusLabel: { fontSize: 11, fontWeight: '500', color: '#6B7C85' },
-  statusLabelActive: { color: '#10B981' },
+  statusLabel: { fontSize: 11, fontWeight: '500', color: colors.textSecondary },
+  statusLabelActive: { color: colors.success },
 
   // System Status Card
   systemStatusCard: { backgroundColor: '#0F172A', borderRadius: 16, padding: 16 },

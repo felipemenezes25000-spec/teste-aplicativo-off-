@@ -22,18 +22,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  submitted: { color: '#F59E0B', bg: '#FEF3C7', label: 'Aguardando triagem' },
+  submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Aguardando triagem' },
   in_nursing_review: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Em triagem' },
-  approved_by_nursing_pending_payment: { color: '#10B981', bg: '#D1FAE5', label: 'Aprovado - Aguard. pgto' },
-  in_medical_review: { color: '#3B82F6', bg: '#DBEAFE', label: 'Com o médico' },
-  rejected: { color: '#EF4444', bg: '#FEE2E2', label: 'Recusado' },
+  approved_by_nursing_pending_payment: { color: colors.success, bg: '#D1FAE5', label: 'Aprovado - Aguard. pgto' },
+  in_medical_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Com o médico' },
+  rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusado' },
 };
 
 export default function NurseRequestDetailScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -265,13 +268,13 @@ export default function NurseRequestDetailScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.outlineButton} onPress={() => setShowForwardModal(true)}>
-              <Ionicons name="arrow-forward-circle" size={18} color="#3B82F6" />
-              <Text style={[styles.outlineButtonText, { color: '#3B82F6' }]}>🔄 Encaminhar ao Médico</Text>
+              <Ionicons name="arrow-forward-circle" size={18} color={COLORS.primary} />
+              <Text style={[styles.outlineButtonText, { color: COLORS.primary }]}>🔄 Encaminhar ao Médico</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.outlineButton, { borderColor: '#EF4444' }]} onPress={() => setShowRejectModal(true)}>
+            <TouchableOpacity style={[styles.outlineButton, { borderColor: colors.error }]} onPress={() => setShowRejectModal(true)}>
               <Ionicons name="close-circle" size={18} color="#EF4444" />
-              <Text style={[styles.outlineButtonText, { color: '#EF4444' }]}>❌ Recusar Solicitação</Text>
+              <Text style={[styles.outlineButtonText, { color: colors.error }]}>❌ Recusar Solicitação</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -358,13 +361,13 @@ export default function NurseRequestDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
-  errorText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  errorText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
 
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
+  headerTitle: { fontSize: 17, fontWeight: '600', color: colors.card },
 
   content: { flex: 1 },
   contentContainer: { padding: 24 },
@@ -373,48 +376,48 @@ const styles = StyleSheet.create({
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 14, fontWeight: '600' },
 
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  cardTitle: { fontSize: 12, fontWeight: '600', color: '#9BA7AF', textTransform: 'uppercase', marginBottom: 12 },
+  card: { backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  cardTitle: { fontSize: 12, fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 12 },
 
   patientRow: { flexDirection: 'row', alignItems: 'center' },
   patientAvatar: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   patientInfo: { flex: 1, marginLeft: 14 },
-  patientName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
-  requestDate: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  patientName: { fontSize: 17, fontWeight: '600', color: colors.textPrimary },
+  requestDate: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 
   examTypeChip: { backgroundColor: '#EDE9FE', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, alignSelf: 'flex-start' },
   examTypeText: { fontSize: 14, fontWeight: '500', color: '#7C3AED' },
 
-  descriptionText: { fontSize: 15, fontStyle: 'italic', color: '#1A3A4A', lineHeight: 22 },
-  notesText: { fontSize: 15, color: '#1A3A4A', lineHeight: 22 },
+  descriptionText: { fontSize: 15, fontStyle: 'italic', color: colors.textPrimary, lineHeight: 22 },
+  notesText: { fontSize: 15, color: colors.textPrimary, lineHeight: 22 },
 
   imagesScroll: { marginVertical: 8 },
-  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: '#F1F5F7' },
-  imageHint: { fontSize: 11, color: '#9BA7AF', textAlign: 'center' },
+  thumbnailImage: { width: 100, height: 130, borderRadius: 10, marginRight: 10, backgroundColor: colors.backgroundDark },
+  imageHint: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
 
   actionsSection: { marginTop: 8, gap: 10 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: '#10B981' },
-  outlineButtonText: { fontSize: 15, fontWeight: '500', color: '#10B981' },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
+  outlineButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8, borderWidth: 1.5, borderColor: colors.success },
+  outlineButtonText: { fontSize: 15, fontWeight: '500', color: colors.success },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
   modalImage: { width: '90%', height: '70%' },
   modalClose: { position: 'absolute', top: 50, right: 20 },
 
   bottomModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  bottomModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  bottomModalTitle: { fontSize: 20, fontWeight: '700', color: '#1A3A4A', marginBottom: 20, textAlign: 'center' },
+  bottomModalContent: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  bottomModalTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary, marginBottom: 20, textAlign: 'center' },
 
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#6B7C85', marginBottom: 6 },
-  input: { backgroundColor: '#F8FAFB', borderRadius: 12, padding: 14, fontSize: 15, color: '#1A3A4A', marginBottom: 16, borderWidth: 1, borderColor: '#E4E9EC' },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 6 },
+  input: { backgroundColor: colors.background, borderRadius: 12, padding: 14, fontSize: 15, color: colors.textPrimary, marginBottom: 16, borderWidth: 1, borderColor: colors.border },
 
   modalActions: { flexDirection: 'row', gap: 12 },
   modalButton: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  modalButtonOutline: { borderWidth: 1.5, borderColor: '#E4E9EC' },
-  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
-  modalButtonSuccess: { backgroundColor: '#10B981' },
-  modalButtonDanger: { backgroundColor: '#EF4444' },
-  modalButtonPrimary: { backgroundColor: '#3B82F6' },
-  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  modalButtonOutline: { borderWidth: 1.5, borderColor: colors.border },
+  modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
+  modalButtonSuccess: { backgroundColor: colors.success },
+  modalButtonDanger: { backgroundColor: colors.error },
+  modalButtonPrimary: { backgroundColor: COLORS.primary },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
 });

@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { COLORS } from '@/utils/constants';
 
 interface Pharmacy {
   id: string;
@@ -44,6 +45,7 @@ const MOCK_PHARMACIES: Pharmacy[] = [
 
 export default function PharmaciesScreen() {
   const router = useRouter();
+  const colors = useColors();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -97,7 +99,7 @@ export default function PharmaciesScreen() {
         key={i}
         name={i < Math.floor(rating) ? 'star' : i < rating ? 'star-half' : 'star-outline'}
         size={14}
-        color="#F59E0B"
+        color={colors.warning}
       />
     ));
   };
@@ -105,7 +107,7 @@ export default function PharmaciesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00B4CD" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Buscando farmácias...</Text>
       </View>
     );
@@ -132,7 +134,7 @@ export default function PharmaciesScreen() {
 
       {error && (
         <View style={styles.errorBanner}>
-          <Ionicons name="warning" size={18} color="#F59E0B" />
+          <Ionicons name="warning" size={18} color={colors.warning} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
@@ -147,7 +149,7 @@ export default function PharmaciesScreen() {
           <View key={pharmacy.id} style={styles.pharmacyCard}>
             <View style={styles.pharmacyHeader}>
               <View style={styles.pharmacyIcon}>
-                <Ionicons name="medical" size={24} color="#10B981" />
+                <Ionicons name="medical" size={24} color={colors.success} />
               </View>
               <View style={styles.pharmacyInfo}>
                 <Text style={styles.pharmacyName}>{pharmacy.name}</Text>
@@ -172,13 +174,13 @@ export default function PharmaciesScreen() {
             
             <View style={styles.pharmacyActions}>
               <TouchableOpacity style={styles.actionButton} onPress={() => openMaps(pharmacy)}>
-                <Ionicons name="map" size={18} color="#00B4CD" />
+                <Ionicons name="map" size={18} color={colors.primary} />
                 <Text style={styles.actionText}>Rota</Text>
               </TouchableOpacity>
               {pharmacy.phone && (
                 <TouchableOpacity style={styles.actionButton} onPress={() => callPharmacy(pharmacy.phone!)}>
-                  <Ionicons name="call" size={18} color="#10B981" />
-                  <Text style={[styles.actionText, { color: '#10B981' }]}>Ligar</Text>
+                  <Ionicons name="call" size={18} color={colors.success} />
+                  <Text style={[styles.actionText, { color: colors.success }]}>Ligar</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -186,7 +188,7 @@ export default function PharmaciesScreen() {
         ))}
 
         <View style={styles.tipCard}>
-          <Ionicons name="information-circle" size={22} color="#3B82F6" />
+          <Ionicons name="information-circle" size={22} color={COLORS.primary} />
           <Text style={styles.tipText}>
             Leve sua receita digital no celular. A maioria das farmácias aceita receitas digitais válidas.
           </Text>
@@ -199,7 +201,7 @@ export default function PharmaciesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFB' },
   loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
+  loadingText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
 
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
@@ -218,23 +220,23 @@ const styles = StyleSheet.create({
   pharmacyHeader: { flexDirection: 'row', alignItems: 'flex-start' },
   pharmacyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' },
   pharmacyInfo: { flex: 1, marginLeft: 14 },
-  pharmacyName: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
-  pharmacyAddress: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  pharmacyName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  pharmacyAddress: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   pharmacyMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { fontSize: 13, color: '#6B7C85', marginLeft: 4 },
+  ratingText: { fontSize: 13, color: colors.textSecondary, marginLeft: 4 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   openBadge: { backgroundColor: '#D1FAE5' },
   closedBadge: { backgroundColor: '#FEE2E2' },
   statusText: { fontSize: 11, fontWeight: '600' },
   openText: { color: '#059669' },
-  closedText: { color: '#DC2626' },
+  closedText: { color: colors.error },
   distanceContainer: { alignItems: 'center', gap: 2 },
-  distanceText: { fontSize: 13, fontWeight: '600', color: '#1A3A4A' },
+  distanceText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
 
   pharmacyActions: { flexDirection: 'row', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
   actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: '#F8FAFB', borderRadius: 10, gap: 6 },
-  actionText: { fontSize: 14, fontWeight: '500', color: '#00B4CD' },
+  actionText: { fontSize: 14, fontWeight: '500', color: colors.primary },
 
   tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, marginTop: 8, gap: 12 },
   tipText: { flex: 1, fontSize: 13, color: '#1E40AF', lineHeight: 20 },

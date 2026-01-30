@@ -17,10 +17,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
 
 export default function VideoCallScreen() {
+  const colors = useColors();
   const { id, room_url } = useLocalSearchParams<{ id: string; room_url?: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -113,12 +115,12 @@ export default function VideoCallScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
-        <LinearGradient colors={['#1A3A4A', '#2D5A6B']} style={styles.loadingGradient}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
+        <LinearGradient colors={colors.headerGradient} style={styles.loadingGradient}>
           <View style={styles.loadingIcon}>
             <Ionicons name="videocam" size={40} color="#FFFFFF" />
           </View>
-          <ActivityIndicator size="large" color="#00B4CD" style={{ marginTop: 24 }} />
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
           <Text style={styles.loadingText}>Preparando videochamada...</Text>
         </LinearGradient>
       </View>
@@ -128,14 +130,14 @@ export default function VideoCallScreen() {
   if (error || !roomUrl) {
     return (
       <View style={styles.errorContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFB" />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <View style={styles.errorIcon}>
           <Ionicons name="videocam-off" size={48} color="#EF4444" />
         </View>
         <Text style={styles.errorTitle}>Erro na Videochamada</Text>
         <Text style={styles.errorText}>{error || 'Sala de vídeo não encontrada'}</Text>
         <TouchableOpacity onPress={loadOrCreateRoom} activeOpacity={0.8}>
-          <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.retryButton}>
+          <LinearGradient colors={[colors.primary, '#4AC5E0']} style={styles.retryButton}>
             <Ionicons name="refresh" size={18} color="#FFFFFF" />
             <Text style={styles.retryButtonText}>Tentar novamente</Text>
           </LinearGradient>
@@ -180,7 +182,7 @@ export default function VideoCallScreen() {
         allowsFullscreenVideo={true}
         renderLoading={() => (
           <View style={styles.webviewLoading}>
-            <ActivityIndicator size="large" color="#00B4CD" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.webviewLoadingText}>Conectando...</Text>
           </View>
         )}
@@ -205,22 +207,22 @@ const styles = StyleSheet.create({
   loadingIcon: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: 'rgba(255,255,255,0.8)' },
 
-  errorContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  errorContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorIcon: { width: 96, height: 96, borderRadius: 28, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  errorTitle: { fontSize: 22, fontWeight: '700', color: '#1A3A4A', marginBottom: 8 },
-  errorText: { fontSize: 15, color: '#6B7C85', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+  errorTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  errorText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
   retryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
-  retryButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  retryButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
   backButtonAlt: { marginTop: 16, paddingVertical: 12, paddingHorizontal: 24 },
-  backButtonAltText: { fontSize: 15, fontWeight: '500', color: '#00B4CD' },
+  backButtonAltText: { fontSize: 15, fontWeight: '500', color: colors.primary },
 
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: 'rgba(0,0,0,0.6)' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EF4444', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 6 },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFFFFF' },
-  liveText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
-  duration: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  endCallButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
+  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.error, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 6 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.card },
+  liveText: { fontSize: 11, fontWeight: '700', color: colors.card },
+  duration: { fontSize: 18, fontWeight: '600', color: colors.card },
+  endCallButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
 
   webview: { flex: 1, backgroundColor: '#000000' },
   webviewLoading: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' },

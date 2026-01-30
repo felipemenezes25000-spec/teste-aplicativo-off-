@@ -49,6 +49,7 @@ const timeSlots = [
 
 export default function ConsultationScreen() {
   const router = useRouter();
+  const colors = useColors();
   const [step, setStep] = useState(1); // 1: Duração, 2: Agendamento, 3: Resumo (especialidade já é Clínico Geral)
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('general'); // Sempre Clínico Geral por enquanto
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
@@ -437,15 +438,15 @@ export default function ConsultationScreen() {
       {/* Garantias */}
       <View style={styles.guaranteesRow}>
         <View style={styles.guaranteeItem}>
-          <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+          <Ionicons name="shield-checkmark" size={20} color={colors.success} />
           <Text style={styles.guaranteeText}>100% Seguro</Text>
         </View>
         <View style={styles.guaranteeItem}>
-          <Ionicons name="lock-closed" size={20} color="#10B981" />
+          <Ionicons name="lock-closed" size={20} color={colors.success} />
           <Text style={styles.guaranteeText}>Criptografado</Text>
         </View>
         <View style={styles.guaranteeItem}>
-          <Ionicons name="refresh" size={20} color="#10B981" />
+          <Ionicons name="refresh" size={20} color={colors.success} />
           <Text style={styles.guaranteeText}>Reembolso</Text>
         </View>
       </View>
@@ -556,9 +557,9 @@ const styles = StyleSheet.create({
   contentContainer: { padding: 24 },
 
   // Step titles
-  stepTitle: { fontSize: 22, fontWeight: '700', color: '#1A3A4A', marginBottom: 8 },
-  stepSubtitle: { fontSize: 15, color: '#6B7C85', marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  stepTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  stepSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: 24 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
   // Specialties
   specialtiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -566,10 +567,10 @@ const styles = StyleSheet.create({
   specialtyCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
   specialtyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   specialtyIconSelected: { backgroundColor: '#EC4899' },
-  specialtyTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', marginBottom: 2 },
+  specialtyTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   specialtyTitleSelected: { color: '#EC4899' },
-  specialtyDescription: { fontSize: 12, color: '#6B7C85', marginBottom: 8 },
-  specialtyPrice: { fontSize: 12, color: '#6B7C85', fontStyle: 'italic' },
+  specialtyDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+  specialtyPrice: { fontSize: 12, color: colors.textSecondary, fontStyle: 'italic' },
   specialtyPriceSelected: { color: '#EC4899', fontWeight: '500' },
 
   // Durations
@@ -578,11 +579,11 @@ const styles = StyleSheet.create({
   durationCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
   durationIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   durationIconSelected: { backgroundColor: '#EC4899' },
-  durationLabel: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', marginBottom: 2 },
+  durationLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
   durationLabelSelected: { color: '#EC4899' },
-  durationDescription: { fontSize: 12, color: '#6B7C85', marginBottom: 8, textAlign: 'center' },
+  durationDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8, textAlign: 'center' },
   durationDescriptionSelected: { color: '#EC4899' },
-  durationPrice: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  durationPrice: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
   durationPriceSelected: { color: '#EC4899' },
 
   // Schedule types
@@ -591,19 +592,19 @@ const styles = StyleSheet.create({
   scheduleTypeCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
   scheduleBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   scheduleBadgeText: { fontSize: 10, fontWeight: '600', color: '#FFFFFF' },
-  scheduleTypeLabel: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', marginTop: 10 },
+  scheduleTypeLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginTop: 10 },
   scheduleTypeLabelSelected: { color: '#EC4899' },
-  scheduleTypeDescription: { fontSize: 12, color: '#6B7C85', textAlign: 'center', marginTop: 4 },
+  scheduleTypeDescription: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
 
   // Dates
   datesScroll: { marginBottom: 8 },
   dateCard: { width: 72, height: 90, backgroundColor: '#FFFFFF', borderRadius: 14, marginRight: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   dateCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
-  dateDay: { fontSize: 13, color: '#6B7C85', marginBottom: 4 },
+  dateDay: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
   dateDaySelected: { color: '#EC4899' },
-  dateNumber: { fontSize: 24, fontWeight: '700', color: '#1A3A4A' },
+  dateNumber: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
   dateNumberSelected: { color: '#EC4899' },
-  dateToday: { fontSize: 10, color: '#10B981', fontWeight: '600', marginTop: 4 },
+  dateToday: { fontSize: 10, color: colors.success, fontWeight: '600', marginTop: 4 },
   dateTodaySelected: { color: '#EC4899' },
 
   // Time slots
@@ -611,40 +612,40 @@ const styles = StyleSheet.create({
   timeSlot: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E4E9EC' },
   timeSlotSelected: { backgroundColor: '#EC4899', borderColor: '#EC4899' },
   timeSlotDisabled: { backgroundColor: '#F1F5F9', borderColor: '#E4E9EC' },
-  timeSlotText: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
+  timeSlotText: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
   timeSlotTextSelected: { color: '#FFFFFF' },
   timeSlotTextDisabled: { color: '#9BA7AF' },
 
   // Info card
   infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FDF2F8', borderRadius: 16, padding: 16, marginTop: 20, gap: 14 },
   infoContent: { flex: 1 },
-  infoTitle: { fontSize: 15, fontWeight: '600', color: '#1A3A4A', marginBottom: 4 },
-  infoText: { fontSize: 13, color: '#6B7C85', lineHeight: 18 },
+  infoTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  infoText: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
 
   // Summary
   summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   summaryItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   summaryItemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   summaryItemContent: { flex: 1 },
-  summaryItemLabel: { fontSize: 12, color: '#6B7C85', marginBottom: 2 },
-  summaryItemValue: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  summaryItemLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
+  summaryItemValue: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
   summaryDivider: { height: 1, backgroundColor: '#E4E9EC', marginVertical: 16 },
   summaryTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryTotalLabel: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
+  summaryTotalLabel: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
   summaryTotalPrice: { fontSize: 28, fontWeight: '700', color: '#EC4899' },
 
   // How it works
   howItWorksCard: { backgroundColor: '#F8FAFB', borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: '#E4E9EC' },
-  howItWorksTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 16 },
+  howItWorksTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
   howItWorksStep: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   howItWorksNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#EC4899', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   howItWorksNumberText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  howItWorksText: { flex: 1, fontSize: 14, color: '#6B7C85' },
+  howItWorksText: { flex: 1, fontSize: 14, color: colors.textSecondary },
 
   // Guarantees
   guaranteesRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, paddingVertical: 16, backgroundColor: '#ECFDF5', borderRadius: 12 },
   guaranteeItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  guaranteeText: { fontSize: 12, fontWeight: '500', color: '#10B981' },
+  guaranteeText: { fontSize: 12, fontWeight: '500', color: colors.success },
 
   // Bottom actions
   bottomActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E4E9EC', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 },

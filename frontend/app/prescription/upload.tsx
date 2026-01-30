@@ -21,14 +21,17 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
+import { useColors } from '@/contexts/ThemeContext';
 
 const typeLabels: Record<string, { title: string; color: string[] }> = {
   simple: { title: 'Receita Simples', color: ['#4AC5E0', '#00B4CD'] },
   controlled: { title: 'Receita Controlada', color: ['#F59E0B', '#D97706'] },
-  blue: { title: 'Receita Azul', color: ['#3B82F6', '#1D4ED8'] },
+  blue: { title: 'Receita Azul', color: [colors.primary, '#4AC5E0'] },
 };
 
 export default function PrescriptionUploadScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { type = 'simple' } = useLocalSearchParams<{ type: string }>();
   const [images, setImages] = useState<string[]>([]);
@@ -234,39 +237,39 @@ export default function PrescriptionUploadScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
 
   header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   headerContent: {},
   stepIndicator: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
-  stepText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  stepText: { fontSize: 12, fontWeight: '600', color: colors.card },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 4 },
   headerSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
 
   content: { flex: 1 },
   contentContainer: { padding: 24 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 6 },
-  sectionSubtitle: { fontSize: 13, color: '#6B7C85', marginBottom: 16, lineHeight: 18 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 6 },
+  sectionSubtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 16, lineHeight: 18 },
 
   uploadSection: { marginBottom: 24 },
   uploadButtons: { flexDirection: 'row', gap: 16 },
   uploadButton: { flex: 1, alignItems: 'center', gap: 10 },
   uploadButtonGradient: { width: '100%', height: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  uploadButtonOutline: { width: '100%', height: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#E4E9EC', borderStyle: 'dashed', backgroundColor: '#FFFFFF' },
-  uploadButtonText: { fontSize: 14, fontWeight: '500', color: '#1A3A4A' },
+  uploadButtonOutline: { width: '100%', height: 100, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', backgroundColor: colors.card },
+  uploadButtonText: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
 
   previewSection: { marginBottom: 24 },
   imagesScroll: { marginTop: 8 },
   imageWrapper: { position: 'relative', marginRight: 12 },
   previewImage: { width: 120, height: 120, borderRadius: 16 },
-  removeButton: { position: 'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: 14, backgroundColor: '#EF4444', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  addMoreButton: { width: 120, height: 120, borderRadius: 16, borderWidth: 2, borderColor: '#E4E9EC', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  removeButton: { position: 'absolute', top: -8, right: -8, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.card },
+  addMoreButton: { width: 120, height: 120, borderRadius: 16, borderWidth: 2, borderColor: colors.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
 
   notesSection: { marginBottom: 24 },
-  textAreaContainer: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', padding: 16 },
-  textArea: { fontSize: 15, color: '#1A3A4A', minHeight: 100 },
+  textAreaContainer: { backgroundColor: colors.card, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, padding: 16 },
+  textArea: { fontSize: 15, color: colors.textPrimary, minHeight: 100 },
 
   tipsCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, gap: 12 },
   tipsContent: { flex: 1 },
@@ -274,8 +277,8 @@ const styles = StyleSheet.create({
   tipsText: { fontSize: 13, color: '#92400E', lineHeight: 20 },
 
   submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
-  submitButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  submitButtonText: { fontSize: 18, fontWeight: '600', color: colors.card },
 
   skipButton: { alignItems: 'center', paddingVertical: 16 },
-  skipButtonText: { fontSize: 14, color: '#6B7C85' },
+  skipButtonText: { fontSize: 14, color: colors.textSecondary },
 });

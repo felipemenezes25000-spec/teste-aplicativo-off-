@@ -20,11 +20,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 
 const UF_LIST = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
 export default function DoctorRegisterScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { registerDoctor } = useAuth();
   
@@ -110,10 +112,10 @@ export default function DoctorRegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       <LinearGradient
-        colors={['#1A3A4A', '#2D5A6B']}
+        colors={colors.headerGradient}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 0.4 }}
@@ -179,7 +181,7 @@ export default function DoctorRegisterScreen() {
                 onPress={() => setShowStateModal(true)}
               >
                 <Text style={styles.stateSelectorText}>{crmState}</Text>
-                <Ionicons name="chevron-down" size={16} color="#1A3A4A" />
+                <Ionicons name="chevron-down" size={16} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -202,7 +204,7 @@ export default function DoctorRegisterScreen() {
             {/* Register Button */}
             <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
               <LinearGradient
-                colors={loading ? ['#9BA7AF', '#6B7C85'] : ['#1A3A4A', '#2D5A6B']}
+                colors={loading ? ['#9BA7AF', '#6B7C85'] : colors.headerGradient}
                 style={styles.registerButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -261,7 +263,7 @@ export default function DoctorRegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
   gradient: { ...StyleSheet.absoluteFillObject },
   keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
@@ -269,45 +271,45 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   backButton: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6 },
-  headerBadgeText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
+  headerBadgeText: { fontSize: 12, fontWeight: '600', color: colors.card },
 
   titleSection: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 8 },
   subtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 22 },
 
-  formCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
-  formSectionTitle: { fontSize: 14, fontWeight: '600', color: '#6B7C85', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+  formCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
+  formSectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFB', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', marginBottom: 16, paddingHorizontal: 16, height: 56 },
-  inputFocused: { borderColor: '#1A3A4A', backgroundColor: '#FFFFFF' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 16, paddingHorizontal: 16, height: 56 },
+  inputFocused: { borderColor: colors.textPrimary, backgroundColor: colors.card },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: '#1A3A4A' },
+  input: { flex: 1, fontSize: 16, color: colors.textPrimary },
   eyeButton: { padding: 4 },
 
   crmRow: { flexDirection: 'row', gap: 12 },
   crmInput: { flex: 1 },
-  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB', borderRadius: 16, borderWidth: 1.5, borderColor: '#E4E9EC', paddingHorizontal: 16, height: 56, gap: 4, marginBottom: 16 },
-  stateSelectorText: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
+  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, height: 56, gap: 4, marginBottom: 16 },
+  stateSelectorText: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
 
   termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24, gap: 12 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#E4E9EC', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  checkboxChecked: { backgroundColor: '#1A3A4A', borderColor: '#1A3A4A' },
-  termsText: { flex: 1, fontSize: 14, color: '#6B7C85', lineHeight: 20 },
-  termsLink: { color: '#1A3A4A', fontWeight: '500' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  checkboxChecked: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
+  termsText: { flex: 1, fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+  termsLink: { color: colors.textPrimary, fontWeight: '500' },
 
   registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
-  registerButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  registerButtonText: { fontSize: 18, fontWeight: '600', color: colors.card },
 
   loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  loginText: { fontSize: 14, color: '#6B7C85' },
-  loginLink: { fontSize: 14, color: '#1A3A4A', fontWeight: '600' },
+  loginText: { fontSize: 14, color: colors.textSecondary },
+  loginLink: { fontSize: 14, color: colors.textPrimary, fontWeight: '600' },
 
   modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, width: '80%', maxHeight: '60%' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', marginBottom: 16, textAlign: 'center' },
+  modalContent: { backgroundColor: colors.card, borderRadius: 20, padding: 20, width: '80%', maxHeight: '60%' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 16, textAlign: 'center' },
   modalScroll: { maxHeight: 300 },
   modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
-  modalItemSelected: { backgroundColor: '#E6F7FA' },
-  modalItemText: { fontSize: 16, color: '#1A3A4A', textAlign: 'center' },
-  modalItemTextSelected: { fontWeight: '600', color: '#00B4CD' },
+  modalItemSelected: { backgroundColor: colors.primaryLight },
+  modalItemText: { fontSize: 16, color: colors.textPrimary, textAlign: 'center' },
+  modalItemTextSelected: { fontWeight: '600', color: colors.primary },
 });

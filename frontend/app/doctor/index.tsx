@@ -26,7 +26,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 interface DashboardData {
   // Fila de receitas
@@ -47,6 +49,7 @@ interface DashboardData {
 export default function DoctorDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const colors = useColors();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -155,8 +158,8 @@ export default function DoctorDashboardScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
-        <ActivityIndicator size="large" color="#00B4CD" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -164,11 +167,11 @@ export default function DoctorDashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A3A4A" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.textPrimary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#1A3A4A', '#2D5A6B']}
+        colors={colors.headerGradient}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -227,24 +230,24 @@ export default function DoctorDashboardScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#00B4CD']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
         }
       >
         {/* Quick Stats */}
         <View style={styles.quickStats}>
           <View style={[styles.quickStatCard, { backgroundColor: '#FEF3C7' }]}>
-            <Ionicons name="time" size={20} color="#F59E0B" />
-            <Text style={[styles.quickStatValue, { color: '#F59E0B' }]}>{totalPrescriptions}</Text>
+            <Ionicons name="time" size={20} color={colors.warning} />
+            <Text style={[styles.quickStatValue, { color: colors.warning }]}>{totalPrescriptions}</Text>
             <Text style={styles.quickStatLabel}>Receitas</Text>
           </View>
-          <View style={[styles.quickStatCard, { backgroundColor: '#DBEAFE' }]}>
-            <Ionicons name="videocam" size={20} color="#3B82F6" />
-            <Text style={[styles.quickStatValue, { color: '#3B82F6' }]}>{totalConsultations}</Text>
+          <View style={[styles.quickStatCard, { backgroundColor: '#DFF7FB' }]}>
+            <Ionicons name="videocam" size={20} color={COLORS.primary} />
+            <Text style={[styles.quickStatValue, { color: COLORS.primary }]}>{totalConsultations}</Text>
             <Text style={styles.quickStatLabel}>Teleconsultas</Text>
           </View>
           <View style={[styles.quickStatCard, { backgroundColor: '#D1FAE5' }]}>
-            <Ionicons name="create" size={20} color="#10B981" />
-            <Text style={[styles.quickStatValue, { color: '#10B981' }]}>{totalSignature}</Text>
+            <Ionicons name="create" size={20} color={colors.success} />
+            <Text style={[styles.quickStatValue, { color: colors.success }]}>{totalSignature}</Text>
             <Text style={styles.quickStatLabel}>Assinar</Text>
           </View>
           <View style={[styles.quickStatCard, { backgroundColor: '#EDE9FE' }]}>
@@ -311,7 +314,7 @@ export default function DoctorDashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderLeft}>
-                <Ionicons name="document-text" size={20} color="#F59E0B" />
+                <Ionicons name="document-text" size={20} color={colors.warning} />
                 <Text style={styles.sectionTitle}>Receitas Pendentes ({totalPrescriptions})</Text>
               </View>
             </View>
@@ -325,7 +328,7 @@ export default function DoctorDashboardScreen() {
               >
                 <View style={styles.requestCardLeft}>
                   <View style={[styles.requestIcon, { backgroundColor: '#FEF3C7' }]}>
-                    <Ionicons name="document-text" size={18} color="#F59E0B" />
+                    <Ionicons name="document-text" size={18} color={colors.warning} />
                   </View>
                   <View>
                     <Text style={styles.requestPatient}>{item.patient_name}</Text>
@@ -350,7 +353,7 @@ export default function DoctorDashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderLeft}>
-                <Ionicons name="create" size={20} color="#10B981" />
+                <Ionicons name="create" size={20} color={colors.success} />
                 <Text style={styles.sectionTitle}>Aguardando Assinatura ({totalSignature})</Text>
               </View>
             </View>
@@ -364,18 +367,18 @@ export default function DoctorDashboardScreen() {
               >
                 <View style={styles.requestCardLeft}>
                   <View style={[styles.requestIcon, { backgroundColor: '#D1FAE5' }]}>
-                    <Ionicons name="create" size={18} color="#10B981" />
+                    <Ionicons name="create" size={18} color={colors.success} />
                   </View>
                   <View>
                     <Text style={styles.requestPatient}>{item.patient_name}</Text>
-                    <Text style={[styles.requestType, { color: '#10B981' }]}>💰 Pago - Pronto para assinar</Text>
+                    <Text style={[styles.requestType, { color: colors.success }]}>💰 Pago - Pronto para assinar</Text>
                   </View>
                 </View>
                 <View style={styles.requestCardRight}>
                   <View style={styles.signBadge}>
                     <Text style={styles.signBadgeText}>Assinar</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#10B981" />
+                  <Ionicons name="chevron-forward" size={18} color={colors.success} />
                 </View>
               </TouchableOpacity>
             ))}
@@ -387,7 +390,7 @@ export default function DoctorDashboardScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionHeaderLeft}>
-                <Ionicons name="eye" size={20} color="#3B82F6" />
+                <Ionicons name="eye" size={20} color={COLORS.primary} />
                 <Text style={styles.sectionTitle}>Em Análise ({totalAnalyzing})</Text>
               </View>
             </View>
@@ -400,8 +403,8 @@ export default function DoctorDashboardScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.requestCardLeft}>
-                  <View style={[styles.requestIcon, { backgroundColor: '#DBEAFE' }]}>
-                    <Ionicons name="eye" size={18} color="#3B82F6" />
+                  <View style={[styles.requestIcon, { backgroundColor: '#DFF7FB' }]}>
+                    <Ionicons name="eye" size={18} color={COLORS.primary} />
                   </View>
                   <View>
                     <Text style={styles.requestPatient}>{item.patient_name}</Text>
@@ -418,7 +421,7 @@ export default function DoctorDashboardScreen() {
         {totalConsultations === 0 && totalPrescriptions === 0 && totalSignature === 0 && totalAnalyzing === 0 && (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="checkmark-circle" size={56} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={56} color={colors.success} />
             </View>
             <Text style={styles.emptyTitle}>Tudo em dia! 🎉</Text>
             <Text style={styles.emptySubtitle}>
@@ -443,14 +446,14 @@ export default function DoctorDashboardScreen() {
               style={styles.quickActionButton}
               onPress={() => router.push('/notifications')}
             >
-              <Ionicons name="notifications" size={24} color="#F59E0B" />
+              <Ionicons name="notifications" size={24} color={colors.warning} />
               <Text style={styles.quickActionText}>Notificações</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.quickActionButton}
               onPress={() => router.push('/profile')}
             >
-              <Ionicons name="person" size={24} color="#3B82F6" />
+              <Ionicons name="person" size={24} color={COLORS.primary} />
               <Text style={styles.quickActionText}>Meu Perfil</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -473,7 +476,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFB' },
   
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7C85' },
+  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 },
@@ -501,17 +504,17 @@ const styles = StyleSheet.create({
   quickStats: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   quickStatCard: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12 },
   quickStatValue: { fontSize: 22, fontWeight: '700', marginTop: 4 },
-  quickStatLabel: { fontSize: 10, color: '#6B7C85', marginTop: 2 },
+  quickStatLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
 
   // Section
   section: { marginBottom: 24 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionHeaderUrgent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12 },
   sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
-  sectionTitleUrgent: { fontSize: 16, fontWeight: '600', color: '#DC2626' },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  sectionTitleUrgent: { fontSize: 16, fontWeight: '600', color: colors.error },
   urgentBadge: { backgroundColor: '#EF4444', width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  seeAllLink: { fontSize: 13, color: '#00B4CD', fontWeight: '500' },
+  seeAllLink: { fontSize: 13, color: colors.primary, fontWeight: '500' },
 
   // Consultation Card
   consultationCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: '#D1FAE5', shadowColor: '#10B981', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
@@ -519,34 +522,34 @@ const styles = StyleSheet.create({
   patientInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   patientAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center' },
   patientInitial: { fontSize: 18, fontWeight: '700', color: '#EC4899' },
-  patientName: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
-  consultType: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
-  consultPrice: { fontSize: 16, fontWeight: '700', color: '#10B981' },
+  patientName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  consultType: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  consultPrice: { fontSize: 16, fontWeight: '700', color: colors.success },
   startCallButton: { marginTop: 4 },
   startCallGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 12, gap: 8 },
   startCallText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 
   // Request Card
-  requestCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  requestCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 10, shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   requestCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   requestIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  requestPatient: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
-  requestType: { fontSize: 12, color: '#6B7C85', marginTop: 2 },
+  requestPatient: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  requestType: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   requestCardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  requestPrice: { fontSize: 14, fontWeight: '600', color: '#00B4CD' },
+  requestPrice: { fontSize: 14, fontWeight: '600', color: colors.primary },
   signBadge: { backgroundColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  signBadgeText: { fontSize: 12, fontWeight: '600', color: '#10B981' },
+  signBadgeText: { fontSize: 12, fontWeight: '600', color: colors.success },
 
   // Empty
   emptyContainer: { alignItems: 'center', paddingVertical: 48 },
   emptyIconContainer: { marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#1A3A4A', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#6B7C85', textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { fontSize: 20, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
 
   // Quick Actions
   quickActions: { marginTop: 8 },
-  quickActionsTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  quickActionsTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
   quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  quickActionButton: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
-  quickActionText: { fontSize: 13, fontWeight: '500', color: '#1A3A4A', marginTop: 8 },
+  quickActionButton: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  quickActionText: { fontSize: 13, fontWeight: '500', color: colors.textPrimary, marginTop: 8 },
 });

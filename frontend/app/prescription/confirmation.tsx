@@ -15,8 +15,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '@/utils/constants';
+import { useColors } from '@/contexts/ThemeContext';
 
 export default function PrescriptionConfirmationScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
 
@@ -28,7 +31,7 @@ export default function PrescriptionConfirmationScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFB" />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         {/* Success Icon */}
@@ -59,7 +62,7 @@ export default function PrescriptionConfirmationScreen() {
           {steps.map((step, index) => (
             <View key={step.number}>
               <View style={styles.step}>
-                <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.stepNumber}>
+                <LinearGradient colors={[colors.primary, '#4AC5E0']} style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>{step.number}</Text>
                 </LinearGradient>
                 <View style={styles.stepContent}>
@@ -74,7 +77,7 @@ export default function PrescriptionConfirmationScreen() {
 
         {/* Info Box */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={22} color="#3B82F6" />
+          <Ionicons name="information-circle" size={22} color={COLORS.primary} />
           <Text style={styles.infoText}>
             O prazo médio de análise é de até 24 horas. Você será notificado sobre qualquer atualização.
           </Text>
@@ -84,7 +87,7 @@ export default function PrescriptionConfirmationScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity onPress={() => router.replace('/(tabs)/history')} activeOpacity={0.8}>
-          <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.primaryButton}>
+          <LinearGradient colors={[colors.primary, '#4AC5E0']} style={styles.primaryButton}>
             <Ionicons name="list" size={20} color="#FFFFFF" />
             <Text style={styles.primaryButtonText}>Ver minhas solicitações</Text>
           </LinearGradient>
@@ -99,7 +102,7 @@ export default function PrescriptionConfirmationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
 
   content: { flex: 1 },
   contentContainer: { padding: 24, alignItems: 'center' },
@@ -107,31 +110,31 @@ const styles = StyleSheet.create({
   successSection: { alignItems: 'center', marginVertical: 32 },
   successIconOuter: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#D1FAE520', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   successIconInner: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700', color: '#1A3A4A', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#6B7C85', textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
+  title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
 
   statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, width: '100%', marginBottom: 32, borderWidth: 1, borderColor: '#FDE68A' },
-  statusIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  statusIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   statusInfo: { flex: 1, marginLeft: 14 },
   statusTitle: { fontSize: 17, fontWeight: '700', color: '#92400E' },
   statusDescription: { fontSize: 13, color: '#B45309', marginTop: 2 },
 
-  stepsTitle: { fontSize: 18, fontWeight: '700', color: '#1A3A4A', alignSelf: 'flex-start', marginBottom: 16 },
+  stepsTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, alignSelf: 'flex-start', marginBottom: 16 },
   stepsContainer: { width: '100%', marginBottom: 24 },
   step: { flexDirection: 'row', alignItems: 'flex-start' },
   stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  stepNumberText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  stepNumberText: { fontSize: 14, fontWeight: '700', color: colors.card },
   stepContent: { flex: 1, marginLeft: 14, paddingBottom: 16 },
-  stepTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A' },
-  stepDescription: { fontSize: 14, color: '#6B7C85', marginTop: 2, lineHeight: 20 },
-  stepLine: { width: 2, height: 20, backgroundColor: '#E4E9EC', marginLeft: 15 },
+  stepTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  stepDescription: { fontSize: 14, color: colors.textSecondary, marginTop: 2, lineHeight: 20 },
+  stepLine: { width: 2, height: 20, backgroundColor: colors.border, marginLeft: 15 },
 
   infoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, width: '100%', gap: 12, borderWidth: 1, borderColor: '#BFDBFE' },
   infoText: { flex: 1, fontSize: 14, color: '#1E40AF', lineHeight: 20 },
 
-  footer: { padding: 24, paddingBottom: 40, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
+  footer: { padding: 24, paddingBottom: 40, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  primaryButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  secondaryButton: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: '#E4E9EC' },
-  secondaryButtonText: { fontSize: 15, fontWeight: '500', color: '#6B7C85' },
+  primaryButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
+  secondaryButton: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border },
+  secondaryButtonText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
 });

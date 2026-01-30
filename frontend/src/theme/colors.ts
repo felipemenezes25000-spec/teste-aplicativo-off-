@@ -72,9 +72,9 @@ export const colors = {
     dark: '#DC2626',
   },
   info: {
-    light: '#DBEAFE',
-    main: '#3B82F6',
-    dark: '#2563EB',
+    light: '#DFF7FB',
+    main: '#00B4CD', // Aligned with primary
+    dark: '#0A9BB0',
   },
 
   // ============== GRADIENTS ==============

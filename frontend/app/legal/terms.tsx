@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
+import { useColors } from '@/contexts/ThemeContext';
   View, 
   Text, 
   ScrollView, 
@@ -107,6 +108,7 @@ RenoveJá+ Tecnologia em Saúde LTDA
 `;
 
 export default function TermsScreen() {
+  const colors = useColors();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
@@ -133,7 +135,7 @@ export default function TermsScreen() {
     section: {
       fontSize: 18,
       fontWeight: 'bold',
-      color: '#00B4CD',
+      color: colors.primary,
       marginTop: 20,
       marginBottom: 8,
     },

@@ -23,13 +23,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '864017403483-gvdaea3fm56go70jf0mqtk1ppajjppf1.apps.googleusercontent.com';
 
 export default function LoginScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { login, loginWithGoogle } = useAuth();
   
@@ -150,7 +152,7 @@ export default function LoginScreen() {
           {/* Logo & Title */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={['#00B4CD', '#4AC5E0']}
+              colors={[colors.primary, '#4AC5E0']}
               style={styles.logoContainer}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -168,7 +170,7 @@ export default function LoginScreen() {
               <Text style={styles.badgeText}>100% Seguro</Text>
             </View>
             <View style={styles.badge}>
-              <Ionicons name="time" size={14} color="#00B4CD" />
+              <Ionicons name="time" size={14} color={colors.primary} />
               <Text style={styles.badgeText}>Rápido</Text>
             </View>
             <View style={styles.badge}>
@@ -191,7 +193,7 @@ export default function LoginScreen() {
               <Ionicons 
                 name="mail-outline" 
                 size={20} 
-                color={focusedInput === 'email' ? '#00B4CD' : '#9BA7AF'} 
+                color={focusedInput === 'email' ? colors.primary : '#9BA7AF'} 
                 style={styles.inputIcon}
               />
               <TextInput
@@ -212,7 +214,7 @@ export default function LoginScreen() {
               <Ionicons 
                 name="lock-closed-outline" 
                 size={20} 
-                color={focusedInput === 'password' ? '#00B4CD' : '#9BA7AF'} 
+                color={focusedInput === 'password' ? colors.primary : '#9BA7AF'} 
                 style={styles.inputIcon}
               />
               <TextInput
@@ -344,7 +346,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    shadowColor: '#00B4CD',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -353,11 +355,11 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
   },
   brandTagline: {
     fontSize: 15,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     marginTop: 4,
   },
 
@@ -375,16 +377,16 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
 
   // Form Card
   formCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -404,24 +406,24 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 14,
-    color: '#EF4444',
+    color: colors.error,
   },
 
   // Input
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: '#E4E9EC',
+    borderColor: colors.border,
     marginBottom: 16,
     paddingHorizontal: 16,
     height: 56,
   },
   inputFocused: {
-    borderColor: '#00B4CD',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.primary,
+    backgroundColor: colors.card,
   },
   inputIcon: {
     marginRight: 12,
@@ -429,7 +431,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1A3A4A',
+    color: colors.textPrimary,
   },
   eyeButton: {
     padding: 4,
@@ -442,7 +444,7 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
 
@@ -454,7 +456,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 16,
     gap: 8,
-    shadowColor: '#00B4CD',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -463,7 +465,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.card,
   },
 
   // Divider
@@ -475,12 +477,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E4E9EC',
+    backgroundColor: colors.border,
   },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 13,
-    color: '#9BA7AF',
+    color: colors.textMuted,
   },
 
   // Social Buttons
@@ -493,15 +495,15 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 16,
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E4E9EC',
+    borderColor: colors.border,
   },
   socialButtonDark: {
-    backgroundColor: '#1A3A4A',
-    borderColor: '#1A3A4A',
+    backgroundColor: colors.textPrimary,
+    borderColor: colors.textPrimary,
   },
 
   // Register Section
@@ -513,11 +515,11 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: 15,
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
   registerLink: {
     fontSize: 15,
-    color: '#00B4CD',
+    color: colors.primary,
     fontWeight: '600',
   },
 
@@ -529,10 +531,10 @@ const styles = StyleSheet.create({
   },
   proText: {
     fontSize: 14,
-    color: '#9BA7AF',
+    color: colors.textMuted,
   },
   proLink: {
-    color: '#00B4CD',
+    color: colors.primary,
     fontWeight: '500',
   },
 });

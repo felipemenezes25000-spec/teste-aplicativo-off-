@@ -43,7 +43,7 @@ const prescriptionTypes = [
     subtitle: 'Notificação B (psicotrópicos)',
     description: 'Para medicamentos de controle especial',
     icon: 'medical',
-    gradient: ['#3B82F6', '#1D4ED8'],
+    gradient: [colors.primary, '#4AC5E0'],
     price: 'R$ 99,90',
     examples: ['Benzodiazepínicos', 'Barbitúricos', 'Anfetaminas'],
   },
@@ -51,6 +51,7 @@ const prescriptionTypes = [
 
 export default function PrescriptionTypeScreen() {
   const router = useRouter();
+  const colors = useColors();
 
   const handleSelectType = (type: string) => {
     router.push({
@@ -61,11 +62,11 @@ export default function PrescriptionTypeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -92,7 +93,7 @@ export default function PrescriptionTypeScreen() {
       >
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color="#00B4CD" />
+          <Ionicons name="information-circle" size={20} color={colors.primary} />
           <Text style={styles.infoText}>
             Todas as receitas são avaliadas por médicos credenciados e assinadas digitalmente.
           </Text>
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -288,21 +289,21 @@ const styles = StyleSheet.create({
   typeTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   typeSubtitle: {
     fontSize: 12,
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
   typePrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#00B4CD',
+    color: colors.primary,
   },
   typeDescription: {
     fontSize: 13,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginTop: 8,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
   stepsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 20,
   },
   step: {
@@ -352,7 +353,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#00B4CD',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -369,12 +370,12 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   stepDescription: {
     fontSize: 13,
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
   stepLine: {
     width: 2,

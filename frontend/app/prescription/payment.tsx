@@ -28,12 +28,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 // Polling interval in milliseconds
 const POLL_INTERVAL = 5000; // 5 seconds
 const MAX_POLL_TIME = 30 * 60 * 1000; // 30 minutes
 
 export default function PaymentScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { requestId, amount = '49.90' } = useLocalSearchParams<{ requestId: string; amount: string }>();
   
@@ -233,7 +235,7 @@ export default function PaymentScreen() {
     // Fallback placeholder for simulated payments
     return (
       <View style={styles.qrPlaceholder}>
-        <Ionicons name="qr-code" size={100} color="#00B4CD" />
+        <Ionicons name="qr-code" size={100} color={colors.primary} />
         <Text style={styles.qrPlaceholderText}>QR Code PIX</Text>
         <Text style={styles.simulatedBadge}>Modo Simulado</Text>
       </View>
@@ -242,11 +244,11 @@ export default function PaymentScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -292,7 +294,7 @@ export default function PaymentScreen() {
           activeOpacity={0.7}
         >
           <View style={[styles.methodIcon, selectedMethod === 'pix' && styles.methodIconSelected]}>
-            <Ionicons name="qr-code" size={24} color={selectedMethod === 'pix' ? '#FFFFFF' : '#00B4CD'} />
+            <Ionicons name="qr-code" size={24} color={selectedMethod === 'pix' ? '#FFFFFF' : colors.primary} />
           </View>
           <View style={styles.methodContent}>
             <Text style={styles.methodTitle}>PIX</Text>
@@ -309,7 +311,7 @@ export default function PaymentScreen() {
           activeOpacity={0.7}
         >
           <View style={[styles.methodIcon, selectedMethod === 'credit' && styles.methodIconSelected]}>
-            <Ionicons name="card" size={24} color={selectedMethod === 'credit' ? '#FFFFFF' : '#00B4CD'} />
+            <Ionicons name="card" size={24} color={selectedMethod === 'credit' ? '#FFFFFF' : colors.primary} />
           </View>
           <View style={styles.methodContent}>
             <Text style={styles.methodTitle}>Cartão de Crédito</Text>
@@ -330,10 +332,10 @@ export default function PaymentScreen() {
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#00B4CD" />
+                  <ActivityIndicator color={colors.primary} />
                 ) : (
                   <>
-                    <Ionicons name="qr-code" size={24} color="#00B4CD" />
+                    <Ionicons name="qr-code" size={24} color={colors.primary} />
                     <Text style={styles.generatePixText}>Gerar código PIX</Text>
                   </>
                 )}
@@ -346,7 +348,7 @@ export default function PaymentScreen() {
                 {/* Status Indicator */}
                 {paymentStatus === 'checking' && (
                   <View style={styles.statusIndicator}>
-                    <ActivityIndicator size="small" color="#00B4CD" />
+                    <ActivityIndicator size="small" color={colors.primary} />
                     <Text style={styles.statusText}>Verificando pagamento...</Text>
                   </View>
                 )}
@@ -375,7 +377,7 @@ export default function PaymentScreen() {
                     <Ionicons 
                       name={copied ? 'checkmark' : 'copy'} 
                       size={20} 
-                      color={copied ? '#10B981' : '#00B4CD'} 
+                      color={copied ? '#10B981' : colors.primary} 
                     />
                   </TouchableOpacity>
                 </View>
@@ -387,7 +389,7 @@ export default function PaymentScreen() {
                 {/* Ticket URL (if available) */}
                 {paymentData.ticket_url && (
                   <TouchableOpacity style={styles.ticketButton} onPress={openTicketUrl}>
-                    <Ionicons name="open-outline" size={18} color="#00B4CD" />
+                    <Ionicons name="open-outline" size={18} color={colors.primary} />
                     <Text style={styles.ticketButtonText}>Abrir página de pagamento</Text>
                   </TouchableOpacity>
                 )}
@@ -474,33 +476,33 @@ export default function PaymentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+  container: { flex: 1, backgroundColor: colors.background },
 
   header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   headerContent: {},
   stepIndicator: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
-  stepText: { fontSize: 12, fontWeight: '600', color: '#FFFFFF' },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  stepText: { fontSize: 12, fontWeight: '600', color: colors.card },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 4 },
   headerSubtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
 
   content: { flex: 1 },
   contentContainer: { padding: 24 },
 
   amountCard: { 
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: colors.card, 
     borderRadius: 20, 
     padding: 24, 
     alignItems: 'center', 
     marginBottom: 24, 
-    shadowColor: '#1A3A4A', 
+    shadowColor: colors.textPrimary, 
     shadowOffset: { width: 0, height: 4 }, 
     shadowOpacity: 0.06, 
     shadowRadius: 12, 
     elevation: 3 
   },
-  amountLabel: { fontSize: 14, color: '#6B7C85', marginBottom: 4 },
-  amountValue: { fontSize: 36, fontWeight: '700', color: '#00B4CD' },
+  amountLabel: { fontSize: 14, color: colors.textSecondary, marginBottom: 4 },
+  amountValue: { fontSize: 36, fontWeight: '700', color: colors.primary },
   realPaymentBadge: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -511,35 +513,35 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 4,
   },
-  realPaymentText: { fontSize: 12, color: '#10B981', fontWeight: '600' },
+  realPaymentText: { fontSize: 12, color: colors.success, fontWeight: '600' },
 
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
-  methodCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  methodCardSelected: { borderColor: '#00B4CD', backgroundColor: '#E6F7FA' },
-  methodIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#E6F7FA', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  methodIconSelected: { backgroundColor: '#00B4CD' },
+  methodCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2, borderColor: 'transparent', shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  methodCardSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  methodIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  methodIconSelected: { backgroundColor: colors.primary },
   methodContent: { flex: 1 },
-  methodTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 2 },
-  methodSubtitle: { fontSize: 13, color: '#6B7C85' },
-  radioOuter: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#CDD5DA', alignItems: 'center', justifyContent: 'center' },
-  radioOuterSelected: { borderColor: '#00B4CD' },
-  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#00B4CD' },
+  methodTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  methodSubtitle: { fontSize: 13, color: colors.textSecondary },
+  radioOuter: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  radioOuterSelected: { borderColor: colors.primary },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.primary },
 
   pixSection: { marginTop: 20 },
-  generatePixButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E6F7FA', borderRadius: 16, padding: 20, gap: 10, borderWidth: 2, borderColor: '#00B4CD', borderStyle: 'dashed' },
-  generatePixText: { fontSize: 16, fontWeight: '600', color: '#00B4CD' },
+  generatePixButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight, borderRadius: 16, padding: 20, gap: 10, borderWidth: 2, borderColor: colors.primary, borderStyle: 'dashed' },
+  generatePixText: { fontSize: 16, fontWeight: '600', color: colors.primary },
 
   pixCodeContainer: { alignItems: 'center' },
   
   qrCodeContainer: {
     width: 220,
     height: 220,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 20,
     padding: 10,
     marginBottom: 20,
-    shadowColor: '#00B4CD',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -554,17 +556,17 @@ const styles = StyleSheet.create({
   qrPlaceholder: { 
     width: 200, 
     height: 200, 
-    backgroundColor: '#E6F7FA', 
+    backgroundColor: colors.primaryLight, 
     borderRadius: 20, 
     alignItems: 'center', 
     justifyContent: 'center', 
     marginBottom: 20 
   },
-  qrPlaceholderText: { marginTop: 8, fontSize: 12, color: '#6B7C85' },
+  qrPlaceholderText: { marginTop: 8, fontSize: 12, color: colors.textSecondary },
   simulatedBadge: {
     marginTop: 8,
     fontSize: 10,
-    color: '#F59E0B',
+    color: colors.warning,
     backgroundColor: '#FEF3C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -576,13 +578,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 16,
-    backgroundColor: '#E6F7FA',
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
-  statusText: { fontSize: 13, color: '#00B4CD' },
-  statusTextPending: { fontSize: 13, color: '#F59E0B' },
+  statusText: { fontSize: 13, color: colors.primary },
+  statusTextPending: { fontSize: 13, color: colors.warning },
   statusIndicatorSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -593,13 +595,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
   },
-  statusTextSuccess: { fontSize: 14, color: '#10B981', fontWeight: '600' },
+  statusTextSuccess: { fontSize: 14, color: colors.success, fontWeight: '600' },
 
-  pixCodeLabel: { fontSize: 14, fontWeight: '500', color: '#1A3A4A', marginBottom: 8, alignSelf: 'flex-start' },
-  pixCodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F7', borderRadius: 12, padding: 14, width: '100%' },
-  pixCodeText: { flex: 1, fontSize: 12, color: '#1A3A4A', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-  copyButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  copiedText: { marginTop: 8, fontSize: 13, color: '#10B981', fontWeight: '500' },
+  pixCodeLabel: { fontSize: 14, fontWeight: '500', color: colors.textPrimary, marginBottom: 8, alignSelf: 'flex-start' },
+  pixCodeBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.backgroundDark, borderRadius: 12, padding: 14, width: '100%' },
+  pixCodeText: { flex: 1, fontSize: 12, color: colors.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  copyButton: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  copiedText: { marginTop: 8, fontSize: 13, color: colors.success, fontWeight: '500' },
 
   ticketButton: {
     flexDirection: 'row',
@@ -608,12 +610,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 8,
   },
-  ticketButtonText: { fontSize: 14, color: '#00B4CD', fontWeight: '500' },
+  ticketButtonText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
 
-  pixInstructions: { marginTop: 20, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, width: '100%' },
-  instructionsTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A', marginBottom: 10 },
-  instructionsText: { fontSize: 13, color: '#6B7C85', marginBottom: 4 },
-  instructionsHighlight: { fontSize: 13, color: '#10B981', marginTop: 8, fontWeight: '500' },
+  pixInstructions: { marginTop: 20, backgroundColor: colors.card, borderRadius: 16, padding: 16, width: '100%' },
+  instructionsTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 10 },
+  instructionsText: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
+  instructionsHighlight: { fontSize: 13, color: colors.success, marginTop: 8, fontWeight: '500' },
 
   creditSection: { marginTop: 20 },
   comingSoonCard: { alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 24 },
@@ -621,10 +623,10 @@ const styles = StyleSheet.create({
   comingSoonText: { fontSize: 14, color: '#92400E', textAlign: 'center', lineHeight: 20 },
 
   confirmButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
-  confirmButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  confirmButtonText: { fontSize: 18, fontWeight: '600', color: colors.card },
 
   securityBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, gap: 6 },
-  securityText: { fontSize: 13, color: '#10B981' },
+  securityText: { fontSize: 13, color: colors.success },
 
   expiredWarning: {
     flexDirection: 'row',
@@ -635,5 +637,5 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
   },
-  expiredText: { fontSize: 14, color: '#EF4444', flex: 1 },
+  expiredText: { fontSize: 14, color: colors.error, flex: 1 },
 });

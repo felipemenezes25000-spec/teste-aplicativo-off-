@@ -18,11 +18,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 export default function NurseDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const colors = useColors();
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -52,9 +55,9 @@ export default function NurseDashboardScreen() {
   };
 
   const stats = [
-    { label: 'Aguardando', value: queue.length, icon: 'time', color: '#F59E0B', bg: '#FEF3C7' },
-    { label: 'Hoje', value: 12, icon: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
-    { label: 'Semana', value: 48, icon: 'trending-up', color: '#3B82F6', bg: '#DBEAFE' },
+    { label: 'Aguardando', value: queue.length, icon: 'time', color: colors.warning, bg: '#FEF3C7' },
+    { label: 'Hoje', value: 12, icon: 'checkmark-circle', color: colors.success, bg: '#D1FAE5' },
+    { label: 'Semana', value: 48, icon: 'trending-up', color: COLORS.primary, bg: '#DFF7FB' },
   ];
 
   return (
@@ -118,7 +121,7 @@ export default function NurseDashboardScreen() {
 
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={20} color="#10B981" />
+          <Ionicons name="information-circle" size={20} color={colors.success} />
           <Text style={styles.infoText}>
             Você recebe apenas solicitações de <Text style={styles.infoBold}>exames</Text> para triagem. Receitas vão direto para médicos.
           </Text>
@@ -131,7 +134,7 @@ export default function NurseDashboardScreen() {
           {queue.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconContainer}>
-                <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+                <Ionicons name="checkmark-circle" size={48} color={colors.success} />
               </View>
               <Text style={styles.emptyTitle}>Tudo em dia! 🎉</Text>
               <Text style={styles.emptySubtitle}>Nenhum exame aguardando triagem</Text>
@@ -203,23 +206,23 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 24, fontWeight: '700', color: '#1A3A4A' },
-  statLabel: { fontSize: 11, color: '#6B7C85', marginTop: 2 },
+  statValue: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 
   infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 12, padding: 14, marginBottom: 24, gap: 10 },
   infoText: { flex: 1, fontSize: 13, color: '#065F46', lineHeight: 18 },
   infoBold: { fontWeight: '600' },
 
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A3A4A', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
   requestCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
   requestTypeContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   requestTypeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  requestPatient: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
-  requestType: { fontSize: 12, color: '#6B7C85', marginTop: 2 },
-  requestNotes: { fontSize: 13, color: '#6B7C85', lineHeight: 18, marginBottom: 12, paddingLeft: 52 },
+  requestPatient: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  requestType: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  requestNotes: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 12, paddingLeft: 52 },
   requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   requestTime: { fontSize: 12, color: '#9BA7AF' },
   acceptButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, gap: 6 },
@@ -227,6 +230,6 @@ const styles = StyleSheet.create({
 
   emptyContainer: { alignItems: 'center', paddingVertical: 48 },
   emptyIconContainer: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#1A3A4A', marginBottom: 4 },
-  emptySubtitle: { fontSize: 14, color: '#6B7C85' },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  emptySubtitle: { fontSize: 14, color: colors.textSecondary },
 });

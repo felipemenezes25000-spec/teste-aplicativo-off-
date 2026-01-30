@@ -16,8 +16,10 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext'
+import { useColors } from '@/contexts/ThemeContext';;
 import { api } from '@/services/api';
+import { COLORS } from '@/utils/constants';
 
 interface Notification {
   id: string;
@@ -30,13 +32,14 @@ interface Notification {
 }
 
 const typeConfig: Record<string, { icon: string; color: string; bg: string }> = {
-  success: { icon: 'checkmark-circle', color: '#10B981', bg: '#D1FAE5' },
-  warning: { icon: 'alert-circle', color: '#F59E0B', bg: '#FEF3C7' },
-  info: { icon: 'information-circle', color: '#3B82F6', bg: '#DBEAFE' },
-  error: { icon: 'close-circle', color: '#EF4444', bg: '#FEE2E2' },
+  success: { icon: 'checkmark-circle', color: colors.success, bg: '#D1FAE5' },
+  warning: { icon: 'alert-circle', color: colors.warning, bg: '#FEF3C7' },
+  info: { icon: 'information-circle', color: COLORS.primary, bg: '#DFF7FB' },
+  error: { icon: 'close-circle', color: colors.error, bg: '#FEE2E2' },
 };
 
 export default function NotificationsScreen() {
+  const colors = useColors();
   const router = useRouter();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -150,11 +153,11 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#00B4CD" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       
       {/* Header */}
       <LinearGradient
-        colors={['#00B4CD', '#4AC5E0']}
+        colors={[colors.primary, '#4AC5E0']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -188,8 +191,8 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00B4CD"
-            colors={['#00B4CD']}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       />
@@ -200,7 +203,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFB',
+    backgroundColor: colors.background,
   },
 
   // Header
@@ -217,7 +220,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.card,
     marginBottom: 4,
   },
   headerSubtitle: {
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   markAllText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: colors.card,
   },
 
   // List
@@ -246,11 +249,11 @@ const styles = StyleSheet.create({
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#1A3A4A',
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
   notificationUnread: {
     backgroundColor: '#F0FBFC',
     borderLeftWidth: 3,
-    borderLeftColor: '#00B4CD',
+    borderLeftColor: colors.primary,
   },
   unreadDot: {
     position: 'absolute',
@@ -268,7 +271,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#00B4CD',
+    backgroundColor: colors.primary,
   },
   iconContainer: {
     width: 48,
@@ -291,16 +294,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginRight: 8,
   },
   notificationTime: {
     fontSize: 12,
-    color: '#9BA7AF',
+    color: colors.textMuted,
   },
   notificationMessage: {
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 
@@ -313,7 +316,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: '#F1F5F7',
+    backgroundColor: colors.backgroundDark,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -321,11 +324,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A3A4A',
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7C85',
+    color: colors.textSecondary,
   },
 });

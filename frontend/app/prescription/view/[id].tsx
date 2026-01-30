@@ -22,8 +22,10 @@ import * as Clipboard from 'expo-clipboard';
 import { api } from '@/services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useColors } from '@/contexts/ThemeContext';
 
 export default function PrescriptionViewScreen() {
+  const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   
@@ -89,7 +91,7 @@ export default function PrescriptionViewScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#10B981" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.success} />
       
       {/* Header */}
       <LinearGradient colors={['#10B981', '#34D399']} style={styles.header}>
@@ -248,16 +250,16 @@ export default function PrescriptionViewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: '#6B7C85' },
-  errorTitle: { marginTop: 16, fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
-  backButtonAlt: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#10B981', borderRadius: 12 },
-  backButtonAltText: { fontSize: 16, color: '#FFFFFF', fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
+  errorTitle: { marginTop: 16, fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+  backButtonAlt: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: colors.success, borderRadius: 12 },
+  backButtonAltText: { fontSize: 16, color: colors.card, fontWeight: '600' },
 
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: colors.card },
   shareButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
 
   content: { flex: 1 },
@@ -267,56 +269,56 @@ const styles = StyleSheet.create({
   statusCardSigned: { backgroundColor: '#D1FAE5', borderWidth: 1, borderColor: '#A7F3D0' },
   statusCardPending: { backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' },
   statusInfo: { flex: 1 },
-  statusTitle: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
-  statusSubtitle: { fontSize: 13, color: '#6B7C85', marginTop: 2 },
+  statusTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  statusSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 
-  prescriptionCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
+  prescriptionCard: { backgroundColor: colors.card, borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   logoIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  brandName: { fontSize: 18, fontWeight: '700', color: '#00B4CD' },
-  brandSubtitle: { fontSize: 12, color: '#9BA7AF' },
+  brandName: { fontSize: 18, fontWeight: '700', color: colors.primary },
+  brandSubtitle: { fontSize: 12, color: colors.textMuted },
 
-  divider: { height: 1, backgroundColor: '#F1F5F7', marginVertical: 16 },
+  divider: { height: 1, backgroundColor: colors.backgroundDark, marginVertical: 16 },
 
   section: {},
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#9BA7AF', letterSpacing: 1, marginBottom: 10 },
-  patientName: { fontSize: 18, fontWeight: '600', color: '#1A3A4A' },
-  dateText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 1, marginBottom: 10 },
+  patientName: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+  dateText: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 
-  medicationItem: { backgroundColor: '#F8FAFB', padding: 14, borderRadius: 12, marginBottom: 10 },
+  medicationItem: { backgroundColor: colors.background, padding: 14, borderRadius: 12, marginBottom: 10 },
   medicationHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  medicationNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#00B4CD', alignItems: 'center', justifyContent: 'center' },
-  medicationNumberText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  medicationName: { fontSize: 15, fontWeight: '600', color: '#1A3A4A' },
-  medicationDosage: { fontSize: 13, color: '#6B7C85', marginTop: 6, marginLeft: 34 },
-  medicationInstructions: { fontSize: 13, color: '#9BA7AF', marginTop: 4, marginLeft: 34, fontStyle: 'italic' },
+  medicationNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  medicationNumberText: { fontSize: 12, fontWeight: '700', color: colors.card },
+  medicationName: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  medicationDosage: { fontSize: 13, color: colors.textSecondary, marginTop: 6, marginLeft: 34 },
+  medicationInstructions: { fontSize: 13, color: colors.textMuted, marginTop: 4, marginLeft: 34, fontStyle: 'italic' },
 
-  notesText: { fontSize: 14, color: '#6B7C85', lineHeight: 20 },
-  doctorName: { fontSize: 17, fontWeight: '600', color: '#1A3A4A' },
-  crmText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+  notesText: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+  doctorName: { fontSize: 17, fontWeight: '600', color: colors.textPrimary },
+  crmText: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 
   signatureSection: { backgroundColor: '#D1FAE510', padding: 16, borderRadius: 14 },
   signatureHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  signatureTitle: { fontSize: 15, fontWeight: '600', color: '#10B981' },
+  signatureTitle: { fontSize: 15, fontWeight: '600', color: colors.success },
   signatureDetails: { marginBottom: 16 },
   signatureRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  signatureLabel: { fontSize: 13, color: '#9BA7AF' },
-  signatureValue: { fontSize: 13, color: '#1A3A4A', fontWeight: '500' },
+  signatureLabel: { fontSize: 13, color: colors.textMuted },
+  signatureValue: { fontSize: 13, color: colors.textPrimary, fontWeight: '500' },
 
   qrCodeSection: { alignItems: 'center', paddingVertical: 16 },
-  qrCodePlaceholder: { width: 100, height: 100, backgroundColor: '#FFFFFF', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E4E9EC' },
-  qrCodeText: { fontSize: 12, color: '#9BA7AF', marginTop: 10 },
+  qrCodePlaceholder: { width: 100, height: 100, backgroundColor: colors.card, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  qrCodeText: { fontSize: 12, color: colors.textMuted, marginTop: 10 },
 
-  verificationCode: { backgroundColor: '#FFFFFF', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E4E9EC' },
-  verificationLabel: { fontSize: 11, color: '#9BA7AF', marginBottom: 4 },
+  verificationCode: { backgroundColor: colors.card, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.border },
+  verificationLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
   verificationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  verificationValue: { fontSize: 12, color: '#1A3A4A', fontFamily: 'monospace', flex: 1 },
+  verificationValue: { fontSize: 12, color: colors.textPrimary, fontFamily: 'monospace', flex: 1 },
 
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#E6F7FA', borderRadius: 14, padding: 16, marginBottom: 20, gap: 12, borderWidth: 1, borderColor: '#B8E9F2' },
+  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.primaryLight, borderRadius: 14, padding: 16, marginBottom: 20, gap: 12, borderWidth: 1, borderColor: '#B8E9F2' },
   infoContent: { flex: 1 },
-  infoTitle: { fontSize: 14, fontWeight: '600', color: '#1A3A4A' },
-  infoText: { fontSize: 13, color: '#6B7C85', marginTop: 4 },
+  infoTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  infoText: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
 
   shareFullButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  shareFullButtonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
+  shareFullButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
 });
