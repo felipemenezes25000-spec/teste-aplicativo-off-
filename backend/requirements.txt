@@ -6,6 +6,7 @@ httpx==0.28.1
 python-multipart==0.0.6
 bcrypt==4.1.2
 slowapi==0.1.9
+supabase==2.9.0
 
 # Optional integrations
 mercadopago==2.2.1
