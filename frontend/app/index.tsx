@@ -9,10 +9,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 
 export default function SplashScreen() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const colors = useColors();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const dotAnim1 = useRef(new Animated.Value(0.3)).current;
@@ -70,8 +72,8 @@ export default function SplashScreen() {
   }, [isLoading, isAuthenticated, user]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFB" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       
       {/* Background Decorations */}
       <View style={styles.decorTop}>
@@ -83,24 +85,24 @@ export default function SplashScreen() {
       
       {/* Logo */}
       <Animated.View style={[styles.logoContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
-        <LinearGradient colors={['#00B4CD', '#4AC5E0']} style={styles.logoGradient}>
+        <LinearGradient colors={[colors.primary, '#4AC5E0']} style={[styles.logoGradient, { shadowColor: colors.primary }]}>
           <Ionicons name="medical" size={48} color="#FFFFFF" />
         </LinearGradient>
-        <Text style={styles.brandName}>RenoveJá+</Text>
+        <Text style={[styles.brandName, { color: colors.textPrimary }]}>RenoveJá+</Text>
       </Animated.View>
 
-      <Animated.Text style={[styles.tagline, { opacity: fadeAnim }]}>
+      <Animated.Text style={[styles.tagline, { opacity: fadeAnim, color: colors.textSecondary }]}>
         Sua saúde, simplificada
       </Animated.Text>
 
       {/* Loading Dots */}
       <View style={styles.loader}>
-        <Animated.View style={[styles.dot, { opacity: dotAnim1 }]} />
-        <Animated.View style={[styles.dot, { opacity: dotAnim2 }]} />
-        <Animated.View style={[styles.dot, { opacity: dotAnim3 }]} />
+        <Animated.View style={[styles.dot, { opacity: dotAnim1, backgroundColor: colors.primary }]} />
+        <Animated.View style={[styles.dot, { opacity: dotAnim2, backgroundColor: colors.primary }]} />
+        <Animated.View style={[styles.dot, { opacity: dotAnim3, backgroundColor: colors.primary }]} />
       </View>
 
-      <Animated.Text style={[styles.footer, { opacity: fadeAnim }]}>
+      <Animated.Text style={[styles.footer, { opacity: fadeAnim, color: colors.textMuted }]}>
         Telemedicina • Receitas • Exames
       </Animated.Text>
     </View>
@@ -112,7 +114,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFB',
     padding: 24,
   },
   decorTop: {
@@ -146,7 +147,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    shadowColor: '#00B4CD',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -155,11 +155,9 @@ const styles = StyleSheet.create({
   brandName: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#1A3A4A',
   },
   tagline: {
     fontSize: 16,
-    color: '#6B7C85',
     fontWeight: '500',
     marginTop: 8,
   },
@@ -172,13 +170,11 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#00B4CD',
   },
   footer: {
     position: 'absolute',
     bottom: 48,
     fontSize: 13,
-    color: '#9BA7AF',
     fontWeight: '500',
   },
 });
