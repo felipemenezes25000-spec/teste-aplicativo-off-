@@ -1,83 +1,87 @@
-# 📱 Screenshots do App RenoveJá+
+# 📸 Screenshots - RenoveJá+ App
 
-Screenshots capturadas em formato mobile (iPhone 14 Pro - 393x852 @3x)
+## 🎨 Galeria Completa do Aplicativo
 
-## 📁 Estrutura de Pastas
+### 📱 25 Telas Documentadas
 
-### 01-auth/ - Autenticação
-| Arquivo | Descrição |
-|---------|-----------|
-| `01-splash.png` | Tela inicial / Splash screen |
-| `02-login.png` | Login com email/senha e social |
-| `03-register.png` | Cadastro de novo paciente |
-| `04-forgot-password.png` | Recuperação de senha |
-
-### 02-legal/ - Documentos Legais
-| Arquivo | Descrição |
-|---------|-----------|
-| `05-termos-uso.png` | Termos de Uso |
-| `06-politica-privacidade.png` | Política de Privacidade (LGPD) |
-| `07-consentimento.png` | Termo de Consentimento para Telemedicina |
-
-### 03-paciente/ - Área do Paciente
-| Arquivo | Descrição |
-|---------|-----------|
-| `08-home.png` | Dashboard principal com serviços |
-| `09-historico.png` | Histórico de solicitações |
-| `10-notificacoes.png` | Central de notificações |
-| `11-perfil.png` | Perfil e configurações do usuário |
-
-### 04-receitas/ - Fluxo de Receitas
-| Arquivo | Descrição |
-|---------|-----------|
-| `12-receita-inicio.png` | Seleção do tipo de receita |
-| `13-receita-upload.png` | Upload de documentos |
-| `14-receita-pagamento.png` | Pagamento via PIX |
-| `15-receita-confirmacao.png` | Confirmação do pedido |
-
-### 05-exames/ - Solicitação de Exames
-| Arquivo | Descrição |
-|---------|-----------|
-| `16-exame-inicio.png` | Início da solicitação de exames |
-
-### 06-teleconsulta/ - Teleconsultas
-| Arquivo | Descrição |
-|---------|-----------|
-| `17-teleconsulta-inicio.png` | Agendamento de teleconsulta |
-
-### 07-medico/ - Painel do Médico
-| Arquivo | Descrição |
-|---------|-----------|
-| `20-medico-painel.png` | Dashboard do médico |
-| `21-medico-consultas.png` | Lista de consultas |
-
-### 08-enfermeiro/ - Painel do Enfermeiro
-| Arquivo | Descrição |
-|---------|-----------|
-| `22-enfermeiro-painel.png` | Triagem de exames |
-
-### 09-admin/ - Painel Administrativo
-| Arquivo | Descrição |
-|---------|-----------|
-| `23-admin-painel.png` | Dashboard admin |
-| `24-admin-usuarios.png` | Gestão de usuários |
-| `25-admin-relatorios.png` | Relatórios |
-
-### 10-outros/ - Outras Telas
-| Arquivo | Descrição |
-|---------|-----------|
-| `18-configuracoes.png` | Configurações do app |
-| `19-farmacias.png` | Localizador de farmácias |
+Navegue pelas pastas para ver todas as screenshots organizadas:
 
 ---
 
-## 📊 Estatísticas
+## 📂 Estrutura
 
-- **Total de telas:** 25
-- **Resolução:** 1179 x 2556 pixels (3x)
-- **Formato:** PNG
-- **Data:** Janeiro/2026
+```
+screenshots/
+├── 01-auth/              (4 telas)  - Autenticação
+├── 02-legal/             (3 telas)  - Termos legais
+├── 03-paciente/          (4 telas)  - Dashboard paciente
+├── 04-receitas/          (4 telas)  - Fluxo de receitas
+├── 05-exames/            (1 tela)   - Pedidos de exame
+├── 06-teleconsulta/      (1 tela)   - Agendamento consulta
+├── 07-medico/            (2 telas)  - Dashboard médico
+├── 08-enfermeiro/        (1 tela)   - Dashboard enfermeiro
+├── 09-admin/             (3 telas)  - Painel administrativo
+└── 10-outros/            (2 telas)  - Config + Farmácias
+```
 
 ---
 
-*Gerado automaticamente em 29/01/2026*
+## 🎯 Destaques
+
+### 🏠 Home/Dashboard
+![Home](03-paciente/08-home.png)
+
+### 💊 Solicitar Receita
+![Receita](04-receitas/12-receita-inicio.png)
+
+### 👨‍⚕️ Painel Médico
+![Médico](07-medico/20-medico-painel.png)
+
+### 🔐 Admin Dashboard
+![Admin](09-admin/23-admin-painel.png)
+
+---
+
+## 📊 Por Categoria
+
+| Categoria | Telas | Arquivos |
+|-----------|-------|----------|
+| Autenticação | 4 | 01-04 |
+| Legal | 3 | 05-07 |
+| Paciente | 4 | 08-11 |
+| Receitas | 4 | 12-15 |
+| Exames | 1 | 16 |
+| Teleconsulta | 1 | 17 |
+| Configurações | 1 | 18 |
+| Farmácias | 1 | 19 |
+| Médico | 2 | 20-21 |
+| Enfermeiro | 1 | 22 |
+| Admin | 3 | 23-25 |
+
+---
+
+## 🎨 Design
+
+**Paleta de Cores:**
+- Primary: #00B4CD (Azul Turquesa)
+- Secondary: #1A3A4A (Navy)
+- Background: #F8FAFB (Cinza Claro)
+
+**Features:**
+- ✅ Dark Mode suportado
+- ✅ Design moderno e minimalista
+- ✅ Componentes reutilizáveis
+- ✅ Animações suaves
+
+---
+
+## 📖 Documentação Completa
+
+Veja a galeria completa em: [GALERIA-COMPLETA.md](../../GALERIA-COMPLETA.md)
+
+Telas pendentes: [SCREENSHOTS-PENDENTES.md](../../SCREENSHOTS-PENDENTES.md)
+
+---
+
+**Total de Screenshots:** 25 telas  
+**Última Atualização:** Janeiro 2025
