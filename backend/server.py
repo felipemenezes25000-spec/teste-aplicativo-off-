@@ -44,6 +44,12 @@ from ai_medical_analyzer import analyze_medical_document, MedicalDocumentAnalyze
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Import monitoring
+from monitoring import init_sentry, capture_exception, set_user_context
+
+# Initialize Sentry monitoring
+init_sentry()
+
 # Rate limiter configuration
 limiter = Limiter(key_func=get_remote_address)
 
@@ -2696,15 +2702,24 @@ async def health_check():
 # Include the router in the main app
 app.include_router(api_router)
 
-# ⚠️ SECURITY WARNING: Configure CORS properly in production!
-# In production, replace allow_origins=["*"] with specific domains:
-# allow_origins=["https://app.renoveja.com.br", "https://renoveja.com.br"]
+# CORS Configuration
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8081").split(",")
+# Add production domains
+if os.getenv("ENV", "development") == "production":
+    ALLOWED_ORIGINS.extend([
+        "https://app.renoveja.com.br",
+        "https://renoveja.com.br",
+        "https://admin.renoveja.com.br"
+    ])
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # TODO: CHANGE IN PRODUCTION - see warning above
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"],
+    expose_headers=["X-Total-Count", "X-Request-ID"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Configure logging

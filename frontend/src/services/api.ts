@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from './secureStorage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -16,7 +17,7 @@ const axiosInstance = axios.create({
 
 // Helper to get token
 export const getToken = async () => {
-  return await AsyncStorage.getItem('token');
+  return await secureStorage.getToken();
 };
 
 const getAuthParams = async () => {

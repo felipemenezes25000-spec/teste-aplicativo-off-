@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import secureStorage from '../services/secureStorage';
 import { authAPI } from '../services/api';
 import { User } from '../types';
 
@@ -45,7 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadStoredAuth = async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('token');
+      // Migrate tokens from AsyncStorage to SecureStore if needed
+      await secureStorage.migrate();
+      
+      const storedToken = await secureStorage.getToken();
       const storedUser = await AsyncStorage.getItem('user');
       
       if (storedToken && storedUser) {
@@ -67,7 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {
           // Token invalid, clear storage
-          await AsyncStorage.multiRemove(['token', 'user']);
+          await secureStorage.deleteToken();
+          await AsyncStorage.removeItem('user');
           setToken(null);
           setUser(null);
         }
@@ -84,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Normalize email to lowercase
       const response = await authAPI.login(email.toLowerCase().trim(), password);
       
-      await AsyncStorage.setItem('token', response.access_token);
+      await secureStorage.setToken(response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.access_token);
@@ -106,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authAPI.googleAuth(idToken);
       
-      await AsyncStorage.setItem('token', response.access_token);
+      await secureStorage.setToken(response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.access_token);
@@ -129,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       const response = await authAPI.register(normalizedData);
       
-      await AsyncStorage.setItem('token', response.access_token);
+      await secureStorage.setToken(response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.access_token);
@@ -155,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authAPI.registerDoctor(data);
       
-      await AsyncStorage.setItem('token', response.access_token);
+      await secureStorage.setToken(response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.access_token);
@@ -179,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authAPI.registerNurse(data);
       
-      await AsyncStorage.setItem('token', response.access_token);
+      await secureStorage.setToken(response.access_token);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
       
       setToken(response.access_token);
@@ -198,7 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Ignore logout errors
     } finally {
-      await AsyncStorage.multiRemove(['token', 'user']);
+      await secureStorage.clearAuth();
+      await AsyncStorage.removeItem('user');
       setToken(null);
       setUser(null);
     }
