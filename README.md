@@ -1,184 +1,226 @@
-# 🏥 RenoveJá+
+# RenoveJá+ 🏥
 
-**Plataforma de Telemedicina** - Renovação de receitas, pedidos de exames e teleconsultas.
+Sistema completo de telemedicina desenvolvido em React Native (Expo) e Python (FastAPI), oferecendo teleconsultas, prescrições digitais e pedidos de exames médicos.
 
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Backend](https://img.shields.io/badge/backend-FastAPI-green)
-![Frontend](https://img.shields.io/badge/frontend-Expo%20React%20Native-blue)
-![Database](https://img.shields.io/badge/database-Supabase-purple)
+![RenoveJá+ Logo](logo-renoveja.png)
 
----
+## 🚀 Características Principais
 
-## 📱 Sobre o Projeto
+### Para Pacientes
+- 📱 **Teleconsultas**: Consultas médicas por vídeo com profissionais qualificados
+- 💊 **Prescrições Digitais**: Receitas médicas válidas em todo território nacional
+- 🔬 **Pedidos de Exames**: Solicitação e acompanhamento de exames laboratoriais
+- 💬 **Chat em Tempo Real**: Comunicação direta com médicos e enfermeiros
+- 🔔 **Notificações Push**: Lembretes de consultas e atualizações de pedidos
+- 🔐 **Login Biométrico**: Acesso seguro com impressão digital ou Face ID
 
-O RenoveJá+ é um aplicativo que conecta pacientes a médicos para:
+### Para Profissionais de Saúde
+- 👨‍⚕️ **Painel Médico**: Interface dedicada para atendimento e gestão de pacientes
+- 📋 **Fila de Atendimento**: Sistema inteligente de distribuição de consultas
+- 📄 **Assinatura Digital**: Validação de documentos médicos
+- 📊 **Dashboard Administrativo**: Métricas e gestão completa da plataforma
 
-- 💊 **Renovação de Receitas** - Simples, controladas e azuis
-- 🔬 **Pedidos de Exames** - Laboratório e imagem
-- 📹 **Teleconsultas** - Consultas por vídeo
+## 🛠 Tecnologias
 
-### Fluxo do Paciente
-1. Solicita receita/exame/consulta
-2. Médico analisa e aprova
-3. Paciente paga via PIX
-4. Recebe receita digital assinada
-
----
-
-## 🏗️ Estrutura do Projeto
-
-```
-projeto-renoveja/
-├── backend/                 # API FastAPI
-│   ├── server.py           # Servidor principal
-│   ├── database.py         # Conexão Supabase
-│   ├── queue_manager.py    # Gerenciamento de filas
-│   └── requirements.txt    # Dependências Python
-│
-├── frontend/               # App React Native (Expo)
-│   ├── app/               # Rotas (Expo Router)
-│   │   ├── (auth)/        # Login, registro
-│   │   ├── (tabs)/        # Tabs do paciente
-│   │   ├── doctor/        # Dashboard médico
-│   │   ├── nurse/         # Dashboard enfermagem
-│   │   ├── admin/         # Dashboard admin
-│   │   └── prescription/  # Fluxo de receitas
-│   ├── src/
-│   │   ├── components/    # Componentes reutilizáveis
-│   │   ├── contexts/      # AuthContext, ThemeContext
-│   │   ├── hooks/         # Custom hooks
-│   │   ├── services/      # API client
-│   │   └── types/         # TypeScript types
-│   └── package.json
-│
-├── supabase/              # Schema do banco
-│   └── schema.sql
-│
-└── docs/                  # Documentação
-    ├── ARQUITETURA.md     # Fluxos e diagramas
-    └── ROADMAP_MELHORIAS.md
-```
-
----
-
-## 🚀 Como Rodar
-
-### Pré-requisitos
-- Node.js 18+
-- Python 3.11+
-- Conta no [Supabase](https://supabase.com)
+### Frontend
+- **React Native** com Expo SDK 54
+- **TypeScript** para type safety
+- **Expo Router** para navegação
+- **Zustand** para gerenciamento de estado
+- **React Native Reanimated** para animações fluidas
+- **Expo SecureStore** para armazenamento seguro de tokens
 
 ### Backend
+- **FastAPI** (Python 3.11+)
+- **Supabase** (PostgreSQL) como banco de dados
+- **JWT** para autenticação
+- **Mercado Pago** para processamento de pagamentos
+- **Sentry** para monitoramento de erros
+- **Rate Limiting** para proteção contra abuso
+
+## 📋 Pré-requisitos
+
+- Node.js 18+ e npm/yarn
+- Python 3.11+
+- Conta no Supabase
+- Expo CLI (`npm install -g expo-cli`)
+- EAS CLI para builds (`npm install -g eas-cli`)
+
+## 🔧 Instalação
+
+### 1. Clone o repositório
+```bash
+git clone https://github.com/felipemenezes25000-spec/teste-aplicativo-off-.git
+cd teste-aplicativo-off-
+```
+
+### 2. Configure o Backend
 
 ```bash
 cd backend
 
-# Criar .env
-cp .env.example .env
-# Editar com suas credenciais Supabase
+# Crie ambiente virtual
+python3 -m venv venv
+source venv/bin/activate  # No Windows: venv\Scripts\activate
 
-# Instalar dependências
+# Instale dependências
 pip install -r requirements.txt
 
-# Rodar servidor
-uvicorn server:app --reload --port 8001
+# Configure variáveis de ambiente
+cp .env.example .env
+# Edite .env com suas credenciais do Supabase
 ```
 
-### Frontend
+### 3. Configure o Frontend
 
 ```bash
-cd frontend
+cd ../frontend
 
-# Instalar dependências
+# Instale dependências
+npm install --legacy-peer-deps
+# ou
 yarn install
 
-# Criar .env
+# Configure variáveis de ambiente
 cp .env.example .env
-# Editar com URL da API
-
-# Rodar app
-yarn start
+# Edite .env com a URL da sua API
 ```
 
----
+### 4. Configure o Banco de Dados
 
-## 🔗 URLs
-
-| Ambiente | URL |
-|----------|-----|
-| **API (Produção)** | https://teste-aplicativo-off-production.up.railway.app |
-| **Docs da API** | https://teste-aplicativo-off-production.up.railway.app/docs |
-| **Supabase** | https://supabase.com/dashboard/project/gklkznyyouwqsohszula |
-
----
-
-## 👥 Tipos de Usuário
-
-| Tipo | Descrição | Dashboard |
-|------|-----------|-----------|
-| **patient** | Paciente | `/(tabs)` |
-| **doctor** | Médico | `/doctor` |
-| **nurse** | Enfermeiro | `/nurse` |
-| **admin** | Administrador | `/admin` |
-
----
-
-## 📋 Status das Solicitações
-
-```
-submitted → in_review → approved_pending_payment → paid → signed → delivered
-                ↓
-            rejected
+```bash
+# No painel do Supabase, execute os SQLs em ordem:
+# 1. supabase/schema.sql
+# 2. supabase/setup-complete.sql
 ```
 
----
-
-## ✨ Features
-
-### Implementadas ✅
-- [x] Autenticação (email/senha)
-- [x] Registro de pacientes, médicos e enfermeiros
-- [x] Solicitação de receitas
-- [x] Fila de atendimento médico
-- [x] Triagem de enfermagem (exames)
-- [x] Aprovação/rejeição com motivo
-- [x] Pagamento simulado (PIX)
-- [x] Assinatura digital
-- [x] Chat médico-paciente
-- [x] Notificações no app
-- [x] Dark mode
-- [x] Skeleton loading
-
-### Em Desenvolvimento 🚧
-- [ ] Push notifications
-- [ ] Pagamento real (MercadoPago)
-- [ ] Teleconsulta por vídeo
-- [ ] Lembretes de medicamento
-- [ ] Biometria (Face ID / Touch ID)
-
----
-
-## 🛠️ Tecnologias
+## 🚀 Executando o Projeto
 
 ### Backend
-- **FastAPI** - Framework web
-- **Supabase** - Banco de dados PostgreSQL
-- **httpx** - Cliente HTTP async
+```bash
+cd backend
+uvicorn server:app --reload --port 8000
+```
 
 ### Frontend
-- **Expo** - Framework React Native
-- **Expo Router** - Navegação
-- **React Native Reanimated** - Animações
-- **Zustand** - Estado global
+```bash
+cd frontend
+expo start
+# Pressione 'a' para Android ou 'i' para iOS
+```
 
----
+## 🧪 Testes
+
+### Backend
+```bash
+cd backend
+python -m pytest test_basic.py -v
+```
+
+### Frontend
+```bash
+cd frontend
+npm test
+```
+
+## 📱 Build para Produção
+
+### Configure o EAS
+```bash
+cd frontend
+eas build:configure
+```
+
+### Android
+```bash
+eas build --platform android --profile production
+```
+
+### iOS
+```bash
+eas build --platform ios --profile production
+```
+
+## 🔒 Segurança
+
+- ✅ Autenticação JWT com tokens seguros
+- ✅ Armazenamento seguro com Expo SecureStore
+- ✅ CORS configurado adequadamente
+- ✅ Rate limiting implementado
+- ✅ Validação robusta de dados
+- ✅ Criptografia de senhas com bcrypt
+- ✅ Monitoramento com Sentry
+
+## 📝 Variáveis de Ambiente
+
+### Backend (.env)
+```env
+# Supabase
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=seu_service_key
+
+# Mercado Pago (opcional)
+MERCADOPAGO_ACCESS_TOKEN=seu_token
+
+# Sentry (opcional)
+SENTRY_DSN=https://xxx@sentry.io/yyy
+
+# CORS
+ALLOWED_ORIGINS=http://localhost:3000,https://app.renoveja.com.br
+ENV=production
+```
+
+### Frontend (.env)
+```env
+EXPO_PUBLIC_API_URL=http://localhost:8000
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=seu_anon_key
+```
+
+## 🏗 Arquitetura
+
+```
+teste-aplicativo-off-/
+├── backend/
+│   ├── server.py           # API principal
+│   ├── database.py         # Conexão Supabase
+│   ├── monitoring.py       # Configuração Sentry
+│   ├── backup_manager.py   # Sistema de backup
+│   └── requirements.txt    # Dependências Python
+├── frontend/
+│   ├── app/               # Rotas do Expo Router
+│   ├── src/
+│   │   ├── components/    # Componentes React
+│   │   ├── contexts/      # Contexts (Auth, Theme)
+│   │   ├── services/      # APIs e serviços
+│   │   ├── hooks/         # Custom hooks
+│   │   └── utils/         # Utilitários
+│   └── package.json       # Dependências JS
+└── supabase/
+    ├── schema.sql         # Estrutura do banco
+    └── setup-complete.sql # Dados e policies
+```
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie sua branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
 
 ## 📄 Licença
 
-Projeto privado - Todos os direitos reservados.
+Este projeto está sob licença proprietária. Todos os direitos reservados.
+
+## 👥 Equipe
+
+- **Felipe Menezes** - Desenvolvedor Principal
+
+## 📞 Suporte
+
+Para suporte, envie um email para suporte@renoveja.com.br
 
 ---
 
-## 👨‍💻 Desenvolvido por
-
-Felipe Menezes
+**RenoveJá+** - Transformando o acesso à saúde no Brasil 🇧🇷
