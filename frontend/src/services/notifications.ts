@@ -2,7 +2,8 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from './api';
+import { api } from './api';
+import secureStorage from './secureStorage';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -78,13 +79,11 @@ class NotificationService {
   private async saveToken(token: string): Promise<void> {
     try {
       await AsyncStorage.setItem('expoPushToken', token);
-      
+
       // Send token to backend
-      const authToken = await AsyncStorage.getItem('token');
+      const authToken = await secureStorage.getToken();
       if (authToken) {
-        await api.post('/users/push-token', { push_token: token }, {
-          params: { token: authToken }
-        });
+        await api.updatePushToken(token);
       }
     } catch (error) {
       console.error('Error saving push token:', error);

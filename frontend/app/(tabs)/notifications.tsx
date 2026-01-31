@@ -84,7 +84,7 @@ export default function NotificationsScreen() {
 
   const markAllAsRead = async () => {
     try {
-      await Promise.all(notifications.filter(n => !n.read).map(n => api.markNotificationAsRead(n.id)));
+      await api.markAllNotificationsAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);

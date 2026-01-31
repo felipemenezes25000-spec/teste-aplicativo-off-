@@ -74,6 +74,12 @@ export const api = {
     return response.data;
   },
 
+  deletePushToken: async () => {
+    const params = await getAuthParams();
+    const response = await axiosInstance.delete('/push-token', { params });
+    return response.data;
+  },
+
   // ============== PROFILE ==============
   updateProfile: async (data: { name?: string; phone?: string; cpf?: string; birth_date?: string; avatar_url?: string; address?: object }) => {
     const params = await getAuthParams();
@@ -94,7 +100,7 @@ export const api = {
     return response.data;
   },
 
-  createConsultationRequest: async (data: { specialty: string; duration?: number; scheduled_at?: string; notes?: string }) => {
+  createConsultationRequest: async (data: { specialty: string; duration?: number; scheduled_at?: string; schedule_type?: 'immediate' | 'scheduled'; notes?: string }) => {
     const params = await getAuthParams();
     const response = await axiosInstance.post('/requests/consultation', data, { params });
     return response.data;
@@ -113,7 +119,7 @@ export const api = {
     return response.data;
   },
 
-  updateRequest: async (id: string, data: { status?: string; doctor_id?: string; doctor_name?: string; notes?: string }) => {
+  updateRequest: async (id: string, data: { status?: string; doctor_id?: string; doctor_name?: string; notes?: string; medications?: object[]; exams?: string[]; ai_validated?: boolean; ai_validated_at?: string }) => {
     const params = await getAuthParams();
     const response = await axiosInstance.put(`/requests/${id}`, data, { params });
     return response.data;
@@ -345,6 +351,17 @@ export const api = {
   // ============== SPECIALTIES ==============
   getSpecialties: async () => {
     const response = await axiosInstance.get('/specialties');
+    return response.data;
+  },
+
+  // ============== HEALTH & INTEGRATIONS ==============
+  getHealth: async () => {
+    const response = await axiosInstance.get('/health');
+    return response.data;
+  },
+
+  getIntegrationsStatus: async () => {
+    const response = await axiosInstance.get('/integrations/status');
     return response.data;
   },
 

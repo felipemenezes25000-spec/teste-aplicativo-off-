@@ -331,6 +331,10 @@ class RequestUpdate(BaseModelForbidExtra):
     doctor_id: Optional[str] = None
     doctor_name: Optional[str] = None
     notes: Optional[str] = None
+    medications: Optional[List[dict]] = None
+    exams: Optional[List[str]] = None
+    ai_validated: Optional[bool] = None
+    ai_validated_at: Optional[str] = None
 
 class PaymentCreate(BaseModelForbidExtra):
     request_id: str
@@ -373,6 +377,10 @@ class NursingRejectionRequest(BaseModelForbidExtra):
 class NursingForwardRequest(BaseModelForbidExtra):
     reason: Optional[str] = None
     notes: Optional[str] = None
+
+class VideoRoomCreate(BaseModelForbidExtra):
+    request_id: str
+    room_name: Optional[str] = None
 
 # ============== HELPER FUNCTIONS ==============
 
@@ -2149,14 +2157,17 @@ async def update_doctor_availability(token: str, available: bool = True):
 # ============== VIDEO / CONSULTATION ==============
 
 @api_router.post("/video/create-room", tags=["Vídeo"])
-async def create_video_room(token: str, request_id: str, room_name: str = None):
+async def create_video_room(token: str, data: VideoRoomCreate):
     """Create a Jitsi video room for consultation"""
     user = await get_current_user(token)
-    
+
+    request_id = data.request_id
+    room_name = data.room_name
+
     request = await find_one("requests", {"id": request_id})
     if not request:
         raise HTTPException(status_code=404, detail="Solicitação não encontrada")
-    
+
     # Generate room name if not provided
     if not room_name:
         room_name = f"renoveja-{request_id[:8]}-{secrets.token_hex(4)}"

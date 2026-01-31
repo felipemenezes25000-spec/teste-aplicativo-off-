@@ -140,11 +140,11 @@ export default function ConsultationScreen() {
         [
           {
             text: 'Ir para Pagamento',
-            onPress: () => router.push(`/payment/${result.id}`)
+            onPress: () => router.push({ pathname: '/prescription/payment', params: { requestId: result.id, amount: String(calculatePrice()) } })
           },
           {
             text: 'Ver Minhas Consultas',
-            onPress: () => router.replace('/(tabs)/requests')
+            onPress: () => router.replace('/(tabs)/history')
           }
         ]
       );

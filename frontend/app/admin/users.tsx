@@ -80,13 +80,8 @@ export default function AdminUsersScreen() {
       setUsers(Array.isArray(data) ? data : data.users || []);
     } catch (error) {
       console.error('Error loading users:', error);
-      // Dados mock em caso de erro
-      setUsers([
-        { id: '1', name: 'Carlos Paciente', email: 'paciente@teste.com', role: 'patient', created_at: '2024-01-01', is_active: true },
-        { id: '2', name: 'Dr. João Médico', email: 'medico@teste.com', role: 'doctor', crm: 'CRM-SP 123456', specialty: 'Clínico Geral', created_at: '2024-01-01', is_active: true },
-        { id: '3', name: 'Maria Enfermeira', email: 'enfermeiro@teste.com', role: 'nurse', coren: 'COREN-SP 12345', created_at: '2024-01-01', is_active: true },
-        { id: '4', name: 'Admin Sistema', email: 'admin@teste.com', role: 'admin', created_at: '2024-01-01', is_active: true },
-      ]);
+      Alert.alert('Erro', 'Não foi possível carregar os usuários. Tente novamente.');
+      setUsers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -155,8 +150,8 @@ export default function AdminUsersScreen() {
 
   const toggleUserStatus = async (user: User) => {
     try {
-      // await api.updateUserStatus(user.id, !user.is_active);
-      setUsers(users.map(u => 
+      await api.updateUserStatus(user.id, !user.is_active);
+      setUsers(users.map(u =>
         u.id === user.id ? { ...u, is_active: !u.is_active } : u
       ));
       Alert.alert('Sucesso', `Usuário ${user.is_active ? 'bloqueado' : 'desbloqueado'} com sucesso`);
@@ -167,11 +162,14 @@ export default function AdminUsersScreen() {
 
   const deleteUser = async (user: User) => {
     try {
-      // await api.deleteUser(user.id);
-      setUsers(users.filter(u => u.id !== user.id));
-      Alert.alert('Sucesso', 'Usuário excluído com sucesso');
+      // Desativar usuário em vez de excluir (soft delete via API)
+      await api.updateUserStatus(user.id, false);
+      setUsers(users.map(u =>
+        u.id === user.id ? { ...u, is_active: false } : u
+      ));
+      Alert.alert('Sucesso', 'Usuário desativado com sucesso');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível excluir o usuário');
+      Alert.alert('Erro', 'Não foi possível desativar o usuário');
     }
   };
 
