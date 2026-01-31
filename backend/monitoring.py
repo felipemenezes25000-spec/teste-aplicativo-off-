@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+# from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration  # Not needed for Supabase
 
 load_dotenv()
 
@@ -47,7 +47,6 @@ def init_sentry(app_name: str = "renoveja-backend", environment: str = None):
                 failed_request_status_codes=[400, 401, 403, 404, 405, 422]
             ),
             logging_integration,
-            SqlalchemyIntegration(),
         ],
         
         # Performance Monitoring
@@ -67,7 +66,6 @@ def init_sentry(app_name: str = "renoveja-backend", environment: str = None):
         ignore_errors=[
             KeyboardInterrupt,
             SystemExit,
-            GeneratorExit,
         ],
     )
     

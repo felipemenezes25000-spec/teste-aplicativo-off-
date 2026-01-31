@@ -30,11 +30,16 @@ jest.mock('expo-secure-store', () => ({
 describe('SecureStorage Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset Platform OS for each test
+    Object.defineProperty(Platform, 'OS', {
+      value: 'ios',
+      configurable: true
+    });
   });
 
   describe('setItem', () => {
     it('should use SecureStore on iOS', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       await secureStorage.setItem('test_key', 'test_value');
       
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith('test_key', 'test_value');
@@ -42,7 +47,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should use SecureStore on Android', async () => {
-      Platform.OS = 'android';
+      Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
       await secureStorage.setItem('test_key', 'test_value');
       
       expect(SecureStore.setItemAsync).toHaveBeenCalledWith('test_key', 'test_value');
@@ -50,7 +55,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should use AsyncStorage with prefix on web', async () => {
-      Platform.OS = 'web';
+      Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
       await secureStorage.setItem('test_key', 'test_value');
       
       expect(AsyncStorage.setItem).toHaveBeenCalledWith('@secure_test_key', 'test_value');
@@ -58,7 +63,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (SecureStore.setItemAsync as jest.Mock).mockRejectedValueOnce(new Error('Storage error'));
       
       await expect(secureStorage.setItem('test_key', 'test_value')).rejects.toThrow('Storage error');
@@ -67,7 +72,7 @@ describe('SecureStorage Service', () => {
 
   describe('getItem', () => {
     it('should use SecureStore on mobile platforms', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce('stored_value');
       
       const result = await secureStorage.getItem('test_key');
@@ -77,7 +82,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should use AsyncStorage with prefix on web', async () => {
-      Platform.OS = 'web';
+      Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
       (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('stored_value');
       
       const result = await secureStorage.getItem('test_key');
@@ -87,7 +92,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should return null on error', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (SecureStore.getItemAsync as jest.Mock).mockRejectedValueOnce(new Error('Storage error'));
       
       const result = await secureStorage.getItem('test_key');
@@ -98,14 +103,14 @@ describe('SecureStorage Service', () => {
 
   describe('deleteItem', () => {
     it('should use SecureStore on mobile platforms', async () => {
-      Platform.OS = 'android';
+      Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
       await secureStorage.deleteItem('test_key');
       
       expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('test_key');
     });
 
     it('should use AsyncStorage on web', async () => {
-      Platform.OS = 'web';
+      Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
       await secureStorage.deleteItem('test_key');
       
       expect(AsyncStorage.removeItem).toHaveBeenCalledWith('@secure_test_key');
@@ -114,14 +119,14 @@ describe('SecureStorage Service', () => {
 
   describe('migrateFromAsyncStorage', () => {
     it('should skip migration on web', async () => {
-      Platform.OS = 'web';
+      Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
       await secureStorage.migrateFromAsyncStorage();
       
       expect(AsyncStorage.getItem).not.toHaveBeenCalled();
     });
 
     it('should skip if already migrated', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === '@migrated_to_secure_store') return Promise.resolve('true');
         return Promise.resolve(null);
@@ -133,7 +138,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should migrate existing tokens', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === '@migrated_to_secure_store') return Promise.resolve(null);
         if (key === 'token') return Promise.resolve('existing_token');
@@ -151,7 +156,7 @@ describe('SecureStorage Service', () => {
     });
 
     it('should not throw on migration error', async () => {
-      Platform.OS = 'ios';
+      Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
       (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('Storage error'));
       
       await expect(secureStorage.migrateFromAsyncStorage()).resolves.not.toThrow();

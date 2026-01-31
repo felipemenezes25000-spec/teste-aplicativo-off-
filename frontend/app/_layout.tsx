@@ -7,6 +7,7 @@ import { AuthProvider } from '../src/contexts/AuthContext';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { toastConfig } from '../src/components/Toast';
 import { COLORS } from '../src/utils/constants';
+import '../src/utils/ignoreWarnings';
 
 export default function RootLayout() {
   return (

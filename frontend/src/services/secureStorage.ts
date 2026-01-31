@@ -10,7 +10,9 @@ class SecureStorage {
   /**
    * Check if SecureStore is available on current platform
    */
-  private isSecureStoreAvailable = Platform.OS === 'ios' || Platform.OS === 'android';
+  private get isSecureStoreAvailable() {
+    return Platform.OS === 'ios' || Platform.OS === 'android';
+  }
 
   /**
    * Save a value securely
