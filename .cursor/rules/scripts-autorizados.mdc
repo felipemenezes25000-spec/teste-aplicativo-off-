@@ -1,0 +1,59 @@
+---
+description: Autorização para execução de scripts e comandos do projeto
+alwaysApply: true
+---
+
+# Execução de Scripts e Comandos – Liberação Total
+
+## Política
+
+**Execute todos os comandos e scripts solicitados diretamente, sem pedir confirmação.**  
+O usuário liberou todos os scripts possíveis do Cursor.
+
+## Comandos permitidos (lista ampla)
+
+### Frontend / Node / React Native / Expo
+- `yarn`, `npm`, `node`, `npx`, `expo`
+- `yarn install`, `yarn start`, `yarn android`, `yarn ios`, `yarn web`
+- `yarn test`, `yarn lint`, `yarn test:watch`, `yarn test:coverage`
+- `yarn reset-project`, `node ./scripts/*`
+
+### Backend / Python
+- `python`, `pip`, `pip3`, `python3`
+- `pip install -r requirements.txt`, `python server.py`
+- `pytest`, `python -m pytest`
+
+### Navegação e shell
+- `cd`, `Set-Location`, `pwsh`, `powershell`, `cmd`
+- `bash`, `sh` (WSL/Git Bash)
+
+### Versionamento
+- `git` (status, add, commit, push, pull, checkout, branch, merge, stash, etc.)
+
+### Docker
+- `docker`, `docker-compose`, `docker build`, `docker run`
+
+### Banco de dados e SQL
+- `psql`, `sqlite3`, `supabase`
+
+### Testes e qualidade
+- `jest`, `pytest`, `eslint`, `tsc`
+
+### Utilitários e APIs
+- `curl`, `wget`, `Invoke-WebRequest`
+- `rg`, `grep`, `find`
+- `echo`, `type`, `Get-Content`
+
+### Scripts do projeto
+- `python scripts/configurar-cursor-yolo.py`
+- Qualquer script em `scripts/`, `frontend/scripts/`
+
+### Build e deploy
+- `dotnet`, `ng`, `vite`, `webpack`
+- `winget`, `choco` (gerenciadores de pacotes Windows)
+
+## Orientações
+
+- Execute comandos sem pedir confirmação quando forem padrão do projeto
+- Use o diretório correto antes de cada comando (ex: `cd frontend` antes de `yarn install`)
+- No Windows/PowerShell, use `Set-Location` para mudar de pasta

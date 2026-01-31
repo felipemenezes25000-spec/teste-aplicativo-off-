@@ -30,16 +30,18 @@ interface Request {
   doctor_name?: string;
 }
 
-const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Enviado' },
-  in_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Em análise' },
-  approved_pending_payment: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Aguardando pgto' },
-  paid: { color: colors.success, bg: '#D1FAE5', label: 'Pago' },
-  signed: { color: colors.success, bg: '#D1FAE5', label: 'Assinado' },
-  delivered: { color: '#6B7280', bg: '#F3F4F6', label: 'Entregue' },
-  rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusado' },
-  cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Cancelado' },
-};
+function getStatusConfig(colors: ReturnType<typeof useColors>): Record<string, { color: string; bg: string; label: string }> {
+  return {
+    submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Enviado' },
+    in_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Em análise' },
+    approved_pending_payment: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Aguardando pgto' },
+    paid: { color: colors.success, bg: '#D1FAE5', label: 'Pago' },
+    signed: { color: colors.success, bg: '#D1FAE5', label: 'Assinado' },
+    delivered: { color: '#6B7280', bg: '#F3F4F6', label: 'Entregue' },
+    rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusado' },
+    cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Cancelado' },
+  };
+}
 
 const typeConfig: Record<string, { icon: string; gradient: string[]; label: string }> = {
   prescription: { icon: 'document-text', gradient: ['#4AC5E0', '#00B4CD'], label: 'Receita' },
@@ -49,6 +51,8 @@ const typeConfig: Record<string, { icon: string; gradient: string[]; label: stri
 
 export default function HistoryScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
+  const statusConfig = getStatusConfig(colors);
   const router = useRouter();
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
@@ -219,164 +223,161 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  // Header
-  header: {
-    paddingTop: 50,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
+    header: {
+      paddingTop: 50,
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.card,
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.8)',
+    },
 
-  // Filters
-  filtersContainer: {
-    backgroundColor: colors.card,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E4E9EC',
-  },
-  filtersList: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  filterChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: colors.backgroundDark,
-    marginRight: 8,
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.textSecondary,
-  },
-  filterTextActive: {
-    color: colors.card,
-  },
+    filtersContainer: {
+      backgroundColor: colors.card,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: '#E4E9EC',
+    },
+    filtersList: {
+      paddingHorizontal: 20,
+      gap: 8,
+    },
+    filterChip: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 20,
+      backgroundColor: colors.backgroundDark,
+      marginRight: 8,
+    },
+    filterChipActive: {
+      backgroundColor: colors.primary,
+    },
+    filterText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textSecondary,
+    },
+    filterTextActive: {
+      color: colors.card,
+    },
 
-  // List
-  listContent: {
-    padding: 24,
-    paddingBottom: 100,
-  },
+    listContent: {
+      padding: 24,
+      paddingBottom: 100,
+    },
 
-  // Request Card
-  requestCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  requestIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  requestContent: {
-    flex: 1,
-  },
-  requestHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  requestType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  doctorName: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 6,
-  },
-  requestFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  requestDate: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  requestPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
+    requestCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: colors.textPrimary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    requestIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    requestContent: {
+      flex: 1,
+    },
+    requestHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    requestType: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    statusBadge: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+    },
+    statusText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    doctorName: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 6,
+    },
+    requestFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    requestDate: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    requestPrice: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.primary,
+    },
 
-  // Empty
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: colors.backgroundDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 20,
-  },
-  emptyButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  emptyButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.card,
-  },
-});
+    emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 48,
+    },
+    emptyIconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      backgroundColor: colors.backgroundDark,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 20,
+    },
+    emptyButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+    },
+    emptyButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.card,
+    },
+  });
+}

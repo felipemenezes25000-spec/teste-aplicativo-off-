@@ -25,6 +25,7 @@ import { useColors } from '@/contexts/ThemeContext';;
 
 export default function RegisterScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { register } = useAuth();
   
@@ -92,10 +93,20 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await register(name.trim(), email.trim().toLowerCase(), password, phone.trim());
-      Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+      const result = await register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim() || undefined,
+      });
+      
+      if (result.success) {
+        Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        ]);
+      } else {
+        Alert.alert('Erro', result.error || 'Erro ao criar conta. Tente novamente.');
+      }
     } catch (error: any) {
       // Don't expose internal error details
       const userMessage = error.response?.data?.detail || 'Erro ao criar conta. Tente novamente.';
@@ -273,158 +284,153 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E8F6F8',
-  },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 40,
-  },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#E8F6F8',
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      paddingTop: 20,
+      paddingBottom: 40,
+    },
 
-  // Header
-  header: {
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    header: {
+      marginBottom: 16,
+    },
+    backButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  // Title
-  titleSection: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 22,
-  },
+    titleSection: {
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
 
-  // Form Card
-  formCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 5,
-  },
+    formCard: {
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 24,
+      shadowColor: colors.textPrimary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 24,
+      elevation: 5,
+    },
 
-  // Input
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.card,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  eyeButton: {
-    padding: 4,
-  },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+      height: 56,
+    },
+    inputFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.card,
+    },
+    inputIcon: {
+      marginRight: 12,
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    eyeButton: {
+      padding: 4,
+    },
 
-  // Terms
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    gap: 12,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
+    termsContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 24,
+      gap: 12,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 2,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    termsText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    termsLink: {
+      color: colors.primary,
+      fontWeight: '500',
+    },
 
-  // Register Button
-  registerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 56,
-    borderRadius: 16,
-    gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  registerButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.card,
-  },
+    registerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      borderRadius: 16,
+      gap: 8,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    registerButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.card,
+    },
 
-  // Login Link
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  loginText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  loginLink: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-});
+    loginContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 24,
+    },
+    loginText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    loginLink: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+  });
+}

@@ -20,6 +20,7 @@ import { useColors } from '@/contexts/ThemeContext';
 
 export default function PrescriptionConfirmationScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
 
@@ -101,40 +102,36 @@ export default function PrescriptionConfirmationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
-  content: { flex: 1 },
-  contentContainer: { padding: 24, alignItems: 'center' },
-
-  successSection: { alignItems: 'center', marginVertical: 32 },
-  successIconOuter: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#D1FAE520', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  successIconInner: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
-
-  statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, width: '100%', marginBottom: 32, borderWidth: 1, borderColor: '#FDE68A' },
-  statusIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  statusInfo: { flex: 1, marginLeft: 14 },
-  statusTitle: { fontSize: 17, fontWeight: '700', color: '#92400E' },
-  statusDescription: { fontSize: 13, color: '#B45309', marginTop: 2 },
-
-  stepsTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, alignSelf: 'flex-start', marginBottom: 16 },
-  stepsContainer: { width: '100%', marginBottom: 24 },
-  step: { flexDirection: 'row', alignItems: 'flex-start' },
-  stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  stepNumberText: { fontSize: 14, fontWeight: '700', color: colors.card },
-  stepContent: { flex: 1, marginLeft: 14, paddingBottom: 16 },
-  stepTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  stepDescription: { fontSize: 14, color: colors.textSecondary, marginTop: 2, lineHeight: 20 },
-  stepLine: { width: 2, height: 20, backgroundColor: colors.border, marginLeft: 15 },
-
-  infoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, width: '100%', gap: 12, borderWidth: 1, borderColor: '#BFDBFE' },
-  infoText: { flex: 1, fontSize: 14, color: '#1E40AF', lineHeight: 20 },
-
-  footer: { padding: 24, paddingBottom: 40, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
-  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
-  primaryButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
-  secondaryButton: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border },
-  secondaryButtonText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
-});
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { flex: 1 },
+    contentContainer: { padding: 24, alignItems: 'center' },
+    successSection: { alignItems: 'center', marginVertical: 32 },
+    successIconOuter: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#D1FAE520', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    successIconInner: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
+    title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, paddingHorizontal: 16 },
+    statusCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', borderRadius: 16, padding: 16, width: '100%', marginBottom: 32, borderWidth: 1, borderColor: '#FDE68A' },
+    statusIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+    statusInfo: { flex: 1, marginLeft: 14 },
+    statusTitle: { fontSize: 17, fontWeight: '700', color: '#92400E' },
+    statusDescription: { fontSize: 13, color: '#B45309', marginTop: 2 },
+    stepsTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, alignSelf: 'flex-start', marginBottom: 16 },
+    stepsContainer: { width: '100%', marginBottom: 24 },
+    step: { flexDirection: 'row', alignItems: 'flex-start' },
+    stepNumber: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    stepNumberText: { fontSize: 14, fontWeight: '700', color: colors.card },
+    stepContent: { flex: 1, marginLeft: 14, paddingBottom: 16 },
+    stepTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+    stepDescription: { fontSize: 14, color: colors.textSecondary, marginTop: 2, lineHeight: 20 },
+    stepLine: { width: 2, height: 20, backgroundColor: colors.border, marginLeft: 15 },
+    infoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, width: '100%', gap: 12, borderWidth: 1, borderColor: '#BFDBFE' },
+    infoText: { flex: 1, fontSize: 14, color: '#1E40AF', lineHeight: 20 },
+    footer: { padding: 24, paddingBottom: 40, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
+    primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8 },
+    primaryButtonText: { fontSize: 16, fontWeight: '600', color: colors.card },
+    secondaryButton: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border },
+    secondaryButtonText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
+  });
+}

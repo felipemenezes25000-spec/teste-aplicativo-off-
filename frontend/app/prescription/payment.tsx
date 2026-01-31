@@ -36,6 +36,7 @@ const MAX_POLL_TIME = 30 * 60 * 1000; // 30 minutes
 
 export default function PaymentScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { requestId, amount = '49.90' } = useLocalSearchParams<{ requestId: string; amount: string }>();
   
@@ -475,10 +476,10 @@ export default function PaymentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
-  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   headerContent: {},
   stepIndicator: { backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 12, alignSelf: 'flex-start', marginBottom: 12 },
@@ -638,4 +639,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   expiredText: { fontSize: 14, color: colors.error, flex: 1 },
-});
+  });
+}

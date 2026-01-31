@@ -46,6 +46,7 @@ const MOCK_PHARMACIES: Pharmacy[] = [
 export default function PharmaciesScreen() {
   const router = useRouter();
   const colors = useColors();
+  const styles = createStyles(colors);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -198,46 +199,42 @@ export default function PharmaciesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
-
-  header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
-  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerContent: { flex: 1, marginLeft: 16 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
-  headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  refreshButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-
-  errorBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  errorText: { fontSize: 13, color: '#92400E' },
-
-  content: { flex: 1 },
-  contentContainer: { padding: 20, paddingBottom: 40 },
-
-  pharmacyCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  pharmacyHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  pharmacyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' },
-  pharmacyInfo: { flex: 1, marginLeft: 14 },
-  pharmacyName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  pharmacyAddress: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  pharmacyMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 },
-  ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { fontSize: 13, color: colors.textSecondary, marginLeft: 4 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  openBadge: { backgroundColor: '#D1FAE5' },
-  closedBadge: { backgroundColor: '#FEE2E2' },
-  statusText: { fontSize: 11, fontWeight: '600' },
-  openText: { color: '#059669' },
-  closedText: { color: colors.error },
-  distanceContainer: { alignItems: 'center', gap: 2 },
-  distanceText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
-
-  pharmacyActions: { flexDirection: 'row', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
-  actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: '#F8FAFB', borderRadius: 10, gap: 6 },
-  actionText: { fontSize: 14, fontWeight: '500', color: colors.primary },
-
-  tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, marginTop: 8, gap: 12 },
-  tipText: { flex: 1, fontSize: 13, color: '#1E40AF', lineHeight: 20 },
-});
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFB' },
+    loadingContainer: { flex: 1, backgroundColor: '#F8FAFB', alignItems: 'center', justifyContent: 'center' },
+    loadingText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
+    header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
+    backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    headerContent: { flex: 1, marginLeft: 16 },
+    headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
+    headerSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+    refreshButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    errorBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+    errorText: { fontSize: 13, color: '#92400E' },
+    content: { flex: 1 },
+    contentContainer: { padding: 20, paddingBottom: 40 },
+    pharmacyCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+    pharmacyHeader: { flexDirection: 'row', alignItems: 'flex-start' },
+    pharmacyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center' },
+    pharmacyInfo: { flex: 1, marginLeft: 14 },
+    pharmacyName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+    pharmacyAddress: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+    pharmacyMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 },
+    ratingContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    ratingText: { fontSize: 13, color: colors.textSecondary, marginLeft: 4 },
+    statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+    openBadge: { backgroundColor: '#D1FAE5' },
+    closedBadge: { backgroundColor: '#FEE2E2' },
+    statusText: { fontSize: 11, fontWeight: '600' },
+    openText: { color: '#059669' },
+    closedText: { color: colors.error },
+    distanceContainer: { alignItems: 'center', gap: 2 },
+    distanceText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+    pharmacyActions: { flexDirection: 'row', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F1F5F7', gap: 12 },
+    actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, backgroundColor: '#F8FAFB', borderRadius: 10, gap: 6 },
+    actionText: { fontSize: 14, fontWeight: '500', color: colors.primary },
+    tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#DBEAFE', borderRadius: 14, padding: 16, marginTop: 8, gap: 12 },
+    tipText: { flex: 1, fontSize: 13, color: '#1E40AF', lineHeight: 20 },
+  });
+}

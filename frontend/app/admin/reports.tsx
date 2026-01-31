@@ -55,6 +55,7 @@ const periods: { key: Period; label: string; icon: string }[] = [
 
 export default function AdminReportsScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('week');
   const [loading, setLoading] = useState(true);
@@ -438,8 +439,9 @@ function StatusItem({ label, value, percentage, color }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
@@ -532,4 +534,5 @@ const styles = StyleSheet.create({
   exportButtons: { flexDirection: 'row', gap: 10 },
   exportBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 12, borderRadius: 10 },
   exportBtnText: { fontSize: 13, fontWeight: '500', color: colors.card },
-});
+  });
+}

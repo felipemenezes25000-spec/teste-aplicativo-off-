@@ -49,16 +49,18 @@ interface User {
 
 type RoleFilter = 'all' | 'patient' | 'doctor' | 'nurse' | 'admin';
 
-const roleConfig = {
+const getRoleConfig = (colors: ReturnType<typeof useColors>) => ({
   all: { label: 'Todos', icon: 'people', color: colors.primary },
   patient: { label: 'Pacientes', icon: 'person', color: colors.primary },
   doctor: { label: 'Médicos', icon: 'medkit', color: colors.success },
   nurse: { label: 'Enfermeiros', icon: 'medical', color: '#8B5CF6' },
   admin: { label: 'Admins', icon: 'shield', color: colors.warning },
-};
+});
 
 export default function AdminUsersScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
+  const roleConfig = getRoleConfig(colors);
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -442,8 +444,9 @@ function FieldItem({ icon, label, value, valueColor }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
@@ -516,4 +519,5 @@ const styles = StyleSheet.create({
   editBtnText: { fontSize: 14, fontWeight: '600', color: colors.primary },
   blockBtn: { backgroundColor: '#FEF3C7' },
   blockBtnText: { fontSize: 14, fontWeight: '600', color: colors.warning },
-});
+  });
+}

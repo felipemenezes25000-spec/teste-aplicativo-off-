@@ -19,8 +19,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext'
-import { useColors } from '@/contexts/ThemeContext';;
+import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +36,7 @@ interface ChatMessage {
 
 export default function DoctorChatScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const { id, patient } = useLocalSearchParams<{ id: string; patient?: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -193,11 +194,11 @@ export default function DoctorChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
-
-  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+    header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   headerInfo: { flex: 1, marginLeft: 14 },
   headerName: { fontSize: 17, fontWeight: '600', color: colors.card },
@@ -231,4 +232,5 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, color: colors.textPrimary, maxHeight: 100, paddingVertical: 10 },
   sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.textPrimary, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   sendButtonDisabled: { backgroundColor: colors.border },
-});
+  });
+}

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-import { useColors } from '@/contexts/ThemeContext';
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
   ActivityIndicator,
-  useColorScheme 
+  useColorScheme
 } from 'react-native';
+import { useColors } from '@/contexts/ThemeContext';
 
 const TERMS_CONTENT = `
 # TERMOS DE USO - RenoveJá+

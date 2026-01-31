@@ -47,7 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadStoredAuth = async () => {
     try {
       // Migrate tokens from AsyncStorage to SecureStore if needed
-      await secureStorage.migrate();
+      try {
+        await secureStorage.migrate();
+      } catch (_) {
+        // Falha na migração não deve travar o app (Expo Go, etc.)
+      }
       
       const storedToken = await secureStorage.getToken();
       const storedUser = await AsyncStorage.getItem('user');

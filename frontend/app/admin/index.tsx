@@ -70,6 +70,7 @@ export default function AdminDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const colors = useColors();
+  const styles = createStyles(colors);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -553,10 +554,11 @@ function SystemStatus({ label, status }: { label: string; status: 'online' | 'of
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
-  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFB' },
+    loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
+    loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 20 },
@@ -651,4 +653,5 @@ const styles = StyleSheet.create({
   systemStatusDot: { width: 8, height: 8, borderRadius: 4 },
   systemStatusLabel: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
   systemStatusTime: { fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' },
-});
+  });
+}

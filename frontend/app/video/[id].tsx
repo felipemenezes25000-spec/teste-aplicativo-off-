@@ -17,12 +17,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
-import { useAuth } from '@/contexts/AuthContext'
-import { useColors } from '@/contexts/ThemeContext';;
+import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 
 export default function VideoCallScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const { id, room_url } = useLocalSearchParams<{ id: string; room_url?: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -199,36 +200,38 @@ export default function VideoCallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
-  
-  loadingContainer: { flex: 1 },
-  loadingGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingIcon: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  loadingText: { marginTop: 16, fontSize: 16, color: 'rgba(255,255,255,0.8)' },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#000000' },
+    
+    loadingContainer: { flex: 1 },
+    loadingGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    loadingIcon: { width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    loadingText: { marginTop: 16, fontSize: 16, color: 'rgba(255,255,255,0.8)' },
 
-  errorContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorIcon: { width: 96, height: 96, borderRadius: 28, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  errorTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
-  errorText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
-  retryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
-  retryButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
-  backButtonAlt: { marginTop: 16, paddingVertical: 12, paddingHorizontal: 24 },
-  backButtonAltText: { fontSize: 15, fontWeight: '500', color: colors.primary },
+    errorContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
+    errorIcon: { width: 96, height: 96, borderRadius: 28, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    errorTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    errorText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+    retryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, paddingHorizontal: 24, borderRadius: 14, gap: 8 },
+    retryButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
+    backButtonAlt: { marginTop: 16, paddingVertical: 12, paddingHorizontal: 24 },
+    backButtonAltText: { fontSize: 15, fontWeight: '500', color: colors.primary },
 
-  header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: 'rgba(0,0,0,0.6)' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.error, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 6 },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.card },
-  liveText: { fontSize: 11, fontWeight: '700', color: colors.card },
-  duration: { fontSize: 18, fontWeight: '600', color: colors.card },
-  endCallButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
+    header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 24, paddingBottom: 16, backgroundColor: 'rgba(0,0,0,0.6)' },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    liveIndicator: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.error, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 6 },
+    liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.card },
+    liveText: { fontSize: 11, fontWeight: '700', color: colors.card },
+    duration: { fontSize: 18, fontWeight: '600', color: colors.card },
+    endCallButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.error, alignItems: 'center', justifyContent: 'center' },
 
-  webview: { flex: 1, backgroundColor: '#000000' },
-  webviewLoading: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' },
-  webviewLoadingText: { marginTop: 12, fontSize: 15, color: 'rgba(255,255,255,0.7)' },
+    webview: { flex: 1, backgroundColor: '#000000' },
+    webviewLoading: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' },
+    webviewLoadingText: { marginTop: 12, fontSize: 15, color: 'rgba(255,255,255,0.7)' },
 
-  bottomOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100, alignItems: 'center', paddingVertical: 16, paddingBottom: 40, backgroundColor: 'rgba(0,0,0,0.6)' },
-  encryptionBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  encryptionText: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-});
+    bottomOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100, alignItems: 'center', paddingVertical: 16, paddingBottom: 40, backgroundColor: 'rgba(0,0,0,0.6)' },
+    encryptionBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    encryptionText: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+  });
+}

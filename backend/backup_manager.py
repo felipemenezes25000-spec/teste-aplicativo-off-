@@ -17,7 +17,8 @@ import httpx
 import gzip
 import shutil
 
-load_dotenv()
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / ".env", encoding="utf-8")
 
 # Configure logging
 logging.basicConfig(

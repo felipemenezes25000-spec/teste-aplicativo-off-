@@ -10,7 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 import uuid
 from datetime import datetime, timedelta
@@ -42,7 +42,8 @@ from notifications_helper import (
 from ai_medical_analyzer import analyze_medical_document, MedicalDocumentAnalyzer
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# UTF-8 para evitar UnicodeDecodeError no Windows ao ler .env
+load_dotenv(ROOT_DIR / '.env', encoding='utf-8')
 
 # Import monitoring
 from monitoring import init_sentry, capture_exception, set_user_context
@@ -50,11 +51,47 @@ from monitoring import init_sentry, capture_exception, set_user_context
 # Initialize Sentry monitoring
 init_sentry()
 
-# Rate limiter configuration
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiter: arquivo no diretório do backend (evita erro de encoding no Windows)
+limiter = Limiter(key_func=get_remote_address, config_filename=str(ROOT_DIR / ".env.ratelimit"))
+
+# Documentação da API (Swagger + ReDoc)
+OPENAPI_DESCRIPTION = """
+## RenoveJá+ API – Telemedicina
+
+API REST do backend RenoveJá+, com autenticação JWT, pedidos de consulta, prescrição, exames, chat, pagamentos (Mercado Pago) e integrações.
+
+### Acesso à documentação
+- **Swagger UI:** [GET /docs](/docs) – testar os endpoints interativamente
+- **ReDoc:** [GET /redoc](/redoc) – documentação em formato alternativo
+- **OpenAPI JSON:** [GET /openapi.json](/openapi.json) – especificação OpenAPI 3.0
+"""
 
 # Create the main app
-app = FastAPI(title="RenoveJá+ API", version="2.0.0 - Supabase")
+app = FastAPI(
+    title="RenoveJá+ API",
+    version="2.0.0 - Supabase",
+    description=OPENAPI_DESCRIPTION,
+    docs_url="/docs",       # Swagger UI
+    redoc_url="/redoc",     # ReDoc
+    openapi_url="/openapi.json",
+    openapi_tags=[
+        {"name": "Auth", "description": "Registro, login e sessão"},
+        {"name": "Perfil", "description": "Perfil do usuário e push token"},
+        {"name": "Pedidos", "description": "Prescrição, exame e consulta"},
+        {"name": "Médicos", "description": "Fila e disponibilidade de médicos"},
+        {"name": "Enfermagem", "description": "Fila e ações de enfermagem"},
+        {"name": "Pagamentos", "description": "PIX e webhooks Mercado Pago"},
+        {"name": "Chat", "description": "Mensagens por pedido"},
+        {"name": "Notificações", "description": "Notificações do usuário"},
+        {"name": "Fila", "description": "Estatísticas e atribuição de pedidos"},
+        {"name": "Vídeo", "description": "Salas de vídeo e consulta"},
+        {"name": "IA", "description": "Análise de documentos e preenchimento"},
+        {"name": "Avaliações", "description": "Reviews de médicos"},
+        {"name": "Admin", "description": "Estatísticas e gestão de usuários"},
+        {"name": "Integrações", "description": "Status de integrações"},
+        {"name": "Health", "description": "Saúde da API"},
+    ],
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -62,7 +99,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 api_router = APIRouter(prefix="/api")
 
 # ============== ROOT ROUTE ==============
-@app.get("/")
+@app.get("/", tags=["Health"])
 async def root():
     """Página inicial da API"""
     return {
@@ -70,6 +107,8 @@ async def root():
         "version": "2.0.0",
         "status": "online",
         "docs": "/docs",
+        "redoc": "/redoc",
+        "openapi": "/openapi.json",
         "health": "/api/health",
         "message": "Bem-vindo à API do RenoveJá!"
     }
@@ -203,19 +242,19 @@ class BaseModelForbidExtra(BaseModel):
 
 class UserCreate(BaseModelForbidExtra):
     name: str
-    email: EmailStr
+    email: str
     password: str
     phone: Optional[str] = None
     cpf: Optional[str] = None
     role: Literal["patient", "doctor", "admin", "nurse"] = "patient"
 
 class UserLogin(BaseModelForbidExtra):
-    email: EmailStr
+    email: str
     password: str
 
 class DoctorRegister(BaseModelForbidExtra):
     name: str
-    email: EmailStr
+    email: str
     password: str
     phone: Optional[str] = None
     cpf: Optional[str] = None
@@ -225,7 +264,7 @@ class DoctorRegister(BaseModelForbidExtra):
 
 class NurseRegister(BaseModelForbidExtra):
     name: str
-    email: EmailStr
+    email: str
     password: str
     phone: Optional[str] = None
     cpf: Optional[str] = None
@@ -439,7 +478,7 @@ async def get_current_user(token: str = None, request: Request = None):
 
 # ============== AUTH ROUTES ==============
 
-@api_router.post("/auth/register", response_model=Token)
+@api_router.post("/auth/register", response_model=Token, tags=["Auth"])
 @limiter.limit("10/minute")
 async def register(request: Request, data: UserCreate):
     # Validate password strength
@@ -493,7 +532,7 @@ async def register(request: Request, data: UserCreate):
         }
     )
 
-@api_router.post("/auth/register-doctor", response_model=Token)
+@api_router.post("/auth/register-doctor", response_model=Token, tags=["Auth"])
 @limiter.limit("10/minute")
 async def register_doctor(request: Request, data: DoctorRegister):
     # Validate password strength
@@ -557,7 +596,7 @@ async def register_doctor(request: Request, data: DoctorRegister):
         }
     )
 
-@api_router.post("/auth/register-nurse", response_model=Token)
+@api_router.post("/auth/register-nurse", response_model=Token, tags=["Auth"])
 @limiter.limit("10/minute")
 async def register_nurse(request: Request, data: NurseRegister):
     # Validate password strength
@@ -621,7 +660,7 @@ async def register_nurse(request: Request, data: NurseRegister):
         }
     )
 
-@api_router.post("/auth/login", response_model=Token)
+@api_router.post("/auth/login", response_model=Token, tags=["Auth"])
 @limiter.limit("20/minute")
 async def login(request: Request, data: UserLogin):
     user = await find_one("users", {"email": data.email})
@@ -665,7 +704,7 @@ async def login(request: Request, data: UserLogin):
 class GoogleAuthRequest(BaseModel):
     id_token: str
 
-@api_router.post("/auth/google", response_model=Token)
+@api_router.post("/auth/google", response_model=Token, tags=["Auth"])
 async def google_auth(data: GoogleAuthRequest):
     """Authenticate with Google OAuth"""
     try:
@@ -754,7 +793,7 @@ async def google_auth(data: GoogleAuthRequest):
         print(f"Google auth error: {e}")
         raise HTTPException(status_code=500, detail="Erro ao autenticar com Google")
 
-@api_router.post("/auth/logout")
+@api_router.post("/auth/logout", tags=["Auth"])
 async def logout(token: str):
     # Verify token exists before deleting (don't leak info about valid tokens)
     token_record = await find_one("active_tokens", {"token": token})
@@ -763,7 +802,7 @@ async def logout(token: str):
     # Always return success to prevent token enumeration
     return {"message": "Logout realizado com sucesso"}
 
-@api_router.get("/auth/me")
+@api_router.get("/auth/me", tags=["Auth"])
 async def get_me(token: str):
     user = await get_current_user(token)
     
@@ -791,7 +830,7 @@ async def get_me(token: str):
 
 # ============== PROFILE ROUTES ==============
 
-@api_router.put("/profile")
+@api_router.put("/profile", tags=["Perfil"])
 async def update_profile(token: str, data: ProfileUpdate):
     user = await get_current_user(token)
     
@@ -804,7 +843,7 @@ async def update_profile(token: str, data: ProfileUpdate):
 
 # ============== PUSH TOKEN ROUTES ==============
 
-@api_router.post("/push-token")
+@api_router.post("/push-token", tags=["Perfil"])
 async def update_push_token(token: str, data: PushTokenUpdate):
     """
     Atualiza o push token do usuário para receber notificações.
@@ -826,7 +865,7 @@ async def update_push_token(token: str, data: PushTokenUpdate):
     
     return {"message": "Push token atualizado com sucesso", "push_token": push_token}
 
-@api_router.delete("/push-token")
+@api_router.delete("/push-token", tags=["Perfil"])
 async def remove_push_token(token: str):
     """
     Remove o push token do usuário (ex: ao fazer logout).
@@ -842,7 +881,7 @@ async def remove_push_token(token: str):
 
 # ============== REQUEST ROUTES ==============
 
-@api_router.post("/requests/prescription")
+@api_router.post("/requests/prescription", tags=["Pedidos"])
 @limiter.limit("10/minute")
 async def create_prescription_request(request: Request, token: str, data: PrescriptionRequestCreate):
     user = await get_current_user(token)
@@ -896,7 +935,7 @@ async def create_prescription_request(request: Request, token: str, data: Prescr
     
     return request_data
 
-@api_router.post("/requests/exam")
+@api_router.post("/requests/exam", tags=["Pedidos"])
 @limiter.limit("10/minute")
 async def create_exam_request(request: Request, token: str, data: ExamRequestCreate):
     user = await get_current_user(token)
@@ -944,7 +983,7 @@ async def create_exam_request(request: Request, token: str, data: ExamRequestCre
     
     return request_data
 
-@api_router.post("/requests/consultation")
+@api_router.post("/requests/consultation", tags=["Pedidos"])
 @limiter.limit("10/minute")
 async def create_consultation_request(request: Request, token: str, data: ConsultationRequestCreate):
     user = await get_current_user(token)
@@ -997,7 +1036,7 @@ async def create_consultation_request(request: Request, token: str, data: Consul
     
     return request_data
 
-@api_router.get("/requests")
+@api_router.get("/requests", tags=["Pedidos"])
 async def get_requests(token: str, status: Optional[str] = None):
     user = await get_current_user(token)
     user_role = user.get("role", "patient")
@@ -1038,7 +1077,7 @@ async def get_requests(token: str, status: Optional[str] = None):
     
     return all_requests
 
-@api_router.get("/requests/{request_id}")
+@api_router.get("/requests/{request_id}", tags=["Pedidos"])
 async def get_request(request_id: str, token: str):
     user = await get_current_user(token)
     request = await find_one("requests", {"id": request_id})
@@ -1075,7 +1114,7 @@ async def get_request(request_id: str, token: str):
     
     return request
 
-@api_router.put("/requests/{request_id}")
+@api_router.put("/requests/{request_id}", tags=["Pedidos"])
 async def update_request(request_id: str, token: str, data: RequestUpdate):
     user = await get_current_user(token)
     
@@ -1093,7 +1132,7 @@ async def update_request(request_id: str, token: str, data: RequestUpdate):
 
 # ============== DOCTOR WORKFLOW ROUTES ==============
 
-@api_router.post("/requests/{request_id}/accept")
+@api_router.post("/requests/{request_id}/accept", tags=["Pedidos"])
 async def doctor_accept_request(request_id: str, token: str):
     user = await get_current_user(token)
     if user.get("role") != "doctor":
@@ -1126,7 +1165,7 @@ async def doctor_accept_request(request_id: str, token: str):
     
     return {"success": True, "message": "Solicitação aceita para análise", "status": "in_review"}
 
-@api_router.post("/requests/{request_id}/approve")
+@api_router.post("/requests/{request_id}/approve", tags=["Pedidos"])
 async def doctor_approve_request(request_id: str, token: str, data: DoctorApprovalRequest = None):
     user = await get_current_user(token)
     if user.get("role") != "doctor":
@@ -1168,7 +1207,7 @@ async def doctor_approve_request(request_id: str, token: str, data: DoctorApprov
         "status": "approved_pending_payment"
     }
 
-@api_router.post("/requests/{request_id}/reject")
+@api_router.post("/requests/{request_id}/reject", tags=["Pedidos"])
 async def doctor_reject_request(request_id: str, token: str, data: DoctorRejectionRequest):
     user = await get_current_user(token)
     if user.get("role") != "doctor":
@@ -1194,7 +1233,7 @@ async def doctor_reject_request(request_id: str, token: str, data: DoctorRejecti
     
     return {"success": True, "message": "Solicitação rejeitada", "status": "rejected"}
 
-@api_router.post("/requests/{request_id}/sign")
+@api_router.post("/requests/{request_id}/sign", tags=["Pedidos"])
 async def sign_prescription(request_id: str, token: str):
     user = await get_current_user(token)
     if user.get("role") != "doctor":
@@ -1241,7 +1280,7 @@ async def sign_prescription(request_id: str, token: str):
 
 # ============== DOCTOR ROUTES ==============
 
-@api_router.get("/doctors/queue")
+@api_router.get("/doctors/queue", tags=["Médicos"])
 async def get_doctor_queue(token: str):
     user = await get_current_user(token)
     
@@ -1273,7 +1312,7 @@ async def get_doctor_queue(token: str):
         "awaiting_signature": awaiting_signature
     }
 
-@api_router.get("/doctors")
+@api_router.get("/doctors", tags=["Médicos"])
 async def get_doctors(specialty: Optional[str] = None):
     filters = {"available": True}
     if specialty:
@@ -1296,7 +1335,7 @@ async def get_doctors(specialty: Optional[str] = None):
 
 # ============== DOCTOR CONSULTATION QUEUE ==============
 
-@api_router.get("/doctor/consultation-queue")
+@api_router.get("/doctor/consultation-queue", tags=["Médicos"])
 async def get_doctor_consultation_queue(token: str):
     """Fila de teleconsultas para médicos"""
     user = await get_current_user(token)
@@ -1351,7 +1390,7 @@ async def get_doctor_consultation_queue(token: str):
 
 # ============== NURSING ROUTES ==============
 
-@api_router.get("/nursing/queue")
+@api_router.get("/nursing/queue", tags=["Enfermagem"])
 async def get_nursing_queue(token: str):
     user = await get_current_user(token)
     
@@ -1375,7 +1414,7 @@ async def get_nursing_queue(token: str):
         "awaiting_payment": awaiting_payment
     }
 
-@api_router.post("/nursing/accept/{request_id}")
+@api_router.post("/nursing/accept/{request_id}", tags=["Enfermagem"])
 async def nursing_accept_request(request_id: str, token: str):
     user = await get_current_user(token)
     
@@ -1400,7 +1439,7 @@ async def nursing_accept_request(request_id: str, token: str):
     
     return {"success": True, "message": "Solicitação aceita para triagem"}
 
-@api_router.post("/nursing/approve/{request_id}")
+@api_router.post("/nursing/approve/{request_id}", tags=["Enfermagem"])
 async def nursing_approve_request(request_id: str, token: str, data: NursingApprovalRequest):
     user = await get_current_user(token)
     
@@ -1428,7 +1467,7 @@ async def nursing_approve_request(request_id: str, token: str, data: NursingAppr
     
     return {"success": True, "message": "Solicitação aprovada pela enfermagem"}
 
-@api_router.post("/nursing/forward-to-doctor/{request_id}")
+@api_router.post("/nursing/forward-to-doctor/{request_id}", tags=["Enfermagem"])
 async def nursing_forward_to_doctor(request_id: str, token: str, data: NursingForwardRequest):
     user = await get_current_user(token)
     
@@ -1458,7 +1497,7 @@ async def nursing_forward_to_doctor(request_id: str, token: str, data: NursingFo
     
     return {"success": True, "message": "Solicitação encaminhada para médico"}
 
-@api_router.post("/nursing/reject/{request_id}")
+@api_router.post("/nursing/reject/{request_id}", tags=["Enfermagem"])
 async def nursing_reject_request(request_id: str, token: str, data: NursingRejectionRequest):
     user = await get_current_user(token)
     
@@ -1584,7 +1623,7 @@ async def check_mercadopago_payment(mp_payment_id: str):
 
 # ============== PAYMENT ROUTES ==============
 
-@api_router.post("/payments")
+@api_router.post("/payments", tags=["Pagamentos"])
 @limiter.limit("5/minute")
 async def create_payment(request: Request, token: str, data: PaymentCreate):
     user = await get_current_user(token)
@@ -1625,7 +1664,7 @@ async def create_payment(request: Request, token: str, data: PaymentCreate):
     
     return payment_data
 
-@api_router.get("/payments/{payment_id}")
+@api_router.get("/payments/{payment_id}", tags=["Pagamentos"])
 async def get_payment(payment_id: str, token: str):
     user = await get_current_user(token)
     payment = await find_one("payments", {"id": payment_id})
@@ -1671,7 +1710,7 @@ async def get_payment(payment_id: str, token: str):
     
     return payment
 
-@api_router.get("/payments/{payment_id}/status")
+@api_router.get("/payments/{payment_id}/status", tags=["Pagamentos"])
 async def check_payment_status(payment_id: str, token: str):
     user = await get_current_user(token)
     user_role = user.get("role", "patient")
@@ -1719,7 +1758,7 @@ async def check_payment_status(payment_id: str, token: str):
         "mp_status": mp_status
     }
 
-@api_router.post("/payments/{payment_id}/confirm")
+@api_router.post("/payments/{payment_id}/confirm", tags=["Pagamentos"])
 async def confirm_payment(payment_id: str, token: str):
     """Manual confirmation (for simulated payments or admin override)"""
     user = await get_current_user(token)
@@ -1866,7 +1905,7 @@ async def process_mercadopago_webhook(mp_payment_id: str):
     
     return False
 
-@api_router.post("/webhooks/mercadopago")
+@api_router.post("/webhooks/mercadopago", tags=["Pagamentos"])
 async def mercadopago_webhook_handler(request: Request):
     """
     Webhook endpoint for MercadoPago payment notifications.
@@ -1936,14 +1975,14 @@ async def mercadopago_webhook_handler(request: Request):
         return {"status": "error", "message": str(e)}
 
 # Legacy endpoint alias for backward compatibility
-@api_router.post("/payments/webhook/mercadopago")
+@api_router.post("/payments/webhook/mercadopago", tags=["Pagamentos"])
 async def mercadopago_webhook_legacy(request: Request):
     """Legacy webhook endpoint - redirects to main handler"""
     return await mercadopago_webhook_handler(request)
 
 # ============== CHAT ROUTES ==============
 
-@api_router.post("/chat")
+@api_router.post("/chat", tags=["Chat"])
 async def send_message(token: str, data: MessageCreate):
     user = await get_current_user(token)
     user_role = user.get("role", "patient")
@@ -1983,7 +2022,7 @@ async def send_message(token: str, data: MessageCreate):
     
     return message_data
 
-@api_router.get("/chat/{request_id}")
+@api_router.get("/chat/{request_id}", tags=["Chat"])
 async def get_messages(request_id: str, token: str):
     user = await get_current_user(token)
     user_role = user.get("role", "patient")
@@ -2006,13 +2045,13 @@ async def get_messages(request_id: str, token: str):
     messages = await find_many("chat_messages", filters={"request_id": request_id}, order="created_at.asc")
     return messages
 
-@api_router.get("/chat/unread-count")
+@api_router.get("/chat/unread-count", tags=["Chat"])
 async def get_unread_count(token: str):
     user = await get_current_user(token)
     # Simplified - return 0 for now
     return {"unread_count": 0}
 
-@api_router.post("/chat/{request_id}/mark-read")
+@api_router.post("/chat/{request_id}/mark-read", tags=["Chat"])
 async def mark_chat_read(request_id: str, token: str):
     user = await get_current_user(token)
     # Mark all messages as read (simplified)
@@ -2020,14 +2059,14 @@ async def mark_chat_read(request_id: str, token: str):
 
 # ============== NOTIFICATION ROUTES ==============
 
-@api_router.get("/notifications")
+@api_router.get("/notifications", tags=["Notificações"])
 async def get_notifications(token: str):
     user = await get_current_user(token)
     
     notifications = await find_many("notifications", filters={"user_id": user["id"]}, order="created_at.desc", limit=50)
     return notifications
 
-@api_router.put("/notifications/{notification_id}/read")
+@api_router.put("/notifications/{notification_id}/read", tags=["Notificações"])
 async def mark_notification_read(notification_id: str, token: str):
     user = await get_current_user(token)
     
@@ -2043,7 +2082,7 @@ async def mark_notification_read(notification_id: str, token: str):
     
     return {"message": "Notificação marcada como lida"}
 
-@api_router.put("/notifications/read-all")
+@api_router.put("/notifications/read-all", tags=["Notificações"])
 async def mark_all_notifications_read(token: str):
     user = await get_current_user(token)
     
@@ -2059,7 +2098,7 @@ async def mark_all_notifications_read(token: str):
 
 # ============== QUEUE ROUTES ==============
 
-@api_router.get("/queue/stats")
+@api_router.get("/queue/stats", tags=["Fila"])
 async def get_queue_stats(token: str):
     user = await get_current_user(token)
     
@@ -2074,7 +2113,7 @@ async def get_queue_stats(token: str):
         "average_wait_minutes": 15
     }
 
-@api_router.post("/queue/assign/{request_id}")
+@api_router.post("/queue/assign/{request_id}", tags=["Fila"])
 async def assign_doctor_to_request(request_id: str, token: str, doctor_id: Optional[str] = None):
     user = await get_current_user(token)
     
@@ -2094,7 +2133,7 @@ async def assign_doctor_to_request(request_id: str, token: str, doctor_id: Optio
 
 # ============== DOCTOR AVAILABILITY ==============
 
-@api_router.put("/doctor/availability")
+@api_router.put("/doctor/availability", tags=["Médicos"])
 async def update_doctor_availability(token: str, available: bool = True):
     """Update doctor availability status"""
     user = await get_current_user(token)
@@ -2109,7 +2148,7 @@ async def update_doctor_availability(token: str, available: bool = True):
 
 # ============== VIDEO / CONSULTATION ==============
 
-@api_router.post("/video/create-room")
+@api_router.post("/video/create-room", tags=["Vídeo"])
 async def create_video_room(token: str, request_id: str, room_name: str = None):
     """Create a Jitsi video room for consultation"""
     user = await get_current_user(token)
@@ -2135,7 +2174,7 @@ async def create_video_room(token: str, request_id: str, room_name: str = None):
     
     return {"video_room": video_room}
 
-@api_router.get("/video/room/{request_id}")
+@api_router.get("/video/room/{request_id}", tags=["Vídeo"])
 async def get_video_room(request_id: str, token: str):
     """Get video room info for a consultation"""
     user = await get_current_user(token)
@@ -2146,7 +2185,7 @@ async def get_video_room(request_id: str, token: str):
     
     return request.get("video_room")
 
-@api_router.post("/consultation/start/{request_id}")
+@api_router.post("/consultation/start/{request_id}", tags=["Vídeo"])
 async def start_consultation(request_id: str, token: str):
     """Start a consultation (doctor only)"""
     user = await get_current_user(token)
@@ -2171,7 +2210,7 @@ async def start_consultation(request_id: str, token: str):
     
     return {"message": "Consulta iniciada", "started_at": datetime.utcnow().isoformat()}
 
-@api_router.post("/consultation/end/{request_id}")
+@api_router.post("/consultation/end/{request_id}", tags=["Vídeo"])
 async def end_consultation(request_id: str, token: str, notes: str = None):
     """End a consultation (doctor only)"""
     user = await get_current_user(token)
@@ -2223,7 +2262,7 @@ async def end_consultation(request_id: str, token: str, notes: str = None):
     
     return {"message": "Consulta encerrada", "duration_minutes": duration_minutes}
 
-@api_router.post("/queue/auto-assign")
+@api_router.post("/queue/auto-assign", tags=["Fila"])
 async def auto_assign_queue(token: str):
     """Auto-assign pending requests to available doctors"""
     user = await get_current_user(token)
@@ -2258,7 +2297,7 @@ async def auto_assign_queue(token: str):
 
 # ============== SPECIALTIES ==============
 
-@api_router.get("/specialties")
+@api_router.get("/specialties", tags=["Médicos"])
 async def get_specialties():
     return [
         {"id": "1", "name": "Clínico Geral", "icon": "stethoscope", "price_per_minute": 5.30},
@@ -2280,7 +2319,7 @@ class DocumentAnalysisRequest(BaseModel):
     document_type: Optional[str] = "auto"  # "prescription", "exam", or "auto"
     request_id: Optional[str] = None  # ID da solicitação associada
 
-@api_router.post("/ai/analyze-document")
+@api_router.post("/ai/analyze-document", tags=["IA"])
 async def ai_analyze_document(token: str, data: DocumentAnalysisRequest):
     """
     🤖 Analisa um documento médico usando IA (Claude Vision)
@@ -2328,7 +2367,7 @@ async def ai_analyze_document(token: str, data: DocumentAnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
-@api_router.post("/ai/analyze-prescription")
+@api_router.post("/ai/analyze-prescription", tags=["IA"])
 async def ai_analyze_prescription(token: str, data: DocumentAnalysisRequest):
     """
     🤖 Analisa especificamente uma receita médica
@@ -2342,7 +2381,7 @@ async def ai_analyze_prescription(token: str, data: DocumentAnalysisRequest):
     data.document_type = "prescription"
     return await ai_analyze_document(token, data)
 
-@api_router.post("/ai/analyze-exam")
+@api_router.post("/ai/analyze-exam", tags=["IA"])
 async def ai_analyze_exam(token: str, data: DocumentAnalysisRequest):
     """
     🤖 Analisa especificamente uma solicitação de exames
@@ -2356,7 +2395,7 @@ async def ai_analyze_exam(token: str, data: DocumentAnalysisRequest):
     data.document_type = "exam"
     return await ai_analyze_document(token, data)
 
-@api_router.post("/ai/prefill-prescription")
+@api_router.post("/ai/prefill-prescription", tags=["IA"])
 async def ai_prefill_prescription(token: str, request_id: str, data: DocumentAnalysisRequest):
     """
     🤖 Analisa receita e pré-preenche os campos da solicitação
@@ -2432,7 +2471,7 @@ async def ai_prefill_prescription(token: str, request_id: str, data: DocumentAna
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro na análise: {str(e)}")
 
-@api_router.post("/ai/prefill-exam")
+@api_router.post("/ai/prefill-exam", tags=["IA"])
 async def ai_prefill_exam(token: str, request_id: str, data: DocumentAnalysisRequest):
     """
     🤖 Analisa solicitação de exames e pré-preenche os campos
@@ -2498,7 +2537,7 @@ class ReviewCreate(BaseModel):
     tags: Optional[List[str]] = None
     comment: Optional[str] = None
 
-@api_router.post("/reviews/{request_id}")
+@api_router.post("/reviews/{request_id}", tags=["Avaliações"])
 async def submit_review(request_id: str, token: str, data: ReviewCreate):
     """Submit a review for a completed request"""
     user = await get_current_user(token)
@@ -2533,7 +2572,7 @@ async def submit_review(request_id: str, token: str, data: ReviewCreate):
     
     return {"message": "Avaliação enviada com sucesso", "review": review_data}
 
-@api_router.get("/reviews/doctor/{doctor_id}")
+@api_router.get("/reviews/doctor/{doctor_id}", tags=["Avaliações"])
 async def get_doctor_reviews(doctor_id: str, limit: int = 20):
     """Get reviews for a specific doctor"""
     requests = await find_many("requests", filters={"doctor_id": doctor_id}, order="created_at.desc", limit=limit)
@@ -2555,7 +2594,7 @@ async def get_doctor_reviews(doctor_id: str, limit: int = 20):
 
 # ============== ADMIN ROUTES ==============
 
-@api_router.get("/admin/stats")
+@api_router.get("/admin/stats", tags=["Admin"])
 async def get_admin_stats(token: str):
     # SECURITY: Require admin authentication
     user = await get_current_user(token)
@@ -2589,7 +2628,7 @@ async def get_admin_stats(token: str):
         "total_revenue": total_revenue
     }
 
-@api_router.get("/admin/reports")
+@api_router.get("/admin/reports", tags=["Admin"])
 async def get_admin_reports(token: str, period: str = "month"):
     """Get detailed reports (admin only)"""
     user = await get_current_user(token)
@@ -2650,7 +2689,7 @@ async def get_admin_reports(token: str, period: str = "month"):
         ]
     }
 
-@api_router.get("/admin/users")
+@api_router.get("/admin/users", tags=["Admin"])
 async def get_admin_users(token: str, role: str = None):
     """Get all users (admin only)"""
     user = await get_current_user(token)
@@ -2666,7 +2705,7 @@ async def get_admin_users(token: str, role: str = None):
     
     return users
 
-@api_router.put("/admin/users/{user_id}/status")
+@api_router.put("/admin/users/{user_id}/status", tags=["Admin"])
 async def update_user_status(user_id: str, token: str, active: bool = True):
     """Activate/deactivate user (admin only)"""
     user = await get_current_user(token)
@@ -2681,7 +2720,7 @@ async def update_user_status(user_id: str, token: str, active: bool = True):
     
     return {"message": f"Usuário {'ativado' if active else 'desativado'} com sucesso"}
 
-@api_router.get("/integrations/status")
+@api_router.get("/integrations/status", tags=["Integrações"])
 async def get_integrations_status():
     return {
         "payments": {"mercadopago": False, "stripe": False, "simulated_available": True},
@@ -2691,11 +2730,11 @@ async def get_integrations_status():
 
 # ============== HEALTH CHECK ==============
 
-@api_router.get("/")
+@api_router.get("/", tags=["Health"])
 async def root():
     return {"message": "RenoveJá+ API", "version": "2.0.0", "database": "Supabase", "status": "healthy"}
 
-@api_router.get("/health")
+@api_router.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy", "database": "supabase", "timestamp": datetime.utcnow().isoformat()}
 
@@ -2712,15 +2751,19 @@ if os.getenv("ENV", "development") == "production":
         "https://admin.renoveja.com.br"
     ])
 
-app.add_middleware(
-    CORSMiddleware,
+# Em desenvolvimento, permitir qualquer origem (para app no celular via Expo Go)
+_cors_kw = dict(
     allow_credentials=True,
     allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"],
     expose_headers=["X-Total-Count", "X-Request-ID"],
-    max_age=3600,  # Cache preflight requests for 1 hour
+    max_age=3600,
 )
+if os.getenv("ENV", "development") != "production":
+    _cors_kw["allow_origin_regex"] = r".*"
+
+app.add_middleware(CORSMiddleware, **_cors_kw)
 
 # Configure logging
 logging.basicConfig(

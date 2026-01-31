@@ -36,6 +36,7 @@ interface ChatMessage {
 
 export default function ChatScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { requestId } = useLocalSearchParams<{ requestId: string }>();
   const { user } = useAuth();
@@ -219,8 +220,9 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
 
   header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
@@ -260,4 +262,5 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, color: colors.textPrimary, maxHeight: 100, paddingVertical: 10, paddingHorizontal: 4 },
   sendButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   sendButtonDisabled: { backgroundColor: colors.border },
-});
+  });
+}

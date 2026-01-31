@@ -54,6 +54,7 @@ interface AnalysisResult {
 
 export default function AIAnalyzeDocumentScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
   const router = useRouter();
   
@@ -425,8 +426,9 @@ export default function AIAnalyzeDocumentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
 
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
@@ -486,4 +488,5 @@ const styles = StyleSheet.create({
   saveButton: { flex: 2 },
   saveButtonGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, gap: 8 },
   saveButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
-});
+  });
+}

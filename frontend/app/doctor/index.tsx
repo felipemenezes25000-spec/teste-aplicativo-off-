@@ -50,6 +50,7 @@ export default function DoctorDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const colors = useColors();
+  const styles = createStyles(colors);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -472,11 +473,11 @@ export default function DoctorDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
-  
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
-  loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFB' },
+    loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFB' },
+    loadingText: { marginTop: 12, fontSize: 14, color: colors.textSecondary },
 
   // Header
   header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20 },
@@ -552,4 +553,5 @@ const styles = StyleSheet.create({
   quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   quickActionButton: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: colors.shadowColor, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
   quickActionText: { fontSize: 13, fontWeight: '500', color: colors.textPrimary, marginTop: 8 },
-});
+  });
+}

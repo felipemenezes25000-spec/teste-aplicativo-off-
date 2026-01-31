@@ -1,17 +1,25 @@
 """
 Monitoring Configuration for RenoveJá+ API
-Sentry integration for error tracking and performance monitoring
+Sentry integration for error tracking and performance monitoring (opcional)
 """
 
 import os
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
-# from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration  # Not needed for Supabase
 
-load_dotenv()
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    SENTRY_AVAILABLE = True
+except ImportError:
+    sentry_sdk = None
+    SENTRY_AVAILABLE = False
+    logging.warning("sentry_sdk não instalado. Monitoramento desativado.")
+
+ROOT_DIR = Path(__file__).parent
+load_dotenv(ROOT_DIR / ".env", encoding="utf-8")
 
 def init_sentry(app_name: str = "renoveja-backend", environment: str = None):
     """
@@ -21,6 +29,10 @@ def init_sentry(app_name: str = "renoveja-backend", environment: str = None):
         app_name: Application name for Sentry
         environment: Environment (development, staging, production)
     """
+    if not SENTRY_AVAILABLE:
+        logging.info("Sentry não disponível. Monitoramento desativado.")
+        return
+
     sentry_dsn = os.getenv("SENTRY_DSN")
     
     if not sentry_dsn:
@@ -132,8 +144,9 @@ def capture_exception(error: Exception, context: dict = None):
         error: The exception to capture
         context: Additional context to attach to the error
     """
-    if sentry_sdk.Hub.current.client:
-        with sentry_sdk.push_scope() as scope:
+    if not SENTRY_AVAILABLE or not (sentry_sdk and sentry_sdk.Hub.current.client):
+        return
+    with sentry_sdk.push_scope() as scope:
             if context:
                 for key, value in context.items():
                     scope.set_extra(key, value)
@@ -148,8 +161,9 @@ def capture_message(message: str, level: str = "info", context: dict = None):
         level: Log level (debug, info, warning, error, fatal)
         context: Additional context to attach to the message
     """
-    if sentry_sdk.Hub.current.client:
-        with sentry_sdk.push_scope() as scope:
+    if not SENTRY_AVAILABLE or not (sentry_sdk and sentry_sdk.Hub.current.client):
+        return
+    with sentry_sdk.push_scope() as scope:
             if context:
                 for key, value in context.items():
                     scope.set_extra(key, value)
@@ -164,8 +178,9 @@ def set_user_context(user_id: str, email: str = None, role: str = None):
         email: User email (optional)
         role: User role (optional)
     """
-    if sentry_sdk.Hub.current.client:
-        sentry_sdk.set_user({
+    if not SENTRY_AVAILABLE or not (sentry_sdk and sentry_sdk.Hub.current.client):
+        return
+    sentry_sdk.set_user({
             "id": user_id,
             "email": email,
             "role": role
@@ -181,8 +196,9 @@ def add_breadcrumb(message: str, category: str = "custom", level: str = "info", 
         level: Log level
         data: Additional data
     """
-    if sentry_sdk.Hub.current.client:
-        sentry_sdk.add_breadcrumb(
+    if not SENTRY_AVAILABLE or not (sentry_sdk and sentry_sdk.Hub.current.client):
+        return
+    sentry_sdk.add_breadcrumb(
             message=message,
             category=category,
             level=level,

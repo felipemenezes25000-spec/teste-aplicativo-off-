@@ -102,6 +102,11 @@ cd backend
 uvicorn server:app --reload --port 8000
 ```
 
+Com o backend rodando, a documentação das APIs fica disponível em:
+- **Swagger UI:** http://localhost:8000/docs — ver e testar todos os endpoints
+- **ReDoc:** http://localhost:8000/redoc — documentação alternativa
+- **OpenAPI JSON:** http://localhost:8000/openapi.json — especificação OpenAPI 3.0
+
 ### Frontend
 ```bash
 cd frontend

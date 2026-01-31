@@ -31,6 +31,7 @@ const STATES = [
 
 export default function RegisterNurseScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { registerNurse } = useAuth();
   
@@ -61,10 +62,22 @@ export default function RegisterNurseScreen() {
 
     setLoading(true);
     try {
-      await registerNurse({ name, email, password, phone, coren, coren_state: corenState });
-      Alert.alert('Sucesso! 🎉', 'Cadastro realizado com sucesso!', [
-        { text: 'OK', onPress: () => router.replace('/nurse') }
-      ]);
+      const result = await registerNurse({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim() || undefined,
+        coren: coren.trim(),
+        coren_state: corenState,
+      });
+      
+      if (result.success) {
+        Alert.alert('Sucesso! 🎉', 'Cadastro realizado com sucesso!', [
+          { text: 'OK', onPress: () => router.replace('/nurse') }
+        ]);
+      } else {
+        Alert.alert('Erro', result.error || 'Erro ao cadastrar');
+      }
     } catch (error: any) {
       Alert.alert('Erro', error.message || 'Erro ao cadastrar');
     } finally {
@@ -204,40 +217,42 @@ export default function RegisterNurseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
 
-  header: { paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24 },
-  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  headerContent: { alignItems: 'center' },
-  iconContainer: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  headerTitle: { fontSize: 24, fontWeight: '700', color: colors.card, marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+    header: { paddingTop: 50, paddingBottom: 32, paddingHorizontal: 24 },
+    backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    headerContent: { alignItems: 'center' },
+    iconContainer: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    headerTitle: { fontSize: 24, fontWeight: '700', color: colors.card, marginBottom: 4 },
+    headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
 
-  content: { flex: 1 },
-  contentContainer: { padding: 24 },
+    content: { flex: 1 },
+    contentContainer: { padding: 24 },
 
-  formCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
+    formCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
 
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, marginBottom: 14, paddingHorizontal: 14, height: 52 },
-  inputFocused: { borderColor: colors.success, backgroundColor: colors.card },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, color: colors.textPrimary },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, marginBottom: 14, paddingHorizontal: 14, height: 52 },
+    inputFocused: { borderColor: colors.success, backgroundColor: colors.card },
+    inputIcon: { marginRight: 10 },
+    input: { flex: 1, fontSize: 15, color: colors.textPrimary },
 
-  corenRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  corenInputContainer: { flex: 1 },
-  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, height: 52, gap: 6, minWidth: 80 },
-  stateSelectorText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+    corenRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+    corenInputContainer: { flex: 1 },
+    stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, height: 52, gap: 6, minWidth: 80 },
+    stateSelectorText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
 
-  stateDropdown: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 14, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
-  stateOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F7' },
-  stateOptionText: { fontSize: 15, color: colors.textPrimary, textAlign: 'center' },
-  stateOptionSelected: { color: colors.success, fontWeight: '600' },
+    stateDropdown: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 14, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
+    stateOption: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F7' },
+    stateOptionText: { fontSize: 15, color: colors.textPrimary, textAlign: 'center' },
+    stateOptionSelected: { color: colors.success, fontWeight: '600' },
 
-  registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8, marginTop: 8 },
-  registerButtonText: { fontSize: 17, fontWeight: '600', color: colors.card },
+    registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 52, borderRadius: 14, gap: 8, marginTop: 8 },
+    registerButtonText: { fontSize: 17, fontWeight: '600', color: colors.card },
 
-  loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  loginText: { fontSize: 15, color: colors.textSecondary },
-  loginLink: { fontSize: 15, color: colors.success, fontWeight: '600' },
-});
+    loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+    loginText: { fontSize: 15, color: colors.textSecondary },
+    loginLink: { fontSize: 15, color: colors.success, fontWeight: '600' },
+  });
+}

@@ -31,15 +31,19 @@ interface Notification {
   data?: any;
 }
 
-const typeConfig: Record<string, { icon: string; color: string; bg: string }> = {
-  success: { icon: 'checkmark-circle', color: colors.success, bg: '#D1FAE5' },
-  warning: { icon: 'alert-circle', color: colors.warning, bg: '#FEF3C7' },
-  info: { icon: 'information-circle', color: COLORS.primary, bg: '#DFF7FB' },
-  error: { icon: 'close-circle', color: colors.error, bg: '#FEE2E2' },
-};
+function getTypeConfig(colors: ReturnType<typeof useColors>): Record<string, { icon: string; color: string; bg: string }> {
+  return {
+    success: { icon: 'checkmark-circle', color: colors.success, bg: '#D1FAE5' },
+    warning: { icon: 'alert-circle', color: colors.warning, bg: '#FEF3C7' },
+    info: { icon: 'information-circle', color: COLORS.primary, bg: '#DFF7FB' },
+    error: { icon: 'close-circle', color: colors.error, bg: '#FEE2E2' },
+  };
+}
 
 export default function NotificationsScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
+  const typeConfig = getTypeConfig(colors);
   const router = useRouter();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -200,135 +204,133 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  // Header
-  header: {
-    paddingTop: 50,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  markAllButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  markAllText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.card,
-  },
+    header: {
+      paddingTop: 50,
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.card,
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.8)',
+    },
+    markAllButton: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+    },
+    markAllText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.card,
+    },
 
-  // List
-  listContent: {
-    padding: 24,
-    paddingBottom: 100,
-  },
+    listContent: {
+      padding: 24,
+      paddingBottom: 100,
+    },
 
-  // Notification Card
-  notificationCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  notificationUnread: {
-    backgroundColor: '#F0FBFC',
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 20,
-    left: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  notificationTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginRight: 8,
-  },
-  notificationTime: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
+    notificationCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: colors.textPrimary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    notificationUnread: {
+      backgroundColor: '#F0FBFC',
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
+    },
+    unreadDot: {
+      position: 'absolute',
+      top: 20,
+      left: 8,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
+    iconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    notificationContent: {
+      flex: 1,
+    },
+    notificationHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    notificationTitle: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginRight: 8,
+    },
+    notificationTime: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    notificationMessage: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
 
-  // Empty
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: colors.backgroundDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-});
+    emptyContainer: {
+      alignItems: 'center',
+      paddingVertical: 48,
+    },
+    emptyIconContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      backgroundColor: colors.backgroundDark,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+  });
+}

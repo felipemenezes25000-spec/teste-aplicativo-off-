@@ -22,21 +22,23 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext'
-import { useColors } from '@/contexts/ThemeContext';;
+import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 import { COLORS } from '@/utils/constants';
 
-const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+const getStatusConfig = (colors: ReturnType<typeof useColors>): Record<string, { color: string; bg: string; label: string }> => ({
   submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Aguardando triagem' },
   in_nursing_review: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Em triagem' },
   approved_by_nursing_pending_payment: { color: colors.success, bg: '#D1FAE5', label: 'Aprovado - Aguard. pgto' },
   in_medical_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Com o médico' },
   rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusado' },
-};
+});
 
 export default function NurseRequestDetailScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
+  const statusConfig = getStatusConfig(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -360,8 +362,9 @@ export default function NurseRequestDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
   errorText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
 
@@ -420,4 +423,5 @@ const styles = StyleSheet.create({
   modalButtonDanger: { backgroundColor: colors.error },
   modalButtonPrimary: { backgroundColor: COLORS.primary },
   modalButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
-});
+  });
+}

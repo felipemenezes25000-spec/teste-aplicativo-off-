@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/services/api';
+import { useColors } from '@/contexts/ThemeContext';
 
 // Especialidades médicas com preços base
 // Por enquanto apenas Clínico Geral - outras serão adicionadas futuramente
@@ -50,6 +51,7 @@ const timeSlots = [
 export default function ConsultationScreen() {
   const router = useRouter();
   const colors = useColors();
+  const styles = createStyles(colors);
   const [step, setStep] = useState(1); // 1: Duração, 2: Agendamento, 3: Resumo (especialidade já é Clínico Geral)
   const [selectedSpecialty, setSelectedSpecialty] = useState<string>('general'); // Sempre Clínico Geral por enquanto
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
@@ -538,119 +540,121 @@ export default function ConsultationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFB' },
 
-  // Header
-  header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
-  backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  headerContent: { marginBottom: 16 },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
-  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  progressBar: { flexDirection: 'row', gap: 8 },
-  progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' },
-  progressDotActive: { backgroundColor: '#FFFFFF' },
-  progressDotCurrent: { backgroundColor: '#FFFFFF' },
+    // Header
+    header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
+    backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    headerContent: { marginBottom: 16 },
+    headerTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+    headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+    progressBar: { flexDirection: 'row', gap: 8 },
+    progressDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' },
+    progressDotActive: { backgroundColor: '#FFFFFF' },
+    progressDotCurrent: { backgroundColor: '#FFFFFF' },
 
-  // Content
-  content: { flex: 1 },
-  contentContainer: { padding: 24 },
+    // Content
+    content: { flex: 1 },
+    contentContainer: { padding: 24 },
 
-  // Step titles
-  stepTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
-  stepSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
+    // Step titles
+    stepTitle: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+    stepSubtitle: { fontSize: 15, color: colors.textSecondary, marginBottom: 24 },
+    sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
-  // Specialties
-  specialtiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  specialtyCard: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  specialtyCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
-  specialtyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  specialtyIconSelected: { backgroundColor: '#EC4899' },
-  specialtyTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  specialtyTitleSelected: { color: '#EC4899' },
-  specialtyDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
-  specialtyPrice: { fontSize: 12, color: colors.textSecondary, fontStyle: 'italic' },
-  specialtyPriceSelected: { color: '#EC4899', fontWeight: '500' },
+    // Specialties
+    specialtiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    specialtyCard: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    specialtyCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+    specialtyIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+    specialtyIconSelected: { backgroundColor: '#EC4899' },
+    specialtyTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+    specialtyTitleSelected: { color: '#EC4899' },
+    specialtyDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8 },
+    specialtyPrice: { fontSize: 12, color: colors.textSecondary, fontStyle: 'italic' },
+    specialtyPriceSelected: { color: '#EC4899', fontWeight: '500' },
 
-  // Durations
-  durationsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  durationCard: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  durationCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
-  durationIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  durationIconSelected: { backgroundColor: '#EC4899' },
-  durationLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
-  durationLabelSelected: { color: '#EC4899' },
-  durationDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8, textAlign: 'center' },
-  durationDescriptionSelected: { color: '#EC4899' },
-  durationPrice: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  durationPriceSelected: { color: '#EC4899' },
+    // Durations
+    durationsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    durationCard: { width: '48%', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    durationCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+    durationIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+    durationIconSelected: { backgroundColor: '#EC4899' },
+    durationLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+    durationLabelSelected: { color: '#EC4899' },
+    durationDescription: { fontSize: 12, color: colors.textSecondary, marginBottom: 8, textAlign: 'center' },
+    durationDescriptionSelected: { color: '#EC4899' },
+    durationPrice: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+    durationPriceSelected: { color: '#EC4899' },
 
-  // Schedule types
-  scheduleTypes: { flexDirection: 'row', gap: 12 },
-  scheduleTypeCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  scheduleTypeCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
-  scheduleBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  scheduleBadgeText: { fontSize: 10, fontWeight: '600', color: '#FFFFFF' },
-  scheduleTypeLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginTop: 10 },
-  scheduleTypeLabelSelected: { color: '#EC4899' },
-  scheduleTypeDescription: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
+    // Schedule types
+    scheduleTypes: { flexDirection: 'row', gap: 12 },
+    scheduleTypeCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, alignItems: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    scheduleTypeCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+    scheduleBadge: { position: 'absolute', top: -8, right: -8, backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+    scheduleBadgeText: { fontSize: 10, fontWeight: '600', color: '#FFFFFF' },
+    scheduleTypeLabel: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginTop: 10 },
+    scheduleTypeLabelSelected: { color: '#EC4899' },
+    scheduleTypeDescription: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
 
-  // Dates
-  datesScroll: { marginBottom: 8 },
-  dateCard: { width: 72, height: 90, backgroundColor: '#FFFFFF', borderRadius: 14, marginRight: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  dateCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
-  dateDay: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
-  dateDaySelected: { color: '#EC4899' },
-  dateNumber: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
-  dateNumberSelected: { color: '#EC4899' },
-  dateToday: { fontSize: 10, color: colors.success, fontWeight: '600', marginTop: 4 },
-  dateTodaySelected: { color: '#EC4899' },
+    // Dates
+    datesScroll: { marginBottom: 8 },
+    dateCard: { width: 72, height: 90, backgroundColor: '#FFFFFF', borderRadius: 14, marginRight: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    dateCardSelected: { borderColor: '#EC4899', backgroundColor: '#FDF2F8' },
+    dateDay: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
+    dateDaySelected: { color: '#EC4899' },
+    dateNumber: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+    dateNumberSelected: { color: '#EC4899' },
+    dateToday: { fontSize: 10, color: colors.success, fontWeight: '600', marginTop: 4 },
+    dateTodaySelected: { color: '#EC4899' },
 
-  // Time slots
-  timeSlotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  timeSlot: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E4E9EC' },
-  timeSlotSelected: { backgroundColor: '#EC4899', borderColor: '#EC4899' },
-  timeSlotDisabled: { backgroundColor: '#F1F5F9', borderColor: '#E4E9EC' },
-  timeSlotText: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
-  timeSlotTextSelected: { color: '#FFFFFF' },
-  timeSlotTextDisabled: { color: '#9BA7AF' },
+    // Time slots
+    timeSlotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    timeSlot: { paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#E4E9EC' },
+    timeSlotSelected: { backgroundColor: '#EC4899', borderColor: '#EC4899' },
+    timeSlotDisabled: { backgroundColor: '#F1F5F9', borderColor: '#E4E9EC' },
+    timeSlotText: { fontSize: 14, fontWeight: '500', color: colors.textPrimary },
+    timeSlotTextSelected: { color: '#FFFFFF' },
+    timeSlotTextDisabled: { color: '#9BA7AF' },
 
-  // Info card
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FDF2F8', borderRadius: 16, padding: 16, marginTop: 20, gap: 14 },
-  infoContent: { flex: 1 },
-  infoTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
-  infoText: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    // Info card
+    infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FDF2F8', borderRadius: 16, padding: 16, marginTop: 20, gap: 14 },
+    infoContent: { flex: 1 },
+    infoTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+    infoText: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
 
-  // Summary
-  summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
-  summaryItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  summaryItemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  summaryItemContent: { flex: 1 },
-  summaryItemLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
-  summaryItemValue: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  summaryDivider: { height: 1, backgroundColor: '#E4E9EC', marginVertical: 16 },
-  summaryTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryTotalLabel: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
-  summaryTotalPrice: { fontSize: 28, fontWeight: '700', color: '#EC4899' },
+    // Summary
+    summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+    summaryItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    summaryItemIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FDF2F8', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+    summaryItemContent: { flex: 1 },
+    summaryItemLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
+    summaryItemValue: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+    summaryDivider: { height: 1, backgroundColor: '#E4E9EC', marginVertical: 16 },
+    summaryTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    summaryTotalLabel: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+    summaryTotalPrice: { fontSize: 28, fontWeight: '700', color: '#EC4899' },
 
-  // How it works
-  howItWorksCard: { backgroundColor: '#F8FAFB', borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: '#E4E9EC' },
-  howItWorksTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
-  howItWorksStep: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  howItWorksNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#EC4899', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  howItWorksNumberText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  howItWorksText: { flex: 1, fontSize: 14, color: colors.textSecondary },
+    // How it works
+    howItWorksCard: { backgroundColor: '#F8FAFB', borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: '#E4E9EC' },
+    howItWorksTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
+    howItWorksStep: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    howItWorksNumber: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#EC4899', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+    howItWorksNumberText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+    howItWorksText: { flex: 1, fontSize: 14, color: colors.textSecondary },
 
-  // Guarantees
-  guaranteesRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, paddingVertical: 16, backgroundColor: '#ECFDF5', borderRadius: 12 },
-  guaranteeItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  guaranteeText: { fontSize: 12, fontWeight: '500', color: colors.success },
+    // Guarantees
+    guaranteesRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20, paddingVertical: 16, backgroundColor: '#ECFDF5', borderRadius: 12 },
+    guaranteeItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    guaranteeText: { fontSize: 12, fontWeight: '500', color: colors.success },
 
-  // Bottom actions
-  bottomActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E4E9EC', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 },
-  nextButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
-  nextButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-  submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 10 },
-  submitButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
-});
+    // Bottom actions
+    bottomActions: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', padding: 20, paddingBottom: Platform.OS === 'ios' ? 36 : 20, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E4E9EC', shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 10 },
+    nextButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+    nextButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+    submitButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 10 },
+    submitButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  });
+}

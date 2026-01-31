@@ -32,6 +32,7 @@ const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '8640174034
 
 export default function LoginScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { login, loginWithGoogle } = useAuth();
   
@@ -316,225 +317,216 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#E8F6F8',
-  },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#E8F6F8',
+    },
+    gradient: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    keyboardView: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      paddingTop: 60,
+      paddingBottom: 40,
+    },
 
-  // Logo Section
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  brandName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  brandTagline: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
+    logoSection: {
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+    logoContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    brandName: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    brandTagline: {
+      fontSize: 15,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
 
-  // Badges
-  badges: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 32,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  badgeText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
+    badges: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 16,
+      marginBottom: 32,
+    },
+    badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    badgeText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
 
-  // Form Card
-  formCard: {
-    backgroundColor: colors.card,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 5,
-  },
+    formCard: {
+      backgroundColor: colors.card,
+      borderRadius: 24,
+      padding: 24,
+      shadowColor: colors.textPrimary,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 24,
+      elevation: 5,
+    },
 
-  // Error
-  errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    gap: 8,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.error,
-  },
+    errorContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FEE2E2',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+      gap: 8,
+    },
+    errorText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.error,
+    },
 
-  // Input
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputFocused: {
-    borderColor: colors.primary,
-    backgroundColor: colors.card,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  eyeButton: {
-    padding: 4,
-  },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: 16,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      marginBottom: 16,
+      paddingHorizontal: 16,
+      height: 56,
+    },
+    inputFocused: {
+      borderColor: colors.primary,
+      backgroundColor: colors.card,
+    },
+    inputIcon: {
+      marginRight: 12,
+    },
+    input: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    eyeButton: {
+      padding: 4,
+    },
 
-  // Forgot Password
-  forgotButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
+    forgotButton: {
+      alignSelf: 'flex-end',
+      marginBottom: 20,
+    },
+    forgotText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontWeight: '500',
+    },
 
-  // Login Button
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 56,
-    borderRadius: 16,
-    gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  loginButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.card,
-  },
+    loginButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      borderRadius: 16,
+      gap: 8,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    loginButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.card,
+    },
 
-  // Divider
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    paddingHorizontal: 16,
-    fontSize: 13,
-    color: colors.textMuted,
-  },
+    divider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginVertical: 24,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.border,
+    },
+    dividerText: {
+      paddingHorizontal: 16,
+      fontSize: 13,
+      color: colors.textMuted,
+    },
 
-  // Social Buttons
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  socialButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  socialButtonDark: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
-  },
+    socialButtons: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 16,
+    },
+    socialButton: {
+      width: 60,
+      height: 60,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    socialButtonDark: {
+      backgroundColor: colors.textPrimary,
+      borderColor: colors.textPrimary,
+    },
 
-  // Register Section
-  registerSection: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-    gap: 4,
-  },
-  registerText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  registerLink: {
-    fontSize: 15,
-    color: colors.primary,
-    fontWeight: '600',
-  },
+    registerSection: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginTop: 24,
+      gap: 4,
+    },
+    registerText: {
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+    registerLink: {
+      fontSize: 15,
+      color: colors.primary,
+      fontWeight: '600',
+    },
 
-  // Pro Links
-  proLinks: {
-    alignItems: 'center',
-    marginTop: 16,
-    gap: 8,
-  },
-  proText: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  proLink: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-});
+    proLinks: {
+      alignItems: 'center',
+      marginTop: 16,
+      gap: 8,
+    },
+    proText: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    proLink: {
+      color: colors.primary,
+      fontWeight: '500',
+    },
+  });
+}

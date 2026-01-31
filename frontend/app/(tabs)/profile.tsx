@@ -31,14 +31,20 @@ interface MenuItemProps {
   danger?: boolean;
 }
 
-const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightElement, danger }: MenuItemProps) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-    <View style={[styles.menuIconContainer, danger && styles.menuIconDanger]}>
+type ProfileStyles = ReturnType<typeof createStyles>;
+interface MenuItemPropsWithColors extends MenuItemProps {
+  colors: ReturnType<typeof useColors>;
+  styles: ProfileStyles;
+}
+
+const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightElement, danger, colors, styles: menuStyles }: MenuItemPropsWithColors) => (
+  <TouchableOpacity style={menuStyles.menuItem} onPress={onPress} activeOpacity={0.7}>
+    <View style={[menuStyles.menuIconContainer, danger && menuStyles.menuIconDanger]}>
       <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : colors.primary} />
     </View>
-    <View style={styles.menuContent}>
-      <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+    <View style={menuStyles.menuContent}>
+      <Text style={[menuStyles.menuTitle, danger && menuStyles.menuTitleDanger]}>{title}</Text>
+      {subtitle && <Text style={menuStyles.menuSubtitle}>{subtitle}</Text>}
     </View>
     {rightElement}
     {showArrow && !rightElement && (
@@ -49,6 +55,7 @@ const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, rightEleme
 
 export default function ProfileScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { user, logout } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -130,26 +137,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Conta</Text>
           <View style={styles.menuCard}>
-            <MenuItem
-              icon="person-outline"
-              title="Dados pessoais"
-              subtitle="Nome, CPF, data de nascimento"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="person-outline" title="Dados pessoais" subtitle="Nome, CPF, data de nascimento" onPress={() => {}} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="location-outline"
-              title="Endereços"
-              subtitle="Gerencie seus endereços"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="location-outline" title="Endereços" subtitle="Gerencie seus endereços" onPress={() => {}} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="card-outline"
-              title="Pagamento"
-              subtitle="Cartões e PIX"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="card-outline" title="Pagamento" subtitle="Cartões e PIX" onPress={() => {}} />
           </View>
         </View>
 
@@ -157,42 +149,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferências</Text>
           <View style={styles.menuCard}>
-            <MenuItem
-              icon="notifications-outline"
-              title="Notificações"
-              onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-              showArrow={false}
-              rightElement={
-                <Switch
-                  value={notificationsEnabled}
-                  onValueChange={setNotificationsEnabled}
-                  trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }}
-                  thumbColor={notificationsEnabled ? '#10B981' : '#FFFFFF'}
-                />
-              }
-            />
+            <MenuItem colors={colors} styles={styles} icon="notifications-outline" title="Notificações" onPress={() => setNotificationsEnabled(!notificationsEnabled)} showArrow={false} rightElement={<Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }} thumbColor={notificationsEnabled ? '#10B981' : '#FFFFFF'} />} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="moon-outline"
-              title="Modo escuro"
-              onPress={() => setDarkMode(!darkMode)}
-              showArrow={false}
-              rightElement={
-                <Switch
-                  value={darkMode}
-                  onValueChange={setDarkMode}
-                  trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }}
-                  thumbColor={darkMode ? '#10B981' : '#FFFFFF'}
-                />
-              }
-            />
+            <MenuItem colors={colors} styles={styles} icon="moon-outline" title="Modo escuro" onPress={() => setDarkMode(!darkMode)} showArrow={false} rightElement={<Switch value={darkMode} onValueChange={setDarkMode} trackColor={{ false: '#E4E9EC', true: '#A8E6CF' }} thumbColor={darkMode ? '#10B981' : '#FFFFFF'} />} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="language-outline"
-              title="Idioma"
-              subtitle="Português (BR)"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="language-outline" title="Idioma" subtitle="Português (BR)" onPress={() => {}} />
           </View>
         </View>
 
@@ -200,42 +161,20 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Suporte</Text>
           <View style={styles.menuCard}>
-            <MenuItem
-              icon="help-circle-outline"
-              title="Central de ajuda"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="help-circle-outline" title="Central de ajuda" onPress={() => {}} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="chatbubble-outline"
-              title="Fale conosco"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="chatbubble-outline" title="Fale conosco" onPress={() => {}} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="document-text-outline"
-              title="Termos de uso"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="document-text-outline" title="Termos de uso" onPress={() => {}} />
             <View style={styles.menuDivider} />
-            <MenuItem
-              icon="shield-outline"
-              title="Política de privacidade"
-              onPress={() => {}}
-            />
+            <MenuItem colors={colors} styles={styles} icon="shield-outline" title="Política de privacidade" onPress={() => {}} />
           </View>
         </View>
 
         {/* Logout */}
         <View style={styles.section}>
           <View style={styles.menuCard}>
-            <MenuItem
-              icon="log-out-outline"
-              title="Sair da conta"
-              onPress={handleLogout}
-              showArrow={false}
-              danger
-            />
+            <MenuItem colors={colors} styles={styles} icon="log-out-outline" title="Sair da conta" onPress={handleLogout} showArrow={false} danger />
           </View>
         </View>
 
@@ -248,187 +187,177 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-
-  // Header
-  header: {
-    paddingTop: 50,
-    paddingBottom: 80,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.card,
-  },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Profile Card
-  profileCard: {
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 32,
-    borderWidth: 4,
-    borderColor: colors.card,
-  },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.card,
-  },
-  avatarInitials: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: colors.card,
-  },
-  cameraButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.card,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.card,
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 12,
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: colors.card,
-  },
-
-  // Content
-  content: {
-    flex: 1,
-    marginTop: -40,
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-  },
-
-  // Section
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 12,
-    marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  // Menu Card
-  menuCard: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  menuIconDanger: {
-    backgroundColor: '#FEE2E2',
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  menuTitleDanger: {
-    color: colors.error,
-  },
-  menuSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: colors.backgroundDark,
-    marginLeft: 70,
-  },
-
-  // Version
-  versionText: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 8,
-  },
-});
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingTop: 50,
+      paddingBottom: 80,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      marginBottom: 24,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.card,
+    },
+    editButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    profileCard: {
+      alignItems: 'center',
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginBottom: 16,
+    },
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 32,
+      borderWidth: 4,
+      borderColor: colors.card,
+    },
+    avatarPlaceholder: {
+      width: 100,
+      height: 100,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 4,
+      borderColor: colors.card,
+    },
+    avatarInitials: {
+      fontSize: 36,
+      fontWeight: '700',
+      color: colors.card,
+    },
+    cameraButton: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 3,
+      borderColor: colors.card,
+    },
+    userName: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: colors.card,
+      marginBottom: 4,
+    },
+    userEmail: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 12,
+    },
+    badgeContainer: {
+      flexDirection: 'row',
+    },
+    badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      gap: 6,
+    },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: colors.card,
+    },
+    content: {
+      flex: 1,
+      marginTop: -40,
+    },
+    contentContainer: {
+      paddingHorizontal: 24,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginBottom: 12,
+      marginLeft: 4,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    menuCard: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      overflow: 'hidden',
+      shadowColor: colors.textPrimary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    menuIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    menuIconDanger: {
+      backgroundColor: '#FEE2E2',
+    },
+    menuContent: {
+      flex: 1,
+    },
+    menuTitle: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: colors.textPrimary,
+    },
+    menuTitleDanger: {
+      color: colors.error,
+    },
+    menuSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    menuDivider: {
+      height: 1,
+      backgroundColor: colors.backgroundDark,
+      marginLeft: 70,
+    },
+    versionText: {
+      textAlign: 'center',
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 8,
+    },
+  });
+}

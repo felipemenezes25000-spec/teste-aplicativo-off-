@@ -15,8 +15,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useColors } from '@/contexts/ThemeContext';
 
-const prescriptionTypes = [
+const getPrescriptionTypes = (colors: ReturnType<typeof useColors>) => [
   {
     id: 'simple',
     title: 'Receita Simples',
@@ -43,7 +44,7 @@ const prescriptionTypes = [
     subtitle: 'Notificação B (psicotrópicos)',
     description: 'Para medicamentos de controle especial',
     icon: 'medical',
-    gradient: [colors.primary, '#4AC5E0'],
+    gradient: [colors.primary, '#4AC5E0'] as [string, string],
     price: 'R$ 99,90',
     examples: ['Benzodiazepínicos', 'Barbitúricos', 'Anfetaminas'],
   },
@@ -52,6 +53,8 @@ const prescriptionTypes = [
 export default function PrescriptionTypeScreen() {
   const router = useRouter();
   const colors = useColors();
+  const styles = createStyles(colors);
+  const prescriptionTypes = getPrescriptionTypes(colors);
 
   const handleSelectType = (type: string) => {
     router.push({
@@ -197,191 +200,193 @@ export default function PrescriptionTypeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFB',
-  },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#F8FAFB',
+    },
 
-  // Header
-  header: {
-    paddingTop: 50,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerContent: {},
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
+    // Header
+    header: {
+      paddingTop: 50,
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    headerContent: {},
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      fontSize: 15,
+      color: 'rgba(255, 255, 255, 0.8)',
+    },
 
-  // Content
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 24,
-  },
+    // Content
+    content: {
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 24,
+    },
 
-  // Info Card
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#E6F7FA',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
-    gap: 10,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#0A3A42',
-    lineHeight: 18,
-  },
+    // Info Card
+    infoCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: '#E6F7FA',
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 20,
+      gap: 10,
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 13,
+      color: '#0A3A42',
+      lineHeight: 18,
+    },
 
-  // Type Card
-  typeCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  typeIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  typeContent: {
-    flex: 1,
-  },
-  typeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  typeTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  typeSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  typePrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  typeDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  examplesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  exampleBadge: {
-    backgroundColor: '#F1F5F7',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  exampleText: {
-    fontSize: 11,
-    color: '#4A5960',
-  },
-  arrow: {
-    marginLeft: 8,
-    marginTop: 16,
-  },
+    // Type Card
+    typeCard: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 16,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    typeIconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+    },
+    typeContent: {
+      flex: 1,
+    },
+    typeHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    typeTitle: {
+      fontSize: 17,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    typeSubtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    typePrice: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    typeDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginBottom: 12,
+    },
+    examplesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+    },
+    exampleBadge: {
+      backgroundColor: '#F1F5F7',
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 8,
+    },
+    exampleText: {
+      fontSize: 11,
+      color: '#4A5960',
+    },
+    arrow: {
+      marginLeft: 8,
+      marginTop: 16,
+    },
 
-  // Steps Card
-  stepsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 8,
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  stepsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 20,
-  },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  stepNumberText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  stepContent: {
-    flex: 1,
-    paddingBottom: 4,
-  },
-  stepTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  stepDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  stepLine: {
-    width: 2,
-    height: 24,
-    backgroundColor: '#E4E9EC',
-    marginLeft: 13,
-    marginVertical: 4,
-  },
-});
+    // Steps Card
+    stepsCard: {
+      backgroundColor: '#FFFFFF',
+      borderRadius: 20,
+      padding: 20,
+      marginTop: 8,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    stepsTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 20,
+    },
+    step: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    stepNumber: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 14,
+    },
+    stepNumberText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    stepContent: {
+      flex: 1,
+      paddingBottom: 4,
+    },
+    stepTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    stepDescription: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    stepLine: {
+      width: 2,
+      height: 24,
+      backgroundColor: '#E4E9EC',
+      marginLeft: 13,
+      marginVertical: 4,
+    },
+  });
+}

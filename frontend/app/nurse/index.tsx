@@ -26,6 +26,7 @@ export default function NurseDashboardScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const colors = useColors();
+  const styles = createStyles(colors);
   const [queue, setQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,51 +186,53 @@ export default function NurseDashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFB' },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#F8FAFB' },
 
-  header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  greeting: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
-  nurseName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
-  logoutButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+    header: { paddingTop: 50, paddingBottom: 24, paddingHorizontal: 24 },
+    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+    greeting: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
+    nurseName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
+    logoutButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
 
-  availabilityCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 14 },
-  availabilityContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6B7C85' },
-  statusDotActive: { backgroundColor: '#A7F3D0' },
-  availabilityText: { fontSize: 14, color: '#FFFFFF', fontWeight: '500' },
+    availabilityCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 14 },
+    availabilityContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    statusDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6B7C85' },
+    statusDotActive: { backgroundColor: '#A7F3D0' },
+    availabilityText: { fontSize: 14, color: '#FFFFFF', fontWeight: '500' },
 
-  content: { flex: 1 },
-  contentContainer: { padding: 24 },
+    content: { flex: 1 },
+    contentContainer: { padding: 24 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
-  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+    statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    statIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+    statValue: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+    statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 
-  infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 12, padding: 14, marginBottom: 24, gap: 10 },
-  infoText: { flex: 1, fontSize: 13, color: '#065F46', lineHeight: 18 },
-  infoBold: { fontWeight: '600' },
+    infoCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 12, padding: 14, marginBottom: 24, gap: 10 },
+    infoText: { flex: 1, fontSize: 13, color: '#065F46', lineHeight: 18 },
+    infoBold: { fontWeight: '600' },
 
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
+    section: { marginBottom: 24 },
+    sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 },
 
-  requestCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  requestTypeContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  requestTypeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  requestPatient: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  requestType: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  requestNotes: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 12, paddingLeft: 52 },
-  requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  requestTime: { fontSize: 12, color: '#9BA7AF' },
-  acceptButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, gap: 6 },
-  acceptButtonText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+    requestCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#1A3A4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+    requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
+    requestTypeContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    requestTypeIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    requestPatient: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+    requestType: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+    requestNotes: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 12, paddingLeft: 52 },
+    requestFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    requestTime: { fontSize: 12, color: '#9BA7AF' },
+    acceptButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#10B981', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10, gap: 6 },
+    acceptButtonText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 
-  emptyContainer: { alignItems: 'center', paddingVertical: 48 },
-  emptyIconContainer: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
-  emptySubtitle: { fontSize: 14, color: colors.textSecondary },
-});
+    emptyContainer: { alignItems: 'center', paddingVertical: 48 },
+    emptyIconContainer: { width: 80, height: 80, borderRadius: 24, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+    emptySubtitle: { fontSize: 14, color: colors.textSecondary },
+  });
+}

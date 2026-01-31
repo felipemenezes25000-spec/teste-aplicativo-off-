@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-import { useColors } from '@/contexts/ThemeContext';
-  View, 
-  Text, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  ScrollView,
   StyleSheet,
-  useColorScheme 
+  useColorScheme
 } from 'react-native';
+import { useColors } from '@/contexts/ThemeContext';
 
 const PRIVACY_CONTENT = `
 # POLÍTICA DE PRIVACIDADE

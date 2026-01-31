@@ -22,22 +22,24 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext'
-import { useColors } from '@/contexts/ThemeContext';;
+import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 import { COLORS } from '@/utils/constants';
 
-const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
+const getStatusConfig = (colors: ReturnType<typeof useColors>): Record<string, { color: string; bg: string; label: string }> => ({
   submitted: { color: colors.warning, bg: '#FEF3C7', label: 'Aguardando análise' },
   in_review: { color: COLORS.primary, bg: '#DFF7FB', label: 'Em análise' },
   approved_pending_payment: { color: colors.success, bg: '#D1FAE5', label: 'Aprovada - Aguard. pagamento' },
   paid: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Pago - Aguard. assinatura' },
   signed: { color: colors.success, bg: '#D1FAE5', label: 'Assinada' },
   rejected: { color: colors.error, bg: '#FEE2E2', label: 'Recusada' },
-};
+});
 
 export default function DoctorRequestDetailScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
+  const statusConfig = getStatusConfig(colors);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -362,12 +364,12 @@ export default function DoctorRequestDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
-  errorText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
-
-  header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' },
+    errorText: { marginTop: 12, fontSize: 16, color: colors.textSecondary },
+    header: { paddingTop: 50, paddingBottom: 16, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '600', color: colors.card },
   chatButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
@@ -426,4 +428,5 @@ const styles = StyleSheet.create({
   modalButtonOutlineText: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
   modalButtonDanger: { backgroundColor: colors.error },
   modalButtonText: { fontSize: 15, fontWeight: '600', color: colors.card },
-});
+  });
+}

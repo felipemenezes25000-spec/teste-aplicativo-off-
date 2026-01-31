@@ -27,6 +27,7 @@ const UF_LIST = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG
 
 export default function DoctorRegisterScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { registerDoctor } = useAuth();
   
@@ -56,18 +57,23 @@ export default function DoctorRegisterScreen() {
 
     setLoading(true);
     try {
-      await registerDoctor({
+      const result = await registerDoctor({
         name: name.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
-        phone: phone.trim(),
+        phone: phone.trim() || undefined,
         crm: crm.trim(),
         crm_state: crmState,
         specialty: specialty.trim(),
       });
-      Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
-        { text: 'OK', onPress: () => router.replace('/doctor') }
-      ]);
+      
+      if (result.success) {
+        Alert.alert('Sucesso! 🎉', 'Conta criada com sucesso!', [
+          { text: 'OK', onPress: () => router.replace('/doctor') }
+        ]);
+      } else {
+        Alert.alert('Erro', result.error || 'Erro ao criar conta');
+      }
     } catch (error: any) {
       Alert.alert('Erro', error.message || 'Erro ao criar conta');
     } finally {
@@ -262,54 +268,56 @@ export default function DoctorRegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  gradient: { ...StyleSheet.absoluteFillObject },
-  keyboardView: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    gradient: { ...StyleSheet.absoluteFillObject },
+    keyboardView: { flex: 1 },
+    scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  backButton: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  headerBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6 },
-  headerBadgeText: { fontSize: 12, fontWeight: '600', color: colors.card },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+    backButton: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+    headerBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6 },
+    headerBadgeText: { fontSize: 12, fontWeight: '600', color: colors.card },
 
-  titleSection: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 8 },
-  subtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 22 },
+    titleSection: { marginBottom: 24 },
+    title: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 8 },
+    subtitle: { fontSize: 15, color: 'rgba(255,255,255,0.8)', lineHeight: 22 },
 
-  formCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
-  formSectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
+    formCard: { backgroundColor: colors.card, borderRadius: 24, padding: 24, shadowColor: colors.textPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 24, elevation: 5 },
+    formSectionTitle: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 16, paddingHorizontal: 16, height: 56 },
-  inputFocused: { borderColor: colors.textPrimary, backgroundColor: colors.card },
-  inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: colors.textPrimary },
-  eyeButton: { padding: 4 },
+    inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, marginBottom: 16, paddingHorizontal: 16, height: 56 },
+    inputFocused: { borderColor: colors.textPrimary, backgroundColor: colors.card },
+    inputIcon: { marginRight: 12 },
+    input: { flex: 1, fontSize: 16, color: colors.textPrimary },
+    eyeButton: { padding: 4 },
 
-  crmRow: { flexDirection: 'row', gap: 12 },
-  crmInput: { flex: 1 },
-  stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, height: 56, gap: 4, marginBottom: 16 },
-  stateSelectorText: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+    crmRow: { flexDirection: 'row', gap: 12 },
+    crmInput: { flex: 1 },
+    stateSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderRadius: 16, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 16, height: 56, gap: 4, marginBottom: 16 },
+    stateSelectorText: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
 
-  termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24, gap: 12 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  checkboxChecked: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
-  termsText: { flex: 1, fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
-  termsLink: { color: colors.textPrimary, fontWeight: '500' },
+    termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24, gap: 12 },
+    checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+    checkboxChecked: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
+    termsText: { flex: 1, fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
+    termsLink: { color: colors.textPrimary, fontWeight: '500' },
 
-  registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
-  registerButtonText: { fontSize: 18, fontWeight: '600', color: colors.card },
+    registerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 16, gap: 8 },
+    registerButtonText: { fontSize: 18, fontWeight: '600', color: colors.card },
 
-  loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  loginText: { fontSize: 14, color: colors.textSecondary },
-  loginLink: { fontSize: 14, color: colors.textPrimary, fontWeight: '600' },
+    loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+    loginText: { fontSize: 14, color: colors.textSecondary },
+    loginLink: { fontSize: 14, color: colors.textPrimary, fontWeight: '600' },
 
-  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: colors.card, borderRadius: 20, padding: 20, width: '80%', maxHeight: '60%' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 16, textAlign: 'center' },
-  modalScroll: { maxHeight: 300 },
-  modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
-  modalItemSelected: { backgroundColor: colors.primaryLight },
-  modalItemText: { fontSize: 16, color: colors.textPrimary, textAlign: 'center' },
-  modalItemTextSelected: { fontWeight: '600', color: colors.primary },
-});
+    modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    modalContent: { backgroundColor: colors.card, borderRadius: 20, padding: 20, width: '80%', maxHeight: '60%' },
+    modalTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 16, textAlign: 'center' },
+    modalScroll: { maxHeight: 300 },
+    modalItem: { paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10 },
+    modalItemSelected: { backgroundColor: colors.primaryLight },
+    modalItemText: { fontSize: 16, color: colors.textPrimary, textAlign: 'center' },
+    modalItemTextSelected: { fontWeight: '600', color: colors.primary },
+  });
+}

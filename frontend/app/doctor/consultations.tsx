@@ -20,8 +20,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext'
-import { useColors } from '@/contexts/ThemeContext';;
+import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import { api } from '@/services/api';
 
 type ConsultationType = {
@@ -40,6 +40,7 @@ type ConsultationType = {
 
 export default function DoctorConsultationsScreen() {
   const colors = useColors();
+  const styles = createStyles(colors);
   const router = useRouter();
   const { user } = useAuth();
   
@@ -365,13 +366,11 @@ export default function DoctorConsultationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-
-  // Header
-  header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
+function createStyles(colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
+    header: { paddingTop: 50, paddingBottom: 20, paddingHorizontal: 24 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   headerContent: { marginBottom: 8 },
   headerTitle: { fontSize: 28, fontWeight: '700', color: colors.card, marginBottom: 4 },
@@ -423,4 +422,5 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 96, height: 96, borderRadius: 48, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
   emptyText: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
-});
+  });
+}

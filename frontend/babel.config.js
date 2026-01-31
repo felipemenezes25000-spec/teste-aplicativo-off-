@@ -12,6 +12,8 @@ module.exports = function (api) {
           },
         },
       ],
+      // Reanimated plugin deve ser o ÚLTIMO (obrigatório para Expo Go)
+      'react-native-reanimated/plugin',
     ],
   };
 };
